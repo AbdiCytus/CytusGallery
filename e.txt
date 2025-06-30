@@ -1,0 +1,51 @@
+Ada beberapa fitur utama yang saya inginkan pada proyek ini.
+1. Searchbar pencarian berdasarkan tag & auto suggest tag.
+2. Tampilan grid seperti tampilan pinterest.
+3. Pagination
+4. Detail konten
+5. Filter berdasarkan rating
+6. Responsive
+7. Slider konten
+8. Sidebar menu
+9. Download konten
+10. Clickable tag
+11. Hover & Transisi
+12. Share konten
+13. Header & footer
+14. Custom konten per page
+
+Penjelasan tiap fitur:
+1. Search input untuk melakukan search konten berdasarkan tag dan akan muncul maksimal sebanyak 10 suggest (jangan sampai scroll). Menekan tombol search atau key enter untuk mengkonfirmasi. Posisi searchbar ada di bawah header.
+2. Konten akan dirender di halaman dalam bentuk grid, diberikan indeks tiap kontennya, ukuran desktop sebanyak 5 kolom, tampilan mobile sebanyak 2 kolom.
+3. Pagination akan berada di posisi paling bawah halaman sebelum footer, jangkauan page yang terlihat sebanyak 3 pages sisanya akan jadi ... jumlah pagination di dapatkan dari total seluruh konten dibagi dengan konten per halaman. Default jumlah konten per halaman berjumlah 25, halaman awal atau utama akan diisi dengan seluruh post konten danbooru didapatkan dari /counts/posts.json. Misalnya danbooru memiliki jumlah total post keseluruhan sebanyak 1,000,000 maka jumlah paginationnya 500,000 / 25 = 20,000. Lakukan hal yang serupa dengan tag lainnya
+4. User dapat melihat detail dari konten. Di halaman detail konten berisikan berbagai macam tags seperti Metadata, Copyright, Character, Artist, Meta Tags, dan General Tags.
+5. User dapat melakukan filter konten berdasarkan rating dan tipenya.
+    a. Filter rating akan terjadi menjadi 3
+        - Safe = ambil konten hanya dengan rating g.
+        - Moderate = ambil semua rating konten kecuali e.
+        - Explicit = ambil semua rating konten kecuali g.
+    Default rating filter adalah nonaktif alias tampilkan seluruh rating.
+    b. Filter tipe konten terbagi menjadi 2
+        - Image = jpg,png,webp
+        - Video = mp4,webm
+    Default filter tipe konten adalah nonaktif alias tampilkan seluruh konten tipe image dan video.
+    Catatan untuk tipe konten: jangan ambil data file_ext, ambil large_file_url untuk mengambil ekstensinya, karena kadang di file_ext ada format .zip yang membuat tidak bisa dipakai. 
+6. Aplikasi web memiliki fitur responsive ke semua ukuran layar.
+7. Web menampilkan slider 10 konten berdasarkan skor tertinggi dari seluruh konten tag tertentu. Slider ada di posisi di bawah searchbar dan hanya ditampilkan pada page 1.
+8. Sidebar menu akan dihidden di awal, memunculkannya dengan mengklik hamburger menu di header paling kanan. Isi sidebar adalah kumpulan setting seperti toggle untuk mengaktifkan auto suggest dan filteran.
+9. Konten dapat diunduh ke lokal, tombol download akan muncul di bagian detail konten.
+10. Semua tag (kecuali metadata) di detail konten dapat diklik, dan langsung melakukan search ke tag tersebut.
+11. Tiap konten yang dirender di halaman dapat dihover jika didesktop, dapat diklik jika di mobile. Menghover (desktop) atau mengklik (mobile) konten akan menampilkan overlay dari konten tersebut berisikan nama character, copyright, dan tombol untuk menuju ke halaman detail konten. Tombol akan dinonaktifkan sampai overlay muncul.
+12. Konten dapat dishare saat berada di halaman detail konten dengan menggunakan tombol Share.
+13. Header berisikan title web (kiri) dan hamburger menu (kanan), header akan disembunyikan ditampilan mobile ketika user scroll ke bawah sampai di batasan tertentu, akan kembali ditampilkan ketika user kembali ke paling atas halaman. Footer berisi seperti footer pada biasanya.
+14. User dapat mengatur batas jumlah konten yang dirender di halaman maksimal hingga 200.
+
+Fitur sampingan tapi penting.
+1. Simpan data pengaturan pengguna.
+2. Simpan tag pencarian pengguna (agar ketika refresh pengguna tidak akan terlempar kembali ke halaman awal tanpa search tag). Hapus penyimpanan tagnya begitu user keluar dari halaman web.
+3. Autoplay hover, dalam mode desktop ketika konten bertipe video dihover akan memutar videonya dalam keadaan mute selama 5 detik secara loop. Fitur ini dapat diaktifkan atau tidak tergantung user (defaultnya nonaktif)
+4. Lazy loading (default nonaktif).
+5. Menampilkan slide 15 tag copyright berjalan secara linear loop horizontal di bawah halaman, posisi di atas footer di bawah pagination. Fitur ini hanya tampil jika user belum melakukan search tag apapun. Tag yang berjalan ini dapat diklik dan akan langsung masuk ke pencarian.
+
+Warna primary dari proyek ini abu-abu kehitaman (gradasi). Warnasi akan bertambah tergantung dari filtering rating yang digunakan. Jika safe menambah warna gradasi hijau tua, jika moderate menambah warna gradasi emas tua, jika explicit akan menambah warna grasi merah tua, jika tidak difilter kembali ke warna primary default.
+Nama web: CytusGallery
