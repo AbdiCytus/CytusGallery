@@ -1,0 +1,36 @@
+<% if (totalPages > 1) { %>
+<nav class="flex justify-center items-center space-x-1 md:space-x-2 my-12">
+  <%
+        const urlParams = new URLSearchParams();
+        if (tags) urlParams.append('tags', tags);
+        const baseUrl = tags ? `/search?${urlParams.toString()}` : `/?${urlParams.toString()}`;
+        const pageParam = tags ? `&page=` : `page=`;
+
+        // Logika baru untuk menampilkan rentang halaman yang lebih luas
+        let startPage = Math.max(1, currentPage - 3);
+        let endPage = Math.min(totalPages, currentPage + 3);
+    %>
+
+  <% if (currentPage > 1) { %>
+  <a href="<%= baseUrl %><%= pageParam %><%= currentPage - 1 %>" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm">«</a>
+  <% } %>
+
+  <% if (startPage > 1) { %>
+  <a href="<%= baseUrl %><%= pageParam %>1" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm">1</a>
+  <% if (startPage > 2) { %><span class="px-3 py-2 text-gray-500">...</span><% } %>
+  <% } %>
+
+  <% for (let i = startPage; i <= endPage; i++) { %>
+  <a href="<%= baseUrl %><%= pageParam %><%= i %>" class="px-3 py-2 rounded-md text-sm <%= i === currentPage ? 'bg-cyan-600 text-white font-bold' : 'bg-gray-700 hover:bg-cyan-500' %>"><%= i %></a>
+  <% } %>
+
+  <% if (endPage < totalPages) { %>
+  <% if (endPage < totalPages - 1) { %><span class="px-3 py-2 text-gray-500">...</span><% } %>
+  <a href="<%= baseUrl %><%= pageParam %><%= totalPages %>" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm"><%= totalPages %></a>
+  <% } %>
+
+  <% if (currentPage < totalPages) { %>
+  <a href="<%= baseUrl %><%= pageParam %><%= currentPage + 1 %>" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm">»</a>
+  <% } %>
+</nav>
+<% } %>

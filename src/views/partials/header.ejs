@@ -1,21 +1,55 @@
 <!DOCTYPE html>
 <html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CytusGallery</title>
-    <link href="/css/style.css" rel="stylesheet" />
-  </head>
-  <body class="bg-gray-900 text-white min-h-screen">
-    <header class="bg-gray-800/50 backdrop-blur-sm sticky top-0 z-50">
-      <nav class="container mx-auto p-4 flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-cyan-400">CytusGallery</h1>
-        <div class="space-y-2 cursor-pointer md:hidden">
-          <span class="block w-8 h-0.5 bg-gray-100"></span>
-          <span class="block w-8 h-0.5 bg-gray-100"></span>
-          <span class="block w-8 h-0.5 bg-gray-100"></span>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CytusGallery</title>
+  <link href="/css/style.css" rel="stylesheet" />
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen">
+  <header class="bg-gray-800/50 backdrop-blur-sm sticky top-0 z-50">
+    <nav class="container mx-auto p-4 flex justify-between items-center">
+      <a href="/" class="text-2xl font-bold text-cyan-400">CytusGallery</a>
+      <div class="space-y-2 cursor-pointer md:hidden">
+        <span class="block w-8 h-0.5 bg-gray-100"></span>
+        <span class="block w-8 h-0.5 bg-gray-100"></span>
+        <span class="block w-8 h-0.5 bg-gray-100"></span>
+      </div>
+    </nav>
+  </header>
+
+  <section class="container mx-auto px-4 py-2">
+    <div class="relative">
+      <form action="/search" method="GET" id="search-form" onsubmit="handleSearchSubmit(event)">
+        <div class="relative">
+          <input type="text" name="tags" id="search-input" class="w-full bg-gray-700 border border-gray-600 rounded-md py-3 pl-4 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500" placeholder="Cari berdasarkan tag..." autocomplete="off" value="<%= tags.replace(/_/g, ' ') %>">
+          <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-cyan-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+            </svg>
+          </button>
         </div>
-      </nav>
-    </header>
-  </body>
-</html>
+      </form>
+      <div id="suggestions-box" class="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded-md mt-1 hidden">
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function handleSearchSubmit(event) {
+      event.preventDefault(); // Mencegah form dikirim secara langsung
+      const form = event.target;
+      const input = form.querySelector('#search-input');
+
+      // Ganti spasi dengan underscore
+      const sanitizedValue = input.value.trim().replace(/\s+/g, '_');
+
+      // Setel kembali nilai input dengan yang sudah bersih
+      input.value = sanitizedValue;
+
+      // Kirim form
+      form.submit();
+    }
+  </script>
