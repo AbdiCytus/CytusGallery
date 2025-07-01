@@ -1,15 +1,18 @@
 @import "tailwindcss";
 /* src/input.css */
+/* Aturan dasar untuk overlay, selalu transparan di awal */
 .gallery-item .overlay {
-  @apply opacity-0 transition-opacity duration-300;
+    @apply opacity-0 transition-opacity duration-300;
 }
 
-/* Munculkan saat group di-hover di desktop */
-.gallery-item:hover .overlay {
-  @apply opacity-100;
+/* ATURAN HOVER - HANYA BERLAKU DI PERANGKAT DENGAN MOUSE (DESKTOP) */
+@media (hover: hover) {
+    .gallery-item:hover .overlay {
+        @apply opacity-100;
+    }
 }
 
-/* Munculkan jika item aktif di mobile */
+/* ATURAN TAP - HANYA BERLAKU SAAT JS MENAMBAHKAN CLASS INI DI MOBILE */
 .gallery-item.mobile-active .overlay {
-  @apply opacity-100 pointer-events-auto;
+    @apply opacity-100 pointer-events-auto;
 }
