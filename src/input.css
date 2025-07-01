@@ -1,1 +1,15 @@
 @import "tailwindcss";
+/* src/input.css */
+.gallery-item .overlay {
+  @apply opacity-0 transition-opacity duration-300;
+}
+
+/* Munculkan saat group di-hover di desktop */
+.gallery-item:hover .overlay {
+  @apply opacity-100;
+}
+
+/* Munculkan jika item aktif di mobile */
+.gallery-item.mobile-active .overlay {
+  @apply opacity-100 pointer-events-auto;
+}

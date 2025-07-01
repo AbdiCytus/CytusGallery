@@ -1,0 +1,145 @@
+<%- include('partials/header', { tags: '' }) %>
+
+<main class="container mx-auto p-4">
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+    <div class="md:col-span-2 bg-gray-800 rounded-lg p-2 flex justify-center items-center">
+      <% if (post.file_ext === 'mp4' || post.file_ext === 'webm') { %>
+      <video src="<%= post.large_file_url %>" class="max-w-full max-h-[90vh] rounded-md" controls autoplay loop muted></video>
+      <% } else { %>
+      <img src="<%= post.large_file_url %>" alt="Detail konten" class="max-w-full max-h-[90vh] rounded-md">
+      <% } %>
+    </div>
+
+    <div class="md:col-span-1">
+      <h2 class="text-2xl font-bold mb-4">Informasi & Tag</h2>
+      <div class="space-y-4">
+
+        <div>
+          <h3 class="font-semibold mb-2 text-gray-400">Metadata</h3>
+          <div class="flex flex-wrap gap-2 text-sm">
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>ID:</strong> <%= post.id %></span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Rating:</strong> <%= post.rating.toUpperCase() %></span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Score:</strong> <%= post.score %></span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Size:</strong> <%= (post.file_size / 1024 / 1024).toFixed(2) %> MB</span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Dimensions:</strong> <%= post.image_width %>x<%= post.image_height %></span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Uploaded:</strong> <%= new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', 'month': 'short', 'year': 'numeric' }) %></span>
+            <% if (post.source) { %>
+            <a href="<%= post.source %>" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded-md flex items-center gap-1">
+              <strong>Source</strong>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+              </svg>
+            </a>
+            <% } %>
+          </div>
+        </div>
+
+        <%
+                    const renderTags = (title, tagString, colorClass) => {
+                        if (tagString && tagString.trim() !== '') {
+                            const tags = tagString.split(' ');
+                %>
+        <div>
+          <h3 class="font-semibold mb-2 <%= colorClass %>"><%= title %></h3>
+          <div class="flex flex-wrap gap-2">
+            <% tags.forEach(tag => { %>
+            <a href="/search?tags=<%= tag %>" class="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded-md">
+              <%= tag.replace(/_/g, ' ') %>
+            </a>
+            <% }); %>
+          </div>
+        </div>
+        <%
+                        }
+                    }
+                %>
+
+        <% renderTags('Copyright', post.tag_string_copyright, 'text-purple-400'); %>
+        <% renderTags('Character(s)', post.tag_string_character, 'text-green-400'); %>
+        <% renderTags('Artist', post.tag_string_artist, 'text-amber-400'); %>
+        <% renderTags('General Tags', post.tag_string_general, 'text-blue-400'); %>
+
+        <div class="pt-4 space-y-3">
+          <button id="download-button" class="w-full block text-center bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">
+            Download Original
+          </button>
+          <a href="<%= post.large_file_url %>" target="_blank" rel="noopener noreferrer" class="w-full block text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
+            Lihat Gambar Penuh
+          </a>
+          <button id="share-button" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
+            Share
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Logika untuk tombol Download
+  const downloadButton = document.getElementById('download-button');
+  if (downloadButton) {
+    downloadButton.addEventListener('click', async () => {
+      const fileUrl = '<%= post.file_url %>';
+      const filename = '<%= post.md5 %>.<%= post.file_ext %>';
+
+      // Beri feedback ke user
+      downloadButton.textContent = 'Downloading...';
+      downloadButton.disabled = true;
+
+      try {
+        // Ambil data file sebagai blob
+        const response = await fetch(fileUrl);
+        const blob = await response.blob();
+
+        // Buat URL sementara untuk blob
+        const blobUrl = window.URL.createObjectURL(blob);
+
+        // Buat link sementara, klik, lalu hapus
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+
+        // Hapus link dan URL sementara
+        window.URL.revokeObjectURL(blobUrl);
+        a.remove();
+      } catch (err) {
+        console.error('Download error:', err);
+        alert('Gagal mengunduh file.');
+      } finally {
+        // Kembalikan tombol ke keadaan semula
+        downloadButton.textContent = 'Download Original';
+        downloadButton.disabled = false;
+      }
+    });
+  }
+  // Logika untuk tombol Share
+  const shareButton = document.getElementById('share-button');
+  if (shareButton) {
+    shareButton.addEventListener('click', async () => {
+      const shareData = {
+        title: 'Lihat konten di CytusGallery',
+        text: 'Dibagikan dari CytusGallery - Artist: <%= post.tag_string_artist.replace(/_/g, " ") %>',
+        url: window.location.href
+      };
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          navigator.clipboard.writeText(window.location.href);
+          alert('Web Share tidak didukung. Link sudah disalin ke clipboard!');
+        }
+      } catch (err) {
+        console.error('Error sharing:', err);
+        alert('Gagal membagikan. Silakan salin URL secara manual.');
+      }
+    });
+  }
+</script>
+
+<%- include('partials/footer') %>

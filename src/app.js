@@ -86,6 +86,21 @@ app.get("/search", async (req, res) => {
   }
 });
 
+app.get("/posts/:id", async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const response = await axios.get(
+      `https://danbooru.donmai.us/posts/${postId}.json`
+    );
+    const post = response.data;
+
+    res.render("detail", { post: post });
+  } catch (error) {
+    console.error("Error fetching post details:", error);
+    res.status(404).send("Konten tidak ditemukan");
+  }
+});
+
 // == API Endpoint untuk Auto-suggest Tag ==
 app.get("/api/tagsuggest", async (req, res) => {
   const searchTerm = req.query.term;

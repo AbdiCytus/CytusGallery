@@ -78,4 +78,54 @@ document.addEventListener("DOMContentLoaded", () => {
       suggestionsBox.classList.add("hidden");
     }
   });
+
+  // === Logika BARU untuk Interaksi Grid di Mobile ===
+  // === Logika FINAL yang JAUH LEBIH SEDERHANA untuk Interaksi Grid ===
+  const isMobile = () => window.innerWidth < 768;
+
+  const galleryItems = document.querySelectorAll(".gallery-item");
+
+  // Fungsi untuk menutup semua overlay yang aktif di mobile
+  const closeAllOverlays = () => {
+    galleryItems.forEach((item) => {
+      item.classList.remove("mobile-active");
+    });
+  };
+
+  galleryItems.forEach((item) => {
+    item.addEventListener("click", (e) => {
+      // Jika BUKAN mobile, hentikan semua eksekusi JavaScript.
+      // Biarkan browser menangani link HTML secara normal.
+      if (!isMobile()) {
+        return;
+      }
+
+      // Jika yang diklik adalah tombol detail, biarkan link <a>-nya bekerja
+      if (e.target.closest(".detail-button")) {
+        return;
+      }
+
+      // Untuk area lain di mobile, cegah navigasi default dan jalankan logika overlay
+      e.preventDefault();
+
+      // Jika item ini sudah aktif, tutup.
+      if (item.classList.contains("mobile-active")) {
+        closeAllOverlays();
+      } else {
+        // Jika item lain yang aktif, tutup dulu, baru buka yang ini.
+        closeAllOverlays();
+        item.classList.add("mobile-active");
+      }
+    });
+  });
+
+  // Event listener untuk menutup overlay jika mengklik di luar item manapun
+  document.addEventListener("click", (e) => {
+    // Jika bukan mobile atau yang diklik adalah bagian dari gallery item, jangan lakukan apa-apa
+    if (!isMobile() || e.target.closest(".gallery-item")) {
+      return;
+    }
+    // Jika klik di luar, tutup semua overlay
+    closeAllOverlays();
+  });
 });
