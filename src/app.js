@@ -88,52 +88,49 @@ app.get("/", async (req, res) => {
 });
 
 app.get("/search", async (req, res) => {
-  const allTags = req.query.tags || "";
-  if (!allTags) return res.redirect("/");
+  // Ambil parameter dari URL
+  const userQueryTags = req.query.tags || "";
+  const filterQuery = req.query.query || "";
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 25;
+  const isLazyLoadEnabled = req.query.lazyload === "true";
 
-  // Memisahkan tag filter dari tag yang diketik pengguna
-  const userTags = allTags
-    .split(" ")
-    .filter(
-      (tag) =>
-        !tag.startsWith("rating:") &&
-        !tag.startsWith("-rating:") &&
-        !tag.startsWith("filetype:")
-    )
-    .join(" ");
+  // Gabungkan semua tag untuk dikirim ke API
+  const allTags = `${userQueryTags} ${filterQuery}`.trim();
+
+  // Blok 'if (!allTags)' yang menyebabkan loop sudah dihapus dari sini
 
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 25;
-    const isLazyLoadEnabled = req.query.lazyload === "true";
-
-    // Ambil total post yang akurat menggunakan semua tag filter
-    let countResponse = await axios.get(
+    // Ambil total post yang akurat
+    const countResponse = await axios.get(
       `https://danbooru.donmai.us/counts/posts.json?tags=${allTags}`
     );
-
-    if (countResponse.data.counts.posts == null) {
-      countResponse = await axios.get(
-        `https://danbooru.donmai.us/counts/posts.json?${allTags}`
-      );
-    }
     const totalPosts = countResponse.data.counts.posts;
     const totalPages = Math.ceil(totalPosts / limit);
 
-    let postsResponse = await axios.get(
+    // Ambil data post untuk galeri
+    const postsResponse = await axios.get(
       `https://danbooru.donmai.us/posts.json?tags=${allTags}&page=${page}&limit=${limit}`
     );
     const posts = postsResponse.data;
 
-    // --- TAMBAHKAN LOGIKA SLIDER DI SINI ---
+    // Ambil data untuk slider jika di halaman pertama
     let sliderPosts = [];
-    let popularTags = [];
-    let popularCharacters = [];
-
     if (page === 1) {
       const sliderApiTags = `order:score ${allTags}`;
       const sliderResponse = await axios.get(
         `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15`
+      );
+      sliderPosts = sliderResponse.data;
+    }
+
+    let popularTags = [];
+    let popularCharacters = [];
+
+    // Hanya ambil data slider jika di halaman pertama
+    if (page === 1) {
+      const sliderResponse = await axios.get(
+        `https://danbooru.donmai.us/posts.json?order:score&limit=15`
       );
       sliderPosts = sliderResponse.data;
       // Ambil dan acak data tag
@@ -146,6 +143,7 @@ app.get("/search", async (req, res) => {
         [tagsPool[i], tagsPool[j]] = [tagsPool[j], tagsPool[i]];
       }
       popularTags = tagsPool.slice(0, 15);
+
       const charTagsResponse = await axios.get(
         `https://danbooru.donmai.us/tags.json?search[category]=4&search[order]=count&limit=100`
       );
@@ -160,13 +158,13 @@ app.get("/search", async (req, res) => {
     res.render("search", {
       posts: posts,
       sliderPosts: sliderPosts,
-      popularTags: popularTags,
-      popularCharacters: popularCharacters,
       currentPage: page,
       totalPages: totalPages,
+      popularCharacters: popularCharacters,
+      popularTags: popularTags,
       limit: limit,
-      tags: allTags,
-      userTags: userTags,
+      tagsForPagination: allTags,
+      userTags: userQueryTags,
       isLazyLoadEnabled: isLazyLoadEnabled,
     });
   } catch (error) {

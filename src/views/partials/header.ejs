@@ -10,6 +10,68 @@
 </head>
 
 <body class="bg-gray-900 text-white min-h-screen">
+  <script>
+    (function() {
+      // Jalankan hanya di halaman utama
+      if (window.location.pathname !== '/') return;
+
+      // Fungsi untuk membangun URL dari filter
+      const buildUrlFromFilters = (filters) => {
+        const params = new URLSearchParams();
+        let filterQueryParts = [];
+
+        if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
+          let ratingTag = filters.rating === "not_g" ? "-rating:g" : (filters.rating === "not_e" ? "-rating:e" : `rating:${filters.rating}`);
+          filterQueryParts.push(ratingTag);
+        }
+        if (filters.typeToggle && filters.type) {
+          let typeTag = '';
+          if (filters.type === 'image') typeTag = 'filetype:jpg,jpeg,png,webp,gif,avif';
+          else if (filters.type === 'video') typeTag = 'filetype:mp4,webm';
+          if (typeTag) filterQueryParts.push(typeTag);
+        }
+
+        const filterQuery = filterQueryParts.join(' ');
+        if (filterQuery) {
+          params.append('query', filterQuery);
+        }
+
+        params.append('limit', filters.limit || 25);
+        if (filters.lazyloadToggle) {
+          params.append('lazyload', 'true');
+        }
+
+        const queryString = params.toString();
+        return `/search?${queryString}`;
+      };
+
+      let filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+
+      // Jika pengguna baru (tidak ada setting), buat defaultnya
+      if (!filters) {
+        filters = {
+          ratingToggle: true,
+          rating: "g",
+          typeToggle: false,
+          type: "image",
+          limit: "25",
+          autoplayToggle: false,
+          lazyloadToggle: true,
+        };
+        localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+      }
+
+      // Cek jika perlu redirect (pengguna baru atau ada filter aktif)
+      const needsRedirect = !localStorage.getItem("cytusGalleryFilters") || filters.ratingToggle || filters.typeToggle;
+
+      if (needsRedirect) {
+        const newUrl = buildUrlFromFilters(filters);
+        // Ganti halaman saat ini, ini lebih cepat dari redirect biasa
+        window.location.replace(newUrl);
+      }
+    })();
+  </script>
+
 
   <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-30 opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
