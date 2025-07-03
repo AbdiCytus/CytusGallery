@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (page > 1) params.append("page", page);
 
     const queryString = params.toString();
-    window.location.href = `/search?${queryString}`;
+    window.location.href = queryString ? `/search?${queryString}` : "/";
   };
 
   /** Menyimpan semua pengaturan dari sidebar ke localStorage */
@@ -154,6 +154,55 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  /** Fungsi untuk interaksi video */
+  const playVideo = (item) => {
+    const mediaContainer = item.querySelector(".media-container");
+    if (!mediaContainer || item.dataset.isVideo !== "true") return;
+    const imgPreview = mediaContainer.querySelector("img");
+    let videoElement = item.querySelector("video");
+    if (!videoElement) {
+      videoElement = document.createElement("video");
+      videoElement.src = item.dataset.videoUrl;
+      videoElement.className = "w-full h-auto";
+      videoElement.muted = true;
+      videoElement.playsInline = true;
+      mediaContainer.appendChild(videoElement);
+    }
+    if (imgPreview) imgPreview.style.display = "none";
+    videoElement.style.display = "block";
+    videoElement.currentTime = 0;
+    videoElement.play().catch((e) => {});
+    const loopFiveSeconds = () => {
+      if (videoElement.currentTime >= 5) {
+        videoElement.currentTime = 0;
+        videoElement.play().catch((e) => {});
+      }
+    };
+    videoElement.addEventListener("timeupdate", loopFiveSeconds);
+    item.videoLoopListener = loopFiveSeconds;
+  };
+
+  const stopVideo = (item) => {
+    const videoElement = item.querySelector("video");
+    const imgPreview = item.querySelector(".media-container img");
+    if (videoElement) {
+      videoElement.pause();
+      if (item.videoLoopListener) {
+        videoElement.removeEventListener("timeupdate", item.videoLoopListener);
+      }
+      videoElement.style.display = "none";
+    }
+    if (imgPreview) imgPreview.style.display = "block";
+  };
+
+  const closeAllOverlays = () => {
+    galleryItems.forEach((item) => {
+      item.classList.remove("mobile-active");
+      stopVideo(item);
+    });
+  };
+
+  /** Fungsi untuk auto-suggest */
   const setActiveSuggestion = () => {
     if (!suggestionsBox) return;
     const suggestions = suggestionsBox.querySelectorAll("a");
@@ -163,12 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         item.classList.remove("bg-gray-700");
       }
-    });
-  };
-
-  const closeAllOverlays = () => {
-    galleryItems.forEach((item) => {
-      item.classList.remove("mobile-active");
     });
   };
 
@@ -208,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 3. Listener untuk auto-suggest (tidak ada perubahan)
+  // 3. Listener untuk auto-suggest
   if (searchInput) {
     searchInput.addEventListener("input", async () => {
       const term = searchInput.value;
@@ -239,7 +282,6 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Failed to fetch suggestions:", error);
       }
     });
-
     searchInput.addEventListener("keydown", (e) => {
       const suggestions = suggestionsBox.querySelectorAll("a");
       if (
@@ -247,7 +289,6 @@ document.addEventListener("DOMContentLoaded", () => {
         suggestionsBox.classList.contains("hidden")
       )
         return;
-
       if (e.key === "ArrowDown") {
         e.preventDefault();
         activeSuggestionIndex =
@@ -274,46 +315,55 @@ document.addEventListener("DOMContentLoaded", () => {
     closeSidebarButton.addEventListener("click", closeSidebar);
   if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeSidebar);
 
-  // 5. Listener untuk interaksi galeri video (tidak ada perubahan)
+  // 5. Listener untuk interaksi galeri (Desktop)
   galleryItems.forEach((item) => {
-    item.addEventListener("click", (e) => {
-      if (!isMobile()) return;
-      const isCurrentlyActive = item.classList.contains("mobile-active");
-      if (e.target.closest(".detail-button") && isCurrentlyActive) return;
-
-      closeAllOverlays();
-      e.preventDefault();
-
-      if (!isCurrentlyActive) {
-        console.log("activate");
-        item.classList.add("mobile-active");
-      } else {
-        console.log("close");
-        closeAllOverlays();
-      }
+    item.addEventListener("mouseenter", () => {
+      if (isMobile()) return;
+      const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+      if (settings && settings.autoplayToggle) playVideo(item);
+    });
+    item.addEventListener("mouseleave", () => {
+      if (isMobile()) return;
+      stopVideo(item);
     });
   });
 
-  // 6. Listener global untuk mencegat klik link dan menutup elemen
+  // 6. Listener global untuk klik (termasuk interaksi mobile)
   document.addEventListener("click", (e) => {
     // Menutup suggestion box
     if (searchForm && !searchForm.contains(e.target)) {
       if (suggestionsBox) suggestionsBox.classList.add("hidden");
     }
 
-    // Menutup overlay mobile
-    if (isMobile() && !e.target.closest(".gallery-item")) {
-      galleryItems.forEach((item) => item.classList.remove("mobile-active"));
+    // Logika untuk Mobile
+    if (isMobile()) {
+      const clickedItem = e.target.closest(".gallery-item");
+      if (!clickedItem) {
+        closeAllOverlays();
+      } else {
+        if (e.target.closest(".detail-button")) return;
+        e.preventDefault();
+        const isCurrentlyActive =
+          clickedItem.classList.contains("mobile-active");
+        closeAllOverlays();
+        if (!isCurrentlyActive) {
+          clickedItem.classList.add("mobile-active");
+          const settings = JSON.parse(
+            localStorage.getItem("cytusGalleryFilters")
+          );
+          if (settings && settings.autoplayToggle) {
+            playVideo(clickedItem);
+          }
+        }
+      }
     }
 
     // Mencegat klik link untuk menerapkan filter
     const link = e.target.closest("a");
     if (!link) return;
-
     const isPaginationLink = link.closest("#pagination-nav");
     const isSuggestionLink = link.closest("#suggestions-box");
     const isTagLink = link.classList.contains("tag-link");
-
     if (link.href.includes("/search") || link.href.includes("/?page=")) {
       if (isPaginationLink || isSuggestionLink || isTagLink) {
         e.preventDefault();
@@ -323,27 +373,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const userTags = tags
           .split(" ")
           .filter(
-            (tag) =>
-              !tag.startsWith("rating:") &&
-              !tag.startsWith("-rating:") &&
-              !tag.startsWith("filetype:")
+            (t) =>
+              !t.startsWith("rating:") &&
+              !t.startsWith("-rating:") &&
+              !t.startsWith("filetype:")
           )
           .join(" ");
         navigateWithFilters(userTags, page);
       }
     }
   });
-  //Slider
+
+  // 7. Inisialisasi Swiper
   const swiper = new Swiper(".swiper", {
     loop: true,
-    slidesPerView: 1, // <-- UBAH NILAI INI MENJADI 1
+    slidesPerView: 1,
     spaceBetween: 10,
     autoplay: {
       delay: 3000,
       disableOnInteraction: false,
       pauseOnMouseEnter: true,
     },
-    // Breakpoints akan menimpa slidesPerView di layar yang lebih besar
     breakpoints: {
       640: { slidesPerView: 3, spaceBetween: 20 },
       1024: { slidesPerView: 5, spaceBetween: 20 },
