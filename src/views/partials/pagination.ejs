@@ -1,37 +1,56 @@
 <% if (totalPages > 1) { %>
-<nav class="flex justify-center items-center space-x-1 md:space-x-2 my-12" id="pagination-nav">
+<nav id="pagination-nav" class="flex justify-center items-center space-x-1 my-12">
   <%
         const urlParams = new URLSearchParams();
-        if (tags) urlParams.append('tags', tags);
+        if (tagsForPagination) urlParams.append('tags', tagsForPagination);
         if (limit) urlParams.append('limit', limit);
         
         const baseUrl = `/search?${urlParams.toString()}`;
-        const pageParam = `&page=`;
-
-        let startPage = Math.max(1, currentPage - 3);
-        let endPage = Math.min(totalPages, currentPage + 3);
+        const pageParam = (tagsForPagination || limit) ? `&page=` : `page=`;
     %>
 
   <% if (currentPage > 1) { %>
-  <a href="<%= baseUrl %><%= pageParam %><%= currentPage - 1 %>" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm">«</a>
+  <a href="<%= baseUrl %><%= pageParam %><%= currentPage - 1 %>" class="px-2 py-1 md:px-3 md:py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-xs md:text-sm">«</a>
   <% } %>
 
-  <% if (startPage > 1) { %>
-  <a href="<%= baseUrl %><%= pageParam %>1" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm">1</a>
-  <% if (startPage > 2) { %><span class="px-3 py-2 text-gray-500">...</span><% } %>
-  <% } %>
+  <div class="hidden md:flex items-center space-x-1 md:space-x-2">
+    <%
+            let startPage = Math.max(1, currentPage - 3);
+            let endPage = Math.min(totalPages, currentPage + 3);
+        %>
+    <% if (startPage > 1) { %>
+    <a href="<%= baseUrl %><%= pageParam %>1" class="px-2 py-1 md:px-3 md:py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-xs md:text-sm">1</a>
+    <% if (startPage > 2) { %><span class="px-2 py-1 md:px-3 md:py-2 text-gray-500 text-xs md:text-sm">...</span><% } %>
+    <% } %>
+    <% for (let i = startPage; i <= endPage; i++) { %>
+    <a href="<%= baseUrl %><%= pageParam %><%= i %>" class="px-2 py-1 md:px-3 md:py-2 rounded-md text-xs md:text-sm <%= i === currentPage ? 'bg-cyan-600 text-white font-bold' : 'bg-gray-700 hover:bg-cyan-500' %>"><%= i %></a>
+    <% } %>
+    <% if (endPage < totalPages) { %>
+    <% if (endPage < totalPages - 1) { %><span class="px-2 py-1 md:px-3 md:py-2 text-gray-500 text-xs md:text-sm">...</span><% } %>
+    <a href="<%= baseUrl %><%= pageParam %><%= totalPages %>" class="px-2 py-1 md:px-3 md:py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-xs md:text-sm"><%= totalPages %></a>
+    <% } %>
+  </div>
 
-  <% for (let i = startPage; i <= endPage; i++) { %>
-  <a href="<%= baseUrl %><%= pageParam %><%= i %>" class="px-3 py-2 rounded-md text-sm <%= i === currentPage ? 'bg-cyan-600 text-white font-bold' : 'bg-gray-700 hover:bg-cyan-500' %>"><%= i %></a>
-  <% } %>
-
-  <% if (endPage < totalPages) { %>
-  <% if (endPage < totalPages - 1) { %><span class="px-3 py-2 text-gray-500">...</span><% } %>
-  <a href="<%= baseUrl %><%= pageParam %><%= totalPages %>" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm"><%= totalPages %></a>
-  <% } %>
+  <div class="flex md:hidden items-center space-x-1">
+    <%
+            let startPageMobile = Math.max(1, currentPage - 1);
+            let endPageMobile = Math.min(totalPages, currentPage + 1);
+        %>
+    <% if (startPageMobile > 1) { %>
+    <a href="<%= baseUrl %><%= pageParam %>1" class="px-2 py-1 bg-gray-700 rounded-md hover:bg-cyan-500 text-xs">1</a>
+    <% if (startPageMobile > 2) { %><span class="px-2 py-1 text-gray-500 text-xs">...</span><% } %>
+    <% } %>
+    <% for (let i = startPageMobile; i <= endPageMobile; i++) { %>
+    <a href="<%= baseUrl %><%= pageParam %><%= i %>" class="px-2 py-1 rounded-md text-xs <%= i === currentPage ? 'bg-cyan-600 text-white font-bold' : 'bg-gray-700 hover:bg-cyan-500' %>"><%= i %></a>
+    <% } %>
+    <% if (endPageMobile < totalPages) { %>
+    <% if (endPageMobile < totalPages - 1) { %><span class="px-2 py-1 text-gray-500 text-xs">...</span><% } %>
+    <a href="<%= baseUrl %><%= pageParam %><%= totalPages %>" class="px-2 py-1 bg-gray-700 rounded-md hover:bg-cyan-500 text-xs"><%= totalPages %></a>
+    <% } %>
+  </div>
 
   <% if (currentPage < totalPages) { %>
-  <a href="<%= baseUrl %><%= pageParam %><%= currentPage + 1 %>" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm">»</a>
+  <a href="<%= baseUrl %><%= pageParam %><%= currentPage + 1 %>" class="px-2 py-1 md:px-3 md:py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-xs md:text-sm">»</a>
   <% } %>
 </nav>
 <% } %>

@@ -60,7 +60,7 @@
     <% }); %>
   </div>
 </main>
-<%- include('partials/pagination', { currentPage, totalPages, limit, tags }) %>
+<%- include('partials/pagination', { currentPage, totalPages, limit, tagsForPagination: tagsForPagination }) %>
 
 <% if (currentPage === 1 && (popularTags.length > 0 || popularCharacters.length > 0)) { %>
 <div class="py-8 bg-black/30">

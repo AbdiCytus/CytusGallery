@@ -1,0 +1,46 @@
+<% if (currentPage === 1 && (popularTags.length > 0 || popularCharacters.length > 0)) { %>
+<div class="py-8 bg-black/30">
+  <div class="container mx-auto mt-12">
+
+    <% if (popularTags.length > 0) { %>
+    <section class="bg-gray-900/50 rounded-lg p-4">
+      <h2 class="text-xl font-bold mb-4 text-white text-start">Popular Series</h2>
+      <div class="relative overflow-x-hidden">
+        <div class="marquee-container flex">
+          <div class="marquee-content flex-shrink-0 flex items-center justify-start min-w-full">
+            <% popularTags.forEach(tag => { %>
+            <a href="/search?tags=<%= tag.name %>" class="bg-gray-700 hover:bg-gray-600 text-sm px-3 py-1.5 rounded-md mx-4 whitespace-nowrap"><%= tag.name.replace(/_/g, ' ') %></a>
+            <% }); %>
+          </div>
+          <div class="marquee-content flex-shrink-0 flex items-center justify-start min-w-full">
+            <% popularTags.forEach(tag => { %>
+            <a href="/search?tags=<%= tag.name %>" class="bg-gray-700 hover:bg-gray-600 text-sm px-3 py-1.5 rounded-md mx-4 whitespace-nowrap"><%= tag.name.replace(/_/g, ' ') %></a>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+    </section>
+    <% } %>
+
+    <% if (popularCharacters.length > 0) { %>
+    <section class="mt-6 bg-gray-900/50 rounded-lg p-4">
+      <h2 class="text-xl font-bold mb-4 text-white text-start">Popular Characters</h2>
+      <div class="relative overflow-x-hidden">
+        <div class="marquee-container-reverse flex">
+          <div class="marquee-content-reverse flex-shrink-0 flex items-center justify-start min-w-full">
+            <% popularCharacters.forEach(tag => { %>
+            <a href="/search?tags=<%= tag.name %>" class="bg-gray-700 hover:bg-gray-600 text-sm px-3 py-1.5 rounded-md mx-4 whitespace-nowrap"><%= tag.name.replace(/_/g, ' ') %></a>
+            <% }); %>
+          </div>
+          <div class="marquee-content-reverse flex-shrink-0 flex items-center justify-start min-w-full">
+            <% popularCharacters.forEach(tag => { %>
+            <a href="/search?tags=<%= tag.name %>" class="bg-gray-700 hover:bg-gray-600 text-sm px-3 py-1.5 rounded-md mx-4 whitespace-nowrap"><%= tag.name.replace(/_/g, ' ') %></a>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+    </section>
+    <% } %>
+  </div>
+</div>
+<% } %>

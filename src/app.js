@@ -24,14 +24,12 @@ app.get("/", async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    // 1. Ambil total jumlah post untuk menghitung total halaman
     const countResponse = await axios.get(
       "https://danbooru.donmai.us/counts/posts.json"
     );
     const totalPosts = countResponse.data.counts.posts;
     const totalPages = Math.ceil(totalPosts / limit);
 
-    // 2. Ambil data post untuk halaman saat ini
     const postsResponse = await axios.get(
       `https://danbooru.donmai.us/posts.json?page=${page}&limit=${limit}`
     );
@@ -41,13 +39,12 @@ app.get("/", async (req, res) => {
     let popularTags = [];
     let popularCharacters = [];
 
-    // Hanya ambil data slider jika di halaman pertama
     if (page === 1) {
       const sliderResponse = await axios.get(
-        `https://danbooru.donmai.us/posts.json?order:score&limit=15`
+        `https://danbooru.donmai.us/posts.json?limit=15&order=score`
       );
       sliderPosts = sliderResponse.data;
-      // Ambil dan acak data tag
+
       const tagsResponse = await axios.get(
         `https://danbooru.donmai.us/tags.json?search[category]=3&search[order]=count&limit=100`
       );
@@ -75,84 +72,76 @@ app.get("/", async (req, res) => {
       popularTags: popularTags,
       popularCharacters: popularCharacters,
       currentPage: page,
+      tagsForPagination: allTags,
       totalPages: totalPages,
       limit: limit,
-      tags: "", // Tag kosong untuk halaman utama
-      userTags: "",
       isLazyLoadEnabled: isLazyLoadEnabled,
     });
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching homepage data:", error);
     res.status(500).send("Gagal mengambil data dari Danbooru API");
   }
 });
 
+// Route untuk search
 app.get("/search", async (req, res) => {
-  // Ambil parameter dari URL
   const userQueryTags = req.query.tags || "";
   const filterQuery = req.query.query || "";
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 25;
-  const isLazyLoadEnabled = req.query.lazyload === "true";
-
-  // Gabungkan semua tag untuk dikirim ke API
   const allTags = `${userQueryTags} ${filterQuery}`.trim();
 
-  // Blok 'if (!allTags)' yang menyebabkan loop sudah dihapus dari sini
+  if (!allTags) {
+    return res.redirect("/");
+  }
 
   try {
-    // Ambil total post yang akurat
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const isLazyLoadEnabled = req.query.lazyload === "true";
+
+    let totalPosts;
     const countResponse = await axios.get(
       `https://danbooru.donmai.us/counts/posts.json?tags=${allTags}`
     );
-    const totalPosts = countResponse.data.counts.posts;
+
+    if (countResponse.data.counts.posts === null) {
+      if (userQueryTags) {
+        const fallbackResponse = await axios.get(
+          `https://danbooru.donmai.us/counts/posts.json?tags=${userQueryTags}`
+        );
+        totalPosts = fallbackResponse.data.counts.posts;
+      } else {
+        const totalSiteResponse = await axios.get(
+          `https://danbooru.donmai.us/counts/posts.json`
+        );
+        totalPosts = totalSiteResponse.data.counts.posts;
+      }
+    } else {
+      totalPosts = countResponse.data.counts.posts;
+    }
     const totalPages = Math.ceil(totalPosts / limit);
 
-    // Ambil data post untuk galeri
     const postsResponse = await axios.get(
       `https://danbooru.donmai.us/posts.json?tags=${allTags}&page=${page}&limit=${limit}`
     );
     const posts = postsResponse.data;
 
-    // Ambil data untuk slider jika di halaman pertama
     let sliderPosts = [];
     if (page === 1) {
-      const sliderApiTags = `order:score ${allTags}`;
-      const sliderResponse = await axios.get(
-        `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15`
-      );
-      sliderPosts = sliderResponse.data;
-    }
+      const sliderApiTags = allTags;
 
-    let popularTags = [];
-    let popularCharacters = [];
-
-    // Hanya ambil data slider jika di halaman pertama
-    if (page === 1) {
-      const sliderResponse = await axios.get(
-        `https://danbooru.donmai.us/posts.json?order:score&limit=15`
-      );
-      sliderPosts = sliderResponse.data;
-      // Ambil dan acak data tag
-      const tagsResponse = await axios.get(
-        `https://danbooru.donmai.us/tags.json?search[category]=3&search[order]=count&limit=100`
-      );
-      let tagsPool = tagsResponse.data;
-      for (let i = tagsPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [tagsPool[i], tagsPool[j]] = [tagsPool[j], tagsPool[i]];
+      try {
+        // Gunakan try-catch khusus untuk slider
+        const sliderResponse = await axios.get(
+          `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15&order=score`
+        );
+        sliderPosts = sliderResponse.data;
+      } catch (sliderError) {
+        console.error(
+          "Slider fetch failed (query might be too complex for 'order:score'), continuing without slider."
+        );
+        // Jika gagal, biarkan sliderPosts kosong agar halaman tidak error
+        sliderPosts = [];
       }
-      popularTags = tagsPool.slice(0, 15);
-
-      const charTagsResponse = await axios.get(
-        `https://danbooru.donmai.us/tags.json?search[category]=4&search[order]=count&limit=100`
-      );
-      let charTagsPool = charTagsResponse.data;
-      for (let i = charTagsPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [charTagsPool[i], charTagsPool[j]] = [charTagsPool[j], charTagsPool[i]];
-      }
-      popularCharacters = charTagsPool.slice(0, 15);
     }
 
     res.render("search", {
@@ -160,16 +149,13 @@ app.get("/search", async (req, res) => {
       sliderPosts: sliderPosts,
       currentPage: page,
       totalPages: totalPages,
-      popularCharacters: popularCharacters,
-      popularTags: popularTags,
       limit: limit,
       tagsForPagination: allTags,
-      userTags: userQueryTags,
       isLazyLoadEnabled: isLazyLoadEnabled,
     });
   } catch (error) {
     console.error("Error fetching search data:", error);
-    res.status(500).send("Gagal mencari data");
+    res.status(500).send("Gagal mengambil data");
   }
 });
 

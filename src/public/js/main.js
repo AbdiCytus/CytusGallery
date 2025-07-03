@@ -333,15 +333,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   });
+  //Slider
   const swiper = new Swiper(".swiper", {
     loop: true,
-    slidesPerView: 1, // Default untuk mobile
+    slidesPerView: 1, // <-- UBAH NILAI INI MENJADI 1
     spaceBetween: 10,
     autoplay: {
       delay: 3000,
       disableOnInteraction: false,
       pauseOnMouseEnter: true,
     },
+    // Breakpoints akan menimpa slidesPerView di layar yang lebih besar
     breakpoints: {
       640: { slidesPerView: 3, spaceBetween: 20 },
       1024: { slidesPerView: 5, spaceBetween: 20 },
