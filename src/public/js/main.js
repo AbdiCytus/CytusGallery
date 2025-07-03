@@ -155,45 +155,45 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   /** Fungsi untuk interaksi video */
-  const playVideo = (item) => {
-    const mediaContainer = item.querySelector(".media-container");
-    if (!mediaContainer || item.dataset.isVideo !== "true") return;
-    const imgPreview = mediaContainer.querySelector("img");
-    let videoElement = item.querySelector("video");
-    if (!videoElement) {
-      videoElement = document.createElement("video");
-      videoElement.src = item.dataset.videoUrl;
-      videoElement.className = "w-full h-auto";
-      videoElement.muted = true;
-      videoElement.playsInline = true;
-      mediaContainer.appendChild(videoElement);
-    }
-    if (imgPreview) imgPreview.style.display = "none";
-    videoElement.style.display = "block";
-    videoElement.currentTime = 0;
-    videoElement.play().catch((e) => {});
-    const loopFiveSeconds = () => {
-      if (videoElement.currentTime >= 5) {
-        videoElement.currentTime = 0;
-        videoElement.play().catch((e) => {});
-      }
-    };
-    videoElement.addEventListener("timeupdate", loopFiveSeconds);
-    item.videoLoopListener = loopFiveSeconds;
-  };
+  // const playVideo = (item) => {
+  //   const mediaContainer = item.querySelector(".media-container");
+  //   if (!mediaContainer || item.dataset.isVideo !== "true") return;
+  //   const imgPreview = mediaContainer.querySelector("img");
+  //   let videoElement = item.querySelector("video");
+  //   if (!videoElement) {
+  //     videoElement = document.createElement("video");
+  //     videoElement.src = item.dataset.videoUrl;
+  //     videoElement.className = "w-full h-full object-cover";
+  //     videoElement.muted = true;
+  //     videoElement.playsInline = true;
+  //     mediaContainer.appendChild(videoElement);
+  //   }
+  //   if (imgPreview) imgPreview.style.display = "none";
+  //   videoElement.style.display = "block";
+  //   videoElement.currentTime = 0;
+  //   videoElement.play().catch((e) => {});
+  //   const loopFiveSeconds = () => {
+  //     if (videoElement.currentTime >= 5) {
+  //       videoElement.currentTime = 0;
+  //       videoElement.play().catch((e) => {});
+  //     }
+  //   };
+  //   videoElement.addEventListener("timeupdate", loopFiveSeconds);
+  //   item.videoLoopListener = loopFiveSeconds;
+  // };
 
-  const stopVideo = (item) => {
-    const videoElement = item.querySelector("video");
-    const imgPreview = item.querySelector(".media-container img");
-    if (videoElement) {
-      videoElement.pause();
-      if (item.videoLoopListener) {
-        videoElement.removeEventListener("timeupdate", item.videoLoopListener);
-      }
-      videoElement.style.display = "none";
-    }
-    if (imgPreview) imgPreview.style.display = "block";
-  };
+  // const stopVideo = (item) => {
+  //   const videoElement = item.querySelector("video");
+  //   const imgPreview = item.querySelector(".media-container img");
+  //   if (videoElement) {
+  //     videoElement.pause();
+  //     if (item.videoLoopListener) {
+  //       videoElement.removeEventListener("timeupdate", item.videoLoopListener);
+  //     }
+  //     videoElement.style.display = "none";
+  //   }
+  //   if (imgPreview) imgPreview.style.display = "block";
+  // };
 
   const closeAllOverlays = () => {
     galleryItems.forEach((item) => {
@@ -384,23 +384,75 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Ganti fungsi playVideo yang lama dengan ini
+  const playVideo = (item) => {
+    if (item.dataset.isVideo !== "true") return;
+    const imgPreview = item.querySelector(".video-preview");
+    const videoElement = item.querySelector(".video-playback");
+
+    if (imgPreview) imgPreview.classList.add("hidden");
+    if (videoElement) {
+      videoElement.classList.remove("hidden");
+      videoElement.currentTime = 0;
+      videoElement.play().catch((e) => {});
+    }
+  };
+
+  // Ganti fungsi stopVideo yang lama dengan ini
+  const stopVideo = (item) => {
+    if (item.dataset.isVideo !== "true") return;
+    const imgPreview = item.querySelector(".video-preview");
+    const videoElement = item.querySelector(".video-playback");
+
+    if (videoElement) {
+      videoElement.pause();
+      videoElement.classList.add("hidden");
+    }
+    if (imgPreview) imgPreview.classList.remove("hidden");
+  };
+
   // 7. Inisialisasi Swiper
-  const swiper = new Swiper(".swiper", {
-    loop: true,
-    slidesPerView: 1,
-    spaceBetween: 10,
-    autoplay: {
-      delay: 3000,
-      disableOnInteraction: false,
-      pauseOnMouseEnter: true,
-    },
-    breakpoints: {
-      640: { slidesPerView: 3, spaceBetween: 20 },
-      1024: { slidesPerView: 5, spaceBetween: 20 },
-    },
-    navigation: {
-      nextEl: ".swiper-button-next",
-      prevEl: ".swiper-button-prev",
-    },
+  if (document.querySelector(".swiper")) {
+    const swiper = new Swiper(".swiper", {
+      loop: true,
+      slidesPerView: 1,
+      spaceBetween: 10,
+      autoplay: {
+        delay: 4000,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true, // Menjeda autoplay bawaan saat hover
+      },
+      breakpoints: {
+        640: { slidesPerView: 3, spaceBetween: 20 },
+        1024: { slidesPerView: 5, spaceBetween: 20 },
+      },
+      navigation: {
+        nextEl: ".swiper-button-next",
+        prevEl: ".swiper-button-prev",
+      },
+    });
+  }
+
+  // Seleksi semua elemen yang merupakan slide DAN juga item galeri
+  const sliderItems = document.querySelectorAll(".swiper-slide.gallery-item");
+
+  sliderItems.forEach((item) => {
+    // Hindari memasang listener berulang kali jika ada
+    if (item.listenersAttached) return;
+
+    item.addEventListener("mouseenter", () => {
+      if (isMobile()) return;
+      const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+      if (settings && settings.autoplayToggle) {
+        playVideo(item);
+      }
+    });
+
+    item.addEventListener("mouseleave", () => {
+      if (isMobile()) return;
+      stopVideo(item);
+    });
+
+    item.listenersAttached = true;
   });
 });

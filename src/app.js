@@ -41,30 +41,30 @@ app.get("/", async (req, res) => {
 
     if (page === 1) {
       const sliderResponse = await axios.get(
-        `https://danbooru.donmai.us/posts.json?limit=15&order=score`
+        `https://danbooru.donmai.us/posts.json?tags=+order:score&limit=15`
       );
       sliderPosts = sliderResponse.data;
-
-      const tagsResponse = await axios.get(
-        `https://danbooru.donmai.us/tags.json?search[category]=3&search[order]=count&limit=100`
-      );
-      let tagsPool = tagsResponse.data;
-      for (let i = tagsPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [tagsPool[i], tagsPool[j]] = [tagsPool[j], tagsPool[i]];
-      }
-      popularTags = tagsPool.slice(0, 15);
-
-      const charTagsResponse = await axios.get(
-        `https://danbooru.donmai.us/tags.json?search[category]=4&search[order]=count&limit=100`
-      );
-      let charTagsPool = charTagsResponse.data;
-      for (let i = charTagsPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [charTagsPool[i], charTagsPool[j]] = [charTagsPool[j], charTagsPool[i]];
-      }
-      popularCharacters = charTagsPool.slice(0, 15);
     }
+
+    const tagsResponse = await axios.get(
+      `https://danbooru.donmai.us/tags.json?search[category]=3&search[order]=count&limit=100`
+    );
+    let tagsPool = tagsResponse.data;
+    for (let i = tagsPool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tagsPool[i], tagsPool[j]] = [tagsPool[j], tagsPool[i]];
+    }
+    popularTags = tagsPool.slice(0, 15);
+
+    const charTagsResponse = await axios.get(
+      `https://danbooru.donmai.us/tags.json?search[category]=4&search[order]=count&limit=100`
+    );
+    let charTagsPool = charTagsResponse.data;
+    for (let i = charTagsPool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [charTagsPool[i], charTagsPool[j]] = [charTagsPool[j], charTagsPool[i]];
+    }
+    popularCharacters = charTagsPool.slice(0, 15);
 
     res.render("index", {
       posts: posts,
@@ -72,7 +72,7 @@ app.get("/", async (req, res) => {
       popularTags: popularTags,
       popularCharacters: popularCharacters,
       currentPage: page,
-      tagsForPagination: allTags,
+      tagsForPagination: "",
       totalPages: totalPages,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
@@ -126,36 +126,59 @@ app.get("/search", async (req, res) => {
     const posts = postsResponse.data;
 
     let sliderPosts = [];
-    if (page === 1) {
-      const sliderApiTags = allTags;
+    let popularTags = [];
+    let popularCharacters = [];
 
+    if (page === 1) {
+      const sliderApiTags = `order:score ${allTags}`;
       try {
-        // Gunakan try-catch khusus untuk slider
         const sliderResponse = await axios.get(
-          `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15&order=score`
+          `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15`
         );
         sliderPosts = sliderResponse.data;
       } catch (sliderError) {
-        console.error(
-          "Slider fetch failed (query might be too complex for 'order:score'), continuing without slider."
-        );
-        // Jika gagal, biarkan sliderPosts kosong agar halaman tidak error
         sliderPosts = [];
       }
+    }
+
+    // Ambil data untuk slider tag jika tidak ada pencarian manual
+    if (!userQueryTags) {
+      const tagsResponse = await axios.get(
+        `https://danbooru.donmai.us/tags.json?search[category]=3&search[order]=count&limit=100`
+      );
+      let tagsPool = tagsResponse.data;
+      for (let i = tagsPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tagsPool[i], tagsPool[j]] = [tagsPool[j], tagsPool[i]];
+      }
+      popularTags = tagsPool.slice(0, 15);
+
+      const charTagsResponse = await axios.get(
+        `https://danbooru.donmai.us/tags.json?search[category]=4&search[order]=count&limit=100`
+      );
+      let charTagsPool = charTagsResponse.data;
+      for (let i = charTagsPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [charTagsPool[i], charTagsPool[j]] = [charTagsPool[j], charTagsPool[i]];
+      }
+      popularCharacters = charTagsPool.slice(0, 15);
     }
 
     res.render("search", {
       posts: posts,
       sliderPosts: sliderPosts,
+      popularTags: popularTags, // <-- Kirim data
+      popularCharacters: popularCharacters, // <-- Kirim data
       currentPage: page,
       totalPages: totalPages,
-      limit: limit,
       tagsForPagination: allTags,
+      userTags: userQueryTags,
+      limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
     });
   } catch (error) {
     console.error("Error fetching search data:", error);
-    res.status(500).send("Gagal mengambil data");
+    res.status(500).send("Gagal mencari data");
   }
 });
 
