@@ -25,7 +25,7 @@
             <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Dimensions:</strong> <%= post.image_width %>x<%= post.image_height %></span>
             <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Uploaded:</strong> <%= new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', 'month': 'short', 'year': 'numeric' }) %></span>
             <% if (post.source) { %>
-            <a href="<%= post.source %>" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded-md flex items-center gap-1">
+            <a href="<%= post.source %>" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded-md flex items-center gap-1 tag-link">
               <strong>Source</strong>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
@@ -45,7 +45,7 @@
           <h3 class="font-semibold mb-2 <%= colorClass %>"><%= title %></h3>
           <div class="flex flex-wrap gap-2">
             <% tags.forEach(tag => { %>
-            <a href="/search?tags=<%= tag %>" class="bg-gray-700 hover:bg-gray-600 text-sm px-2 py-1 rounded-md">
+            <a href="/search?tags=<%= tag %>" class="bg-gray-700 hover:bg-gray-600 tag-link text-sm px-2 py-1 rounded-md">
               <%= tag.replace(/_/g, ' ') %>
             </a>
             <% }); %>
@@ -65,7 +65,7 @@
           <button id="download-button" class="w-full block text-center bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">
             Download Original
           </button>
-          <a href="<%= post.large_file_url %>" target="_blank" rel="noopener noreferrer" class="w-full block text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
+          <a href="<%= post.large_file_url %>" target="_blank" rel="noopener noreferrer" class="tag-link w-full block text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
             Lihat Gambar Penuh
           </a>
           <button id="share-button" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">

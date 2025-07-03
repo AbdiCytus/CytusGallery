@@ -1,12 +1,13 @@
 <% if (totalPages > 1) { %>
-<nav class="flex justify-center items-center space-x-1 md:space-x-2 my-12">
+<nav class="flex justify-center items-center space-x-1 md:space-x-2 my-12" id="pagination-nav">
   <%
         const urlParams = new URLSearchParams();
         if (tags) urlParams.append('tags', tags);
-        const baseUrl = tags ? `/search?${urlParams.toString()}` : `/?${urlParams.toString()}`;
-        const pageParam = tags ? `&page=` : `page=`;
+        if (limit) urlParams.append('limit', limit);
+        
+        const baseUrl = `/search?${urlParams.toString()}`;
+        const pageParam = `&page=`;
 
-        // Logika baru untuk menampilkan rentang halaman yang lebih luas
         let startPage = Math.max(1, currentPage - 3);
         let endPage = Math.min(totalPages, currentPage + 3);
     %>

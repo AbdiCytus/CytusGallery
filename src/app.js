@@ -21,7 +21,8 @@ app.use((req, res, next) => {
 app.get("/", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = 25; // Default konten per halaman
+    const limit = parseInt(req.query.limit) || 25;
+    const isLazyLoadEnabled = req.query.lazyload === "true";
 
     // 1. Ambil total jumlah post untuk menghitung total halaman
     const countResponse = await axios.get(
@@ -35,12 +36,50 @@ app.get("/", async (req, res) => {
       `https://danbooru.donmai.us/posts.json?page=${page}&limit=${limit}`
     );
     const posts = postsResponse.data;
+
+    let sliderPosts = [];
+    let popularTags = [];
+    let popularCharacters = [];
+
+    // Hanya ambil data slider jika di halaman pertama
+    if (page === 1) {
+      const sliderResponse = await axios.get(
+        `https://danbooru.donmai.us/posts.json?order:score&limit=15`
+      );
+      sliderPosts = sliderResponse.data;
+      // Ambil dan acak data tag
+      const tagsResponse = await axios.get(
+        `https://danbooru.donmai.us/tags.json?search[category]=3&search[order]=count&limit=100`
+      );
+      let tagsPool = tagsResponse.data;
+      for (let i = tagsPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tagsPool[i], tagsPool[j]] = [tagsPool[j], tagsPool[i]];
+      }
+      popularTags = tagsPool.slice(0, 15);
+
+      const charTagsResponse = await axios.get(
+        `https://danbooru.donmai.us/tags.json?search[category]=4&search[order]=count&limit=100`
+      );
+      let charTagsPool = charTagsResponse.data;
+      for (let i = charTagsPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [charTagsPool[i], charTagsPool[j]] = [charTagsPool[j], charTagsPool[i]];
+      }
+      popularCharacters = charTagsPool.slice(0, 15);
+    }
+
     res.render("index", {
       posts: posts,
+      sliderPosts: sliderPosts,
+      popularTags: popularTags,
+      popularCharacters: popularCharacters,
       currentPage: page,
       totalPages: totalPages,
       limit: limit,
       tags: "", // Tag kosong untuk halaman utama
+      userTags: "",
+      isLazyLoadEnabled: isLazyLoadEnabled,
     });
   } catch (error) {
     console.error("Error fetching data:", error);
@@ -48,37 +87,87 @@ app.get("/", async (req, res) => {
   }
 });
 
-// Tambahkan route baru ini di bawah route '/'
 app.get("/search", async (req, res) => {
-  const tags = req.query.tags || "";
-  if (!tags) {
-    return res.redirect("/");
-  }
+  const allTags = req.query.tags || "";
+  if (!allTags) return res.redirect("/");
+
+  // Memisahkan tag filter dari tag yang diketik pengguna
+  const userTags = allTags
+    .split(" ")
+    .filter(
+      (tag) =>
+        !tag.startsWith("rating:") &&
+        !tag.startsWith("-rating:") &&
+        !tag.startsWith("filetype:")
+    )
+    .join(" ");
 
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = 25;
+    const limit = parseInt(req.query.limit) || 25;
+    const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    // Logika untuk mendapatkan total halaman dari tag. Sedikit rumit.
-    // Kita asumsikan tag pertama adalah yang utama untuk menghitung total.
-    const mainTag = tags.split(" ")[0];
-    const tagInfoResponse = await axios.get(
-      `https://danbooru.donmai.us/tags.json?search[name]=${mainTag}`
+    // Ambil total post yang akurat menggunakan semua tag filter
+    let countResponse = await axios.get(
+      `https://danbooru.donmai.us/counts/posts.json?tags=${allTags}`
     );
-    const totalPosts = tagInfoResponse.data[0]?.post_count || 0;
+
+    if (countResponse.data.counts.posts == null) {
+      countResponse = await axios.get(
+        `https://danbooru.donmai.us/counts/posts.json?${allTags}`
+      );
+    }
+    const totalPosts = countResponse.data.counts.posts;
     const totalPages = Math.ceil(totalPosts / limit);
 
-    const postsResponse = await axios.get(
-      `https://danbooru.donmai.us/posts.json?tags=${tags}&page=${page}&limit=${limit}`
+    let postsResponse = await axios.get(
+      `https://danbooru.donmai.us/posts.json?tags=${allTags}&page=${page}&limit=${limit}`
     );
     const posts = postsResponse.data;
 
+    // --- TAMBAHKAN LOGIKA SLIDER DI SINI ---
+    let sliderPosts = [];
+    let popularTags = [];
+    let popularCharacters = [];
+
+    if (page === 1) {
+      const sliderApiTags = `order:score ${allTags}`;
+      const sliderResponse = await axios.get(
+        `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15`
+      );
+      sliderPosts = sliderResponse.data;
+      // Ambil dan acak data tag
+      const tagsResponse = await axios.get(
+        `https://danbooru.donmai.us/tags.json?search[category]=3&search[order]=count&limit=100`
+      );
+      let tagsPool = tagsResponse.data;
+      for (let i = tagsPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [tagsPool[i], tagsPool[j]] = [tagsPool[j], tagsPool[i]];
+      }
+      popularTags = tagsPool.slice(0, 15);
+      const charTagsResponse = await axios.get(
+        `https://danbooru.donmai.us/tags.json?search[category]=4&search[order]=count&limit=100`
+      );
+      let charTagsPool = charTagsResponse.data;
+      for (let i = charTagsPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [charTagsPool[i], charTagsPool[j]] = [charTagsPool[j], charTagsPool[i]];
+      }
+      popularCharacters = charTagsPool.slice(0, 15);
+    }
+
     res.render("search", {
       posts: posts,
+      sliderPosts: sliderPosts,
+      popularTags: popularTags,
+      popularCharacters: popularCharacters,
       currentPage: page,
       totalPages: totalPages,
       limit: limit,
-      tags: tags,
+      tags: allTags,
+      userTags: userTags,
+      isLazyLoadEnabled: isLazyLoadEnabled,
     });
   } catch (error) {
     console.error("Error fetching search data:", error);
