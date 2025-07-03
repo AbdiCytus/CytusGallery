@@ -9,7 +9,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeSidebarButton = document.getElementById("close-sidebar-button");
   const filterForm = document.getElementById("filter-form");
   const galleryItems = document.querySelectorAll(".gallery-item");
+
+  const customAlert = document.getElementById("custom-alert");
+  const customAlertTitle = document.getElementById("custom-alert-title");
+  const customAlertMessage = document.getElementById("custom-alert-message");
+  const customAlertClose = document.getElementById("custom-alert-close");
+  const customAlertOverlay = document.getElementById("custom-alert-overlay");
   let activeSuggestionIndex = -1;
+
+  const showAlert = (title, message) => {
+    if (!customAlert) return;
+    customAlertTitle.textContent = title;
+    customAlertMessage.textContent = message;
+    customAlert.classList.remove("hidden", "opacity-0");
+    // Kunci scroll body saat popup muncul
+    document.body.classList.add("body-no-scroll");
+  };
+
+  const hideAlert = () => {
+    if (!customAlert) return;
+    customAlert.classList.add("hidden", "opacity-0");
+    // Buka kembali scroll body
+    document.body.classList.remove("body-no-scroll");
+  };
 
   // === BAGIAN 2: FUNGSI-FUNGSI UTAMA ===
 
@@ -154,47 +176,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  /** Fungsi untuk interaksi video */
-  // const playVideo = (item) => {
-  //   const mediaContainer = item.querySelector(".media-container");
-  //   if (!mediaContainer || item.dataset.isVideo !== "true") return;
-  //   const imgPreview = mediaContainer.querySelector("img");
-  //   let videoElement = item.querySelector("video");
-  //   if (!videoElement) {
-  //     videoElement = document.createElement("video");
-  //     videoElement.src = item.dataset.videoUrl;
-  //     videoElement.className = "w-full h-full object-cover";
-  //     videoElement.muted = true;
-  //     videoElement.playsInline = true;
-  //     mediaContainer.appendChild(videoElement);
-  //   }
-  //   if (imgPreview) imgPreview.style.display = "none";
-  //   videoElement.style.display = "block";
-  //   videoElement.currentTime = 0;
-  //   videoElement.play().catch((e) => {});
-  //   const loopFiveSeconds = () => {
-  //     if (videoElement.currentTime >= 5) {
-  //       videoElement.currentTime = 0;
-  //       videoElement.play().catch((e) => {});
-  //     }
-  //   };
-  //   videoElement.addEventListener("timeupdate", loopFiveSeconds);
-  //   item.videoLoopListener = loopFiveSeconds;
-  // };
-
-  // const stopVideo = (item) => {
-  //   const videoElement = item.querySelector("video");
-  //   const imgPreview = item.querySelector(".media-container img");
-  //   if (videoElement) {
-  //     videoElement.pause();
-  //     if (item.videoLoopListener) {
-  //       videoElement.removeEventListener("timeupdate", item.videoLoopListener);
-  //     }
-  //     videoElement.style.display = "none";
-  //   }
-  //   if (imgPreview) imgPreview.style.display = "block";
-  // };
-
   const closeAllOverlays = () => {
     galleryItems.forEach((item) => {
       item.classList.remove("mobile-active");
@@ -217,6 +198,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === BAGIAN 3: MEMASANG SEMUA EVENT LISTENER ===
 
+  // Listener untuk menutup popup alert kustom
+  if (customAlertClose) customAlertClose.addEventListener("click", hideAlert);
+  if (customAlertOverlay)
+    customAlertOverlay.addEventListener("click", hideAlert);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !customAlert.classList.contains("hidden")) {
+      hideAlert();
+    }
+  });
+
   // 1. Inisialisasi Aplikasi
   if (filterForm) {
     loadFiltersToUI();
@@ -238,7 +229,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 2. Listener untuk semua form
   if (filterForm) {
-    filterForm.addEventListener("change", saveFilters);
+    filterForm.addEventListener("change", (e) => {
+      // Selalu simpan perubahan ke localStorage
+      saveFilters();
+
+      const changedElement = e.target;
+
+      // --- LOGIKA BARU UNTUK ALERT & TOGGLE ---
+
+      if (changedElement.id === "rating-toggle" && !changedElement.checked) {
+        showAlert(
+          "Filter Dinonaktifkan",
+          "Filter Rating telah dinonaktifkan. Semua rating konten akan ditampilkan."
+        );
+      }
+      if (
+        changedElement.name === "rating" &&
+        changedElement.value === "not_g" &&
+        changedElement.checked
+      ) {
+        showAlert(
+          "Peringatan Mode Explicit",
+          "Anda mengaktifkan filter Explicit. Konten dewasa akan ditampilkan."
+        );
+      }
+    });
     filterForm.addEventListener("submit", (e) => {
       e.preventDefault();
       navigateWithFilters(searchInput.value, 1);

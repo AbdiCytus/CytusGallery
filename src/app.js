@@ -41,7 +41,7 @@ app.get("/", async (req, res) => {
 
     if (page === 1) {
       const sliderResponse = await axios.get(
-        `https://danbooru.donmai.us/posts.json?tags=+order:score&limit=15`
+        `https://danbooru.donmai.us/posts.json?tags= order:score&limit=15`
       );
       sliderPosts = sliderResponse.data;
     }
