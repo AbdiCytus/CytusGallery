@@ -1,4 +1,17 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const searchInputOnLoad = document.getElementById("search-input");
+  const savedTags = sessionStorage.getItem("lastSearchTags");
+  if (savedTags && searchInputOnLoad) {
+    searchInputOnLoad.value = savedTags.replace(/_/g, " ");
+  }
+
+  const loadingOverlay = document.getElementById("loading-overlay");
+  if (sessionStorage.getItem("isLoading") === "true") {
+    loadingOverlay?.classList.remove("opacity-0", "pointer-events-none");
+    // Hapus pesan agar tidak muncul lagi saat refresh manual
+    sessionStorage.removeItem("isLoading");
+  }
+
   // === BAGIAN 1: PENGUMPULAN ELEMEN DOM ===
   const searchForm = document.getElementById("search-form");
   const searchInput = document.getElementById("search-input");
@@ -9,6 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeSidebarButton = document.getElementById("close-sidebar-button");
   const filterForm = document.getElementById("filter-form");
   const galleryItems = document.querySelectorAll(".gallery-item");
+  const homeLink = document.getElementById("home-link");
+  const homeLinkMobile = document.getElementById("home-link-mobile");
 
   const customAlert = document.getElementById("custom-alert");
   const customAlertTitle = document.getElementById("custom-alert-title");
@@ -43,6 +58,28 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("body-no-scroll");
   };
 
+  const scrollToTopBtn = document.getElementById("scroll-to-top-btn");
+
+  if (scrollToTopBtn) {
+    // Tampilkan tombol saat pengguna scroll ke bawah
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 300) {
+        // Muncul setelah scroll 300px
+        scrollToTopBtn.classList.remove("opacity-0", "pointer-events-none");
+      } else {
+        scrollToTopBtn.classList.add("opacity-0", "pointer-events-none");
+      }
+    });
+
+    // Aksi saat tombol diklik
+    scrollToTopBtn.addEventListener("click", () => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth", // Animasi scroll halus
+      });
+    });
+  }
+
   const hideAlert = () => {
     if (!customAlert) return;
     customAlert.classList.add("hidden", "opacity-0");
@@ -56,6 +93,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const isMobile = () => window.innerWidth < 768;
 
   const navigateWithFilters = (userTypedTags = "", page = 1) => {
+    sessionStorage.setItem("isLoading", "true");
+    const loadingOverlay = document.getElementById("loading-overlay");
+    if (loadingOverlay) loadingOverlay.classList.remove("hidden");
+
+    sessionStorage.setItem("lastSearchTags", userTypedTags.trim());
+
     const params = new URLSearchParams();
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
     if (userTypedTags) {
@@ -252,24 +295,54 @@ document.addEventListener("DOMContentLoaded", () => {
     filterForm.addEventListener("change", (e) => {
       if (isInitializingFilters) return;
       const changedElement = e.target;
+
+      // Case 1: Menonaktifkan filter rating
       if (changedElement.id === "rating-toggle" && !changedElement.checked) {
-        showAlert(
-          "Nonaktifkan Filter Rating?",
-          "Ini akan menampilkan semua jenis konten, termasuk yang bersifat dewasa. Lanjutkan?",
-          saveFilters
-        );
-      } else if (
+        // Cek apakah peringatan ini sudah pernah ditampilkan di sesi ini
+        if (sessionStorage.getItem("ratingFilterWarningShown") === "true") {
+          saveFilters(); // Jika sudah, langsung simpan tanpa menampilkan alert
+        } else {
+          // Jika belum, tampilkan alert
+          const confirmAction = () => {
+            saveFilters();
+            // Tandai bahwa alert sudah ditampilkan untuk sesi ini
+            sessionStorage.setItem("ratingFilterWarningShown", "true");
+          };
+          showAlert(
+            "Nonaktifkan Filter Rating?",
+            "Ini akan menampilkan semua jenis konten, termasuk yang bersifat dewasa. Lanjutkan?",
+            confirmAction
+          );
+        }
+      }
+
+      // Case 2: Mengaktifkan filter explicit
+      else if (
         changedElement.name === "rating" &&
         changedElement.value === "not_g" &&
         changedElement.checked
       ) {
-        showAlert(
-          "Aktifkan Mode Explicit?",
-          "Konten dewasa akan ditampilkan. Pastikan Anda berada di lingkungan yang sesuai. Lanjutkan?",
-          saveFilters
-        );
-      } else {
-        saveFilters();
+        // Cek apakah peringatan ini sudah pernah ditampilkan di sesi ini
+        if (sessionStorage.getItem("explicitWarningShown") === "true") {
+          saveFilters(); // Jika sudah, langsung simpan
+        } else {
+          // Jika belum, tampilkan alert
+          const confirmAction = () => {
+            saveFilters();
+            // Tandai bahwa alert sudah ditampilkan untuk sesi ini
+            sessionStorage.setItem("explicitWarningShown", "true");
+          };
+          showAlert(
+            "Aktifkan Mode Explicit?",
+            "Konten dewasa akan ditampilkan. Pastikan Anda berada di lingkungan yang sesuai. Lanjutkan?",
+            confirmAction
+          );
+        }
+      }
+
+      // Case 3: Untuk semua perubahan lain yang tidak butuh konfirmasi
+      else {
+        saveFilters(); // Langsung simpan seperti biasa
       }
     });
     filterForm.addEventListener("submit", (e) => {
@@ -363,6 +436,26 @@ document.addEventListener("DOMContentLoaded", () => {
     closeSidebarButton.addEventListener("click", closeSidebar);
   if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeSidebar);
 
+  // Fungsi terpusat untuk menangani klik link "Home"
+  const handleHomeLinkClick = (e) => {
+    const currentPath = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+
+    if (currentPath === "/search" && !searchParams.has("tags")) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Jika di mobile, tutup juga sidebar setelah diklik
+      if (isMobile()) {
+        closeSidebar();
+      }
+    }
+  };
+
+  // Terapkan listener ke kedua link "Home"
+  if (homeLink) homeLink.addEventListener("click", handleHomeLinkClick);
+  if (homeLinkMobile)
+    homeLinkMobile.addEventListener("click", handleHomeLinkClick);
+
   galleryItems.forEach((item) => {
     const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
     item.addEventListener("mouseenter", () => {
@@ -443,4 +536,13 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     });
   }
+  window.addEventListener("load", () => {
+    const loadingOverlay = document.getElementById("loading-overlay");
+    if (loadingOverlay) {
+      // Beri sedikit jeda agar transisi terlihat mulus
+      setTimeout(() => {
+        loadingOverlay.classList.add("opacity-0", "pointer-events-none");
+      }, 100);
+    }
+  });
 });

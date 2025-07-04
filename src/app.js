@@ -12,10 +12,10 @@ app.set("views", path.join(__dirname, "views"));
 
 // Setup folder public untuk file statis (CSS, JS, gambar)
 app.use(express.static(path.join(__dirname, "public")));
-app.use((req, res, next) => {
-  res.locals.tags = req.query.tags || "";
-  next();
-});
+// app.use((req, res, next) => {
+//   res.locals.tags = req.query.tags || "";
+//   next();
+// });
 
 // Route untuk halaman utama
 app.get("/", async (req, res) => {
@@ -41,9 +41,10 @@ app.get("/", async (req, res) => {
 
     if (page === 1) {
       const sliderResponse = await axios.get(
-        `https://danbooru.donmai.us/posts.json?tags= order:score&limit=15`
+        `https://danbooru.donmai.us/posts.json?limit=15`
       );
       sliderPosts = sliderResponse.data;
+      console.log(sliderResponse);
     }
 
     const tagsResponse = await axios.get(
@@ -130,7 +131,7 @@ app.get("/search", async (req, res) => {
     let popularCharacters = [];
 
     if (page === 1) {
-      const sliderApiTags = `order:score ${allTags}`;
+      const sliderApiTags = `${allTags} order:score`;
       try {
         const sliderResponse = await axios.get(
           `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15`
@@ -167,12 +168,12 @@ app.get("/search", async (req, res) => {
     res.render("search", {
       posts: posts,
       sliderPosts: sliderPosts,
-      popularTags: popularTags, // <-- Kirim data
-      popularCharacters: popularCharacters, // <-- Kirim data
+      popularTags: popularTags,
+      popularCharacters: popularCharacters,
       currentPage: page,
       totalPages: totalPages,
       tagsForPagination: allTags,
-      userTags: userQueryTags,
+      // userTags: userQueryTags,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
     });
@@ -215,6 +216,16 @@ app.get("/api/tagsuggest", async (req, res) => {
     console.error("Tag suggestion error:", error);
     res.json([]);
   }
+});
+
+// Rute untuk halaman Tentang
+app.get("/tentang", (req, res) => {
+  res.render("tentang"); // Akan merender file tentang.ejs
+});
+
+// Rute untuk halaman Bantuan
+app.get("/bantuan", (req, res) => {
+  res.render("bantuan"); // Akan merender file bantuan.ejs
 });
 
 // Jalankan server

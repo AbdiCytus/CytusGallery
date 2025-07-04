@@ -57,55 +57,38 @@
     <div class="swiper-button-prev text-white"></div>
   </div>
   <% } %>
-  <h2 class="text-2xl font-bold mb-4 text-white">Contents</h2>
-  <div class="columns-2 md:columns-5 gap-4 space-y-4" id="main-gallery">
+  <h2 class="text-2xl font-bold mb-4 text-white text-start px-4">Contents</h2>
+  <div id="main-gallery" class="columns-2 md:columns-5 gap-4 space-y-4">
+
+    <%# Cek apakah ada postingan untuk ditampilkan %>
+    <% if (posts && posts.length > 0) { %>
     <% posts.forEach((post, index) => { %>
     <% if (post.large_file_url) { %>
-    <div class="group gallery-item relative break-inside-avoid bg-gray-800 rounded-md overflow-hidden" data-post-url="/posts/<%= post.id %>" <%# Perbaikan: Mengakses variants melalui post.media_asset %> <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
-      <div class="absolute top-1 left-1 z-20 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded-full">
+    <div class="group gallery-item relative break-inside-avoid bg-gray-800 rounded-md overflow-hidden" data-post-url="/posts/<%= post.id %>" <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
+      <div class="absolute top-1.5 left-1.5 z-20 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded-full">
         <%= ((currentPage - 1) * limit) + index + 1 %>
       </div>
 
       <div class="absolute top-1.5 right-1.5 z-20 flex items-center gap-1.5">
         <span class="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-md"><%= post.file_ext.toUpperCase() %></span>
-
-        <% if (post.rating) { %>
-        <% 
-            let ratingColor = '';
-            switch (post.rating) {
-                case 'g': // General
-                    ratingColor = 'bg-green-600'; // Safe (Hijau)
-                    break;
-                case 's': // Sensitive
-                    ratingColor = 'bg-yellow-600'; // Moderate (Kuning)
-                    break;
-                case 'q': // Questionable
-                    ratingColor = 'bg-purple-600'; // Questionable (Ungu)
-                    break;
-                case 'e': // Explicit
-                    ratingColor = 'bg-red-600'; // Explicit (Merah)
-                    break;
-            }
-        %>
-        <span class="<%= ratingColor %> text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-md"><%= post.rating.toUpperCase() %></span>
-        <% } %>
+        <% let rc; if(post.rating==='g')rc='bg-green-600'; if(post.rating==='s')rc='bg-yellow-600'; if(post.rating==='q')rc='bg-purple-600'; if(post.rating==='e')rc='bg-red-600'; %>
+        <span class="<%= rc %> text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md shadow-md"><%= post.rating.toUpperCase() %></span>
       </div>
 
       <div class="media-container w-full h-auto">
         <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %>
         <img src="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" alt="Video preview" class="video-preview w-full h-auto transition-transform duration-300 group-hover:scale-105">
-        <video class="video-playback hidden w-full h-auto" src="<%= post.large_file_url %>" loop muted playsinline>
-        </video>
+        <video class="video-playback hidden w-full h-auto" src="<%= post.large_file_url %>" loop muted playsinline></video>
         <% } else { %>
-        <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="w-full h-auto transition-transform duration-300 group-hover:scale-105" <%= isLazyLoadEnabled ? 'loading="lazy"' : '' %>>
+        <img src="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="w-full h-auto transition-transform duration-300 group-hover:scale-105" <%= isLazyLoadEnabled ? 'loading="lazy"' : '' %>>
         <% } %>
       </div>
 
-      <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
         <div class="overlay-content">
           <h4 class="font-bold truncate"><%= post.tag_string_character.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Unknown' %></h4>
           <p class="text-sm truncate"><%= post.tag_string_copyright.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Original' %></p>
-          <a href="/posts/<%= post.id %>" class="detail-button mt-2 text-center w-full block bg-cyan-600 text-xs py-1 rounded-md hover:bg-cyan-700">
+          <a href="/posts/<%= post.id %>" class="detail-button mt-2 text-center w-full block bg-cyan-600 text-xs py-1 rounded-md hover:bg-cyan-700 pointer-events-auto">
             Lihat Detail
           </a>
         </div>
@@ -113,6 +96,20 @@
     </div>
     <% } %>
     <% }); %>
+    <% } else { %>
+
+    <div class="absolute inset-x-0 flex flex-col items-center justify-center pt-16 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-gray-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <h3 class="text-2xl font-semibold text-white">Tidak Ada Hasil Ditemukan</h3>
+      <p class="text-gray-400 mt-2 max-w-sm">
+        Tidak ada konten yang cocok untuk "<%= userTags.replace(/_/g, ' ') %>". Coba gunakan kata kunci atau kombinasi filter yang berbeda.
+      </p>
+    </div>
+
+    <% } %>
+
   </div>
 </main>
 
