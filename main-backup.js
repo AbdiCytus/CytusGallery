@@ -19,18 +19,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const customAlertCancel = document.getElementById("custom-alert-cancel");
 
   let activeSuggestionIndex = -1;
-  let onConfirmCallback = null; // Untuk menyimpan fungsi yang akan dijalankan saat konfirmasi
-  let isInitializingFilters = true;
-
-  // === BAGIAN 2: FUNGSI-FUNGSI UTAMA ===
+  let onConfirmCallback = null;
 
   const showAlert = (title, message, onConfirm) => {
     if (!customAlert) return;
     customAlertTitle.textContent = title;
     customAlertMessage.textContent = message;
 
+    // Simpan fungsi onConfirm
     onConfirmCallback = typeof onConfirm === "function" ? onConfirm : null;
 
+    // Tampilkan atau sembunyikan tombol berdasarkan ada/tidaknya fungsi onConfirm
     if (onConfirmCallback) {
       customAlertConfirm.classList.remove("hidden");
       customAlertCancel.classList.remove("hidden");
@@ -46,24 +45,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const hideAlert = () => {
     if (!customAlert) return;
     customAlert.classList.add("hidden", "opacity-0");
+    document.body.classList.remove("body-no-scroll");
+    // Hapus callback setelah ditutup untuk mencegah eksekusi yang tidak diinginkan
     onConfirmCallback = null;
-
-    if (sidebar && sidebar.classList.contains("translate-x-full")) {
-      document.body.classList.remove("body-no-scroll");
-    }
   };
 
+  // === BAGIAN 2: FUNGSI-FUNGSI UTAMA ===
+
+  /** Fungsi bantu untuk mendeteksi perangkat mobile */
   const isMobile = () => window.innerWidth < 768;
 
+  /** Fungsi terpusat untuk membangun URL dan melakukan navigasi dengan semua filter aktif */
   const navigateWithFilters = (userTypedTags = "", page = 1) => {
     const params = new URLSearchParams();
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+
     if (userTypedTags) {
       params.append("tags", userTypedTags.trim().replace(/\s+/g, "_"));
     }
+
     let filterQueryParts = [];
     let limit = 25;
     let lazyload = false;
+    let isInitializingFilters = true;
+
     if (filters) {
       if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
         let ratingTag =
@@ -84,17 +89,21 @@ document.addEventListener("DOMContentLoaded", () => {
       limit = filters.limit || 25;
       lazyload = filters.lazyloadToggle;
     }
+
     const filterQuery = filterQueryParts.join(" ");
     if (filterQuery) {
       params.append("query", filterQuery);
     }
+
     params.append("limit", limit);
     if (lazyload) params.append("lazyload", "true");
     if (page > 1) params.append("page", page);
+
     const queryString = params.toString();
     window.location.href = queryString ? `/search?${queryString}` : "/";
   };
 
+  /** Menyimpan semua pengaturan dari sidebar ke localStorage */
   const saveFilters = () => {
     if (!filterForm) return;
     const formData = new FormData(filterForm);
@@ -110,10 +119,12 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
   };
 
+  /** Memuat semua pengaturan dari localStorage dan menerapkannya ke UI sidebar */
   const loadFiltersToUI = () => {
     if (!filterForm) return;
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
     if (!filters) return;
+
     const {
       ratingToggle,
       rating,
@@ -123,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
       autoplayToggle,
       lazyloadToggle,
     } = filters;
+
     const ratingToggleEl = document.getElementById("rating-toggle");
     if (ratingToggleEl) {
       ratingToggleEl.checked = ratingToggle;
@@ -136,6 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (ratingInput) ratingInput.checked = true;
       }
     }
+
     const typeToggleEl = document.getElementById("type-toggle");
     if (typeToggleEl) {
       typeToggleEl.checked = typeToggle;
@@ -149,9 +162,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeInput) typeInput.checked = true;
       }
     }
+
     document.getElementById("limit-input").value = limit || 25;
     document.getElementById("autoplay-toggle").checked = autoplayToggle;
     document.getElementById("lazyload-toggle").checked = lazyloadToggle;
+
     document.body.className = document.body.className.replace(
       /\btheme-\S+/g,
       ""
@@ -163,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  /** Fungsi untuk membuka dan menutup sidebar */
   const openSidebar = () => {
     if (sidebar && sidebarOverlay) {
       sidebar.classList.remove("translate-x-full");
@@ -170,7 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.add("body-no-scroll");
     }
   };
-
   const closeSidebar = () => {
     if (sidebar && sidebarOverlay) {
       sidebar.classList.add("translate-x-full");
@@ -188,88 +203,88 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  /** Fungsi untuk auto-suggest */
   const setActiveSuggestion = () => {
     if (!suggestionsBox) return;
     const suggestions = suggestionsBox.querySelectorAll("a");
     suggestions.forEach((item, index) => {
-      item.classList.toggle("bg-gray-700", index === activeSuggestionIndex);
+      if (index === activeSuggestionIndex) {
+        item.classList.add("bg-gray-700");
+      } else {
+        item.classList.remove("bg-gray-700");
+      }
     });
-  };
-
-  const playVideo = (item) => {
-    if (item.dataset.isVideo !== "true") return;
-    const imgPreview = item.querySelector(".video-preview");
-    const videoElement = item.querySelector(".video-playback");
-    if (imgPreview) imgPreview.classList.add("hidden");
-    if (videoElement) {
-      videoElement.classList.remove("hidden");
-      videoElement.currentTime = 0;
-      videoElement.play().catch((e) => {});
-    }
-  };
-
-  const stopVideo = (item) => {
-    if (item.dataset.isVideo !== "true") return;
-    const imgPreview = item.querySelector(".video-preview");
-    const videoElement = item.querySelector(".video-playback");
-    if (videoElement) {
-      videoElement.pause();
-      videoElement.classList.add("hidden");
-    }
-    if (imgPreview) imgPreview.classList.remove("hidden");
   };
 
   // === BAGIAN 3: MEMASANG SEMUA EVENT LISTENER ===
 
+  // Listener untuk menutup popup alert kustom
   if (customAlertClose)
     customAlertClose.addEventListener("click", () => {
-      loadFiltersToUI();
+      loadFiltersToUI(); // Kembalikan UI ke state terakhir yang tersimpan
       hideAlert();
     });
   if (customAlertOverlay)
     customAlertOverlay.addEventListener("click", () => {
-      loadFiltersToUI();
+      loadFiltersToUI(); // Kembalikan UI
       hideAlert();
     });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !customAlert.classList.contains("hidden")) {
-      loadFiltersToUI();
+      loadFiltersToUI(); // Kembalikan UI
       hideAlert();
     }
   });
+
   if (customAlertCancel)
     customAlertCancel.addEventListener("click", () => {
-      loadFiltersToUI();
+      loadFiltersToUI(); // Kembalikan UI
       hideAlert();
     });
   if (customAlertConfirm)
     customAlertConfirm.addEventListener("click", () => {
-      if (onConfirmCallback) onConfirmCallback();
+      if (onConfirmCallback) {
+        onConfirmCallback(); // Jalankan aksi yang tersimpan
+      }
       hideAlert();
     });
 
+  // 1. Inisialisasi Aplikasi
   if (filterForm) {
     filterForm.addEventListener("change", (e) => {
       if (isInitializingFilters) return;
+
       const changedElement = e.target;
+
+      // Case 1: Menonaktifkan filter rating
       if (changedElement.id === "rating-toggle" && !changedElement.checked) {
+        const confirmAction = () => {
+          saveFilters(); // Simpan HANYA jika dikonfirmasi
+        };
         showAlert(
-          "Nonaktifkan Filter Rating?",
+          "Nonaktifkan Filter?",
           "Ini akan menampilkan semua jenis konten, termasuk yang bersifat dewasa. Lanjutkan?",
-          saveFilters
+          confirmAction
         );
-      } else if (
+      }
+      // Case 2: Mengaktifkan filter explicit
+      else if (
         changedElement.name === "rating" &&
         changedElement.value === "not_g" &&
         changedElement.checked
       ) {
+        const confirmAction = () => {
+          saveFilters(); // Simpan HANYA jika dikonfirmasi
+        };
         showAlert(
           "Aktifkan Mode Explicit?",
           "Konten dewasa akan ditampilkan. Pastikan Anda berada di lingkungan yang sesuai. Lanjutkan?",
-          saveFilters
+          confirmAction
         );
-      } else {
-        saveFilters();
+      }
+      // Case 3: Untuk semua perubahan lain yang tidak butuh konfirmasi
+      else {
+        saveFilters(); // Langsung simpan seperti biasa
       }
     });
     filterForm.addEventListener("submit", (e) => {
@@ -277,16 +292,10 @@ document.addEventListener("DOMContentLoaded", () => {
       navigateWithFilters(searchInput.value, 1);
     });
   }
-  if (searchForm) {
-    searchForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      navigateWithFilters(searchInput.value, 1);
-    });
-  }
 
   if (filterForm) {
-    loadFiltersToUI();
     isInitializingFilters = false;
+    loadFiltersToUI();
     document
       .getElementById("rating-toggle")
       ?.addEventListener("change", (e) =>
@@ -303,6 +312,15 @@ document.addEventListener("DOMContentLoaded", () => {
       );
   }
 
+  // 2. Listener untuk semua form
+  if (searchForm) {
+    searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      navigateWithFilters(searchInput.value, 1);
+    });
+  }
+
+  // 3. Listener untuk auto-suggest
   if (searchInput) {
     searchInput.addEventListener("input", async () => {
       const term = searchInput.value;
@@ -350,23 +368,27 @@ document.addEventListener("DOMContentLoaded", () => {
         activeSuggestionIndex =
           (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
         setActiveSuggestion();
-      } else if (e.key === "Enter" && activeSuggestionIndex > -1) {
-        e.preventDefault();
-        suggestions[activeSuggestionIndex].click();
+      } else if (e.key === "Enter") {
+        if (activeSuggestionIndex > -1) {
+          e.preventDefault();
+          suggestions[activeSuggestionIndex].click();
+        }
       }
     });
   }
 
+  // 4. Listener untuk sidebar
   if (openSidebarButton)
     openSidebarButton.addEventListener("click", openSidebar);
   if (closeSidebarButton)
     closeSidebarButton.addEventListener("click", closeSidebar);
   if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeSidebar);
 
+  // 5. Listener untuk interaksi galeri (Desktop)
   galleryItems.forEach((item) => {
-    const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
     item.addEventListener("mouseenter", () => {
       if (isMobile()) return;
+      const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
       if (settings && settings.autoplayToggle) playVideo(item);
     });
     item.addEventListener("mouseleave", () => {
@@ -375,10 +397,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // 6. Listener global untuk klik (termasuk interaksi mobile)
   document.addEventListener("click", (e) => {
+    // Menutup suggestion box
     if (searchForm && !searchForm.contains(e.target)) {
       if (suggestionsBox) suggestionsBox.classList.add("hidden");
     }
+
+    // Logika untuk Mobile
     if (isMobile()) {
       const clickedItem = e.target.closest(".gallery-item");
       if (!clickedItem) {
@@ -394,10 +420,14 @@ document.addEventListener("DOMContentLoaded", () => {
           const settings = JSON.parse(
             localStorage.getItem("cytusGalleryFilters")
           );
-          if (settings && settings.autoplayToggle) playVideo(clickedItem);
+          if (settings && settings.autoplayToggle) {
+            playVideo(clickedItem);
+          }
         }
       }
     }
+
+    // Mencegat klik link untuk menerapkan filter
     const link = e.target.closest("a");
     if (!link) return;
     const isPaginationLink = link.closest("#pagination-nav");
@@ -423,15 +453,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Ganti fungsi playVideo yang lama dengan ini
+  const playVideo = (item) => {
+    if (item.dataset.isVideo !== "true") return;
+    const imgPreview = item.querySelector(".video-preview");
+    const videoElement = item.querySelector(".video-playback");
+
+    if (imgPreview) imgPreview.classList.add("hidden");
+    if (videoElement) {
+      videoElement.classList.remove("hidden");
+      videoElement.currentTime = 0;
+      videoElement.play().catch((e) => {});
+    }
+  };
+
+  // Ganti fungsi stopVideo yang lama dengan ini
+  const stopVideo = (item) => {
+    if (item.dataset.isVideo !== "true") return;
+    const imgPreview = item.querySelector(".video-preview");
+    const videoElement = item.querySelector(".video-playback");
+
+    if (videoElement) {
+      videoElement.pause();
+      videoElement.classList.add("hidden");
+    }
+    if (imgPreview) imgPreview.classList.remove("hidden");
+  };
+
+  // 7. Inisialisasi Swiper
   if (document.querySelector(".swiper")) {
-    new Swiper(".swiper", {
+    const swiper = new Swiper(".swiper", {
       loop: true,
       slidesPerView: 1,
       spaceBetween: 10,
       autoplay: {
         delay: 4000,
         disableOnInteraction: false,
-        pauseOnMouseEnter: true,
+        pauseOnMouseEnter: true, // Menjeda autoplay bawaan saat hover
       },
       breakpoints: {
         640: { slidesPerView: 3, spaceBetween: 20 },
@@ -443,4 +501,27 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     });
   }
+
+  // Seleksi semua elemen yang merupakan slide DAN juga item galeri
+  const sliderItems = document.querySelectorAll(".swiper-slide.gallery-item");
+
+  sliderItems.forEach((item) => {
+    // Hindari memasang listener berulang kali jika ada
+    if (item.listenersAttached) return;
+
+    item.addEventListener("mouseenter", () => {
+      if (isMobile()) return;
+      const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+      if (settings && settings.autoplayToggle) {
+        playVideo(item);
+      }
+    });
+
+    item.addEventListener("mouseleave", () => {
+      if (isMobile()) return;
+      stopVideo(item);
+    });
+
+    item.listenersAttached = true;
+  });
 });
