@@ -287,11 +287,34 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sembunyikan loader HANYA setelah semua aset (gambar, dll) selesai dimuat
   window.addEventListener("load", hideLoader);
 
+  // Ganti listener 'pageshow' yang lama dengan ini
   window.addEventListener("pageshow", (event) => {
+    // --- LOGIKA BARU UNTUK CEK KONTEN ---
+    const checkMediaAndHideLoader = () => {
+      // Sembunyikan loader hanya jika semua media sudah siap
+      const mediaElements = document.querySelectorAll(
+        "#main-gallery img, #main-gallery video"
+      );
+      // Jika tidak ada media, langsung sembunyikan
+      if (mediaElements.length === 0) {
+        hideLoader();
+        return;
+      }
+      // Cek status semua media
+      const allMediaReady = Array.from(mediaElements).every(
+        (media) => media.complete || media.readyState > 2
+      );
+      if (allMediaReady) {
+        hideLoader();
+      }
+    };
+
     // Jika halaman dipulihkan dari cache (tombol back/forward)
     if (event.persisted) {
-      // Sembunyikan loader secara paksa
-      hideLoader();
+      // Tampilkan loader terlebih dahulu
+      showLoader("Reloading Contents...");
+      // Cek status konten setelah sedikit jeda untuk memastikan DOM sudah siap
+      setTimeout(checkMediaAndHideLoader, 100);
     }
   });
 
@@ -518,6 +541,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       // Jika TIDAK, artinya kita harus pindah ke halaman Home
       // sambil membawa semua filter dari sidebar
+      sessionStorage.setItem("isLoading", "true");
       showLoader("Navigating...");
       navigateWithFilters("", 1); // Panggil navigasi tanpa tag pencarian
     }

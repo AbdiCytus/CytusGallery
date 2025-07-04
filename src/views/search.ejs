@@ -1,3 +1,21 @@
+<%
+  const formatTags = (tagString, fallback = 'Original') => {
+    if (!tagString || tagString.trim() === '') {
+      return fallback;
+    }
+    // Fungsi untuk mengubah setiap kata menjadi huruf kapital di awal (Title Case)
+    const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+
+    const tags = tagString.split(' '); // 1. Pisahkan setiap tag menjadi array
+    const formattedTags = tags.map(tag => {
+      const spacedTag = tag.replace(/_/g, ' '); // 2. Ganti '_' dengan spasi
+      return toTitleCase(spacedTag);             // 3. Ubah menjadi Title Case
+    });
+
+    return formattedTags.join(', '); // 4. Gabungkan dengan koma dan spasi
+  };
+%>
+
 <%- include('partials/header') %>
 
 <main class="container mx-auto p-4">
@@ -44,8 +62,8 @@
 
         <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <div class="overlay-content">
-            <h4 class="font-bold truncate"><%= post.tag_string_character.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Unknown' %></h4>
-            <p class="text-sm truncate"><%= post.tag_string_copyright.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Original' %></p>
+            <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
+            <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
             <a href="/posts/<%= post.id %>" class="detail-button mt-2 text-center w-full block bg-cyan-600 text-xs py-1 rounded-md hover:bg-cyan-700">Lihat Detail</a>
           </div>
         </div>
@@ -86,8 +104,8 @@
 
       <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
         <div class="overlay-content">
-          <h4 class="font-bold truncate"><%= post.tag_string_character.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Unknown' %></h4>
-          <p class="text-sm truncate"><%= post.tag_string_copyright.replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || 'Original' %></p>
+          <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
+          <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
           <a href="/posts/<%= post.id %>" class="detail-button mt-2 text-center w-full block bg-cyan-600 text-xs py-1 rounded-md hover:bg-cyan-700 pointer-events-auto">
             Lihat Detail
           </a>

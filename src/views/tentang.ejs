@@ -2,18 +2,38 @@
 
 <main class="container mx-auto p-4 text-gray-300">
   <div class="bg-gray-800/50 p-6 md:p-8 rounded-lg max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-white mb-4">Tentang CytusGallery</h1>
-    <p class="mb-4">
-      CytusGallery adalah sebuah galeri web pribadi yang dirancang untuk menjelajahi kekayaan konten visual dari Danbooru dengan antarmuka yang bersih, cepat, dan modern.
-    </p>
-    <p class="mb-4">
-      Proyek ini dibangun menggunakan Node.js dan Express di sisi server, serta EJS untuk rendering halaman. Seluruh data gambar, video, dan tag diambil secara real-time dari Danbooru API.
-    </p>
+    <h1 class="text-3xl font-bold text-white mb-4 border-b border-gray-700 pb-2">Tentang CytusGallery</h1>
 
-    <h2 class="text-2xl font-bold text-white mt-6 mb-3">Atribusi</h2>
-    <p>
-      Kami ingin menegaskan bahwa CytusGallery tidak memiliki hak cipta atas konten yang ditampilkan. Semua konten adalah milik para artis dan pemegang hak cipta aslinya, dan disajikan di sini melalui API publik Danbooru untuk tujuan eksplorasi seni.
+    <div class="space-y-4">
+      <p>
+        <strong>CytusGallery</strong> adalah sebuah galeri web pribadi yang dirancang untuk menjadi gerbang Anda menuju dunia seni digital yang luas dari Danbooru. Proyek ini lahir dari keinginan untuk menciptakan antarmuka yang bersih, cepat, dan modern, yang memprioritaskan pengalaman pengguna dalam menjelajahi konten.
+      </p>
+      <p>
+        Fokus utama kami adalah menyediakan alat yang intuitif dan kuat untuk memfilter dan menemukan konten persis seperti yang Anda inginkan, tanpa gangguan dari elemen antarmuka yang tidak perlu.
+      </p>
+    </div>
+
+    <h2 class="text-2xl font-bold text-white mt-8 mb-3">Teknologi di Balik Layar</h2>
+    <p class="mb-4">
+      Proyek ini merupakan aplikasi web berbasis <strong>Node.js</strong> dengan arsitektur Multi-Page Application (MPA) yang disempurnakan, menggunakan tumpukan teknologi berikut:
     </p>
+    <ul class="list-disc list-inside space-y-2 bg-gray-900/50 p-4 rounded-md">
+      <li><strong>Backend:</strong> Express.js sebagai kerangka kerja server.</li>
+      <li><strong>Frontend:</strong> Halaman dirender di server menggunakan EJS (Embedded JavaScript templates).</li>
+      <li><strong>Interaktivitas:</strong> JavaScript murni (Vanilla JS) untuk menangani semua interaksi di sisi klien, dari filter hingga pemutaran video.</li>
+      <li><strong>Styling:</strong> Tailwind CSS untuk desain yang responsif dan dapat dikustomisasi.</li>
+      <li><strong>Sumber Data:</strong> Seluruh data gambar, video, dan tag diambil secara real-time dari API publik Danbooru.</li>
+    </ul>
+
+    <h2 class="text-2xl font-bold text-white mt-8 mb-3">Disclaimer & Atribusi</h2>
+    <div class="border-l-4 border-yellow-500 pl-4 text-yellow-200/80">
+      <p class="font-semibold">
+        CytusGallery adalah sebuah klien tidak resmi dan tidak berafiliasi, disponsori, atau didukung oleh Danbooru.
+      </p>
+      <p class="mt-2">
+        Semua konten visual yang ditampilkan di situs ini adalah milik para seniman dan pemegang hak cipta masing-masing. Proyek ini hanya bertindak sebagai antarmuka untuk menjelajahi konten yang tersedia melalui API publik Danbooru dan tidak mengklaim kepemilikan atas karya apa pun.
+      </p>
+    </div>
   </div>
 </main>
 

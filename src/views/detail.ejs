@@ -4,7 +4,7 @@
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 
     <div class="md:col-span-2 bg-gray-800 rounded-lg p-2 flex justify-center items-center">
-      <% if (post.file_ext === 'mp4' || post.file_ext === 'webm') { %>
+      <% if (post.file_ext === 'mp4' || post.file_ext === 'webm' || post.file_ext === "zip") { %>
       <video src="<%= post.large_file_url %>" class="max-w-full max-h-[90vh] rounded-md" controls autoplay loop muted></video>
       <% } else { %>
       <img src="<%= post.large_file_url %>" alt="Detail konten" class="max-w-full max-h-[90vh] rounded-md">
@@ -36,11 +36,9 @@
           </div>
         </div>
 
-        <%
-                    const renderTags = (title, tagString, colorClass) => {
-                        if (tagString && tagString.trim() !== '') {
-                            const tags = tagString.split(' ');
-                %>
+        <%const renderTags = (title, tagString, colorClass) => {
+            if (tagString && tagString.trim() !== '') {
+                  const tags = tagString.split(' ');%>
         <div>
           <h3 class="font-semibold mb-2 <%= colorClass %>"><%= title %></h3>
           <div class="flex flex-wrap gap-2">
@@ -52,10 +50,9 @@
           </div>
         </div>
         <%
-                        }
-                    }
-                %>
-
+            }
+          }
+        %>
         <% renderTags('Copyright', post.tag_string_copyright, 'text-purple-400'); %>
         <% renderTags('Character(s)', post.tag_string_character, 'text-green-400'); %>
         <% renderTags('Artist', post.tag_string_artist, 'text-red-400'); %>

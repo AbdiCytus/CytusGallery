@@ -2,34 +2,63 @@
 
 <main class="container mx-auto p-4 text-gray-300">
   <div class="bg-gray-800/50 p-6 md:p-8 rounded-lg max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-white mb-6">Bantuan & FAQ</h1>
+    <h1 class="text-3xl font-bold text-white mb-6 border-b border-gray-700 pb-2">Panduan Pengguna & FAQ</h1>
 
-    <div class="space-y-6">
-      <div>
-        <h2 class="text-xl font-semibold text-cyan-400 mb-2">Bagaimana Cara Menggunakan Pencarian?</h2>
-        <p>Anda bisa menggunakan berbagai macam tag untuk mempersempit hasil pencarian. Berikut beberapa contoh:</p>
-        <ul class="list-disc list-inside mt-2 space-y-1 bg-gray-900/50 p-4 rounded-md">
-          <li><code>genshin_impact</code> (mencari berdasarkan seri)</li>
-          <li><code>frieren</code> (mencari berdasarkan karakter)</li>
-          <li><code>order:score</code> (mengurutkan berdasarkan skor tertinggi)</li>
-          <li><code>rating:g</code> (hanya menampilkan konten General/Safe)</li>
-          <li><code>-bikini</code> (mengecualikan tag bikini dari hasil)</li>
-        </ul>
-      </div>
+    <div class="space-y-8">
 
-      <div>
-        <h2 class="text-xl font-semibold text-cyan-400 mb-2">Apa Arti dari Rating Konten?</h2>
-        <p>Kami menggunakan sistem rating dari Danbooru:</p>
-        <ul class="list-disc list-inside mt-2 space-y-1">
-          <li><strong>Safe (G)</strong>: Konten aman untuk semua umur.</li>
-          <li><strong>Moderate (S/Q)</strong>: Konten yang mungkin sensitif atau sedikit sugestif.</li>
-          <li><strong>Explicit (E)</strong>: Konten dewasa.</li>
+      <section>
+        <h2 class="text-xl font-semibold text-cyan-400 mb-2">🔍 Menguasai Pencarian Tag</h2>
+        <p>Kotak pencarian adalah alat utama Anda. Anda bisa menggabungkan beberapa tag untuk hasil yang spesifik. Berikut adalah sintaks yang bisa Anda gunakan:</p>
+        <div class="mt-3 bg-gray-900/50 p-4 rounded-md text-sm space-y-2">
+          <p><strong>Menambah Tag:</strong> Cukup pisahkan dengan spasi.</p>
+          <code class="block bg-gray-700 p-2 rounded">genshin_impact 1girl</code>
+          <p><strong>Mengecualikan Tag:</strong> Gunakan tanda minus (-) di depan tag.</p>
+          <code class="block bg-gray-700 p-2 rounded">frieren -solo</code>
+          <p><strong>Mengurutkan Hasil:</strong> Gunakan tag khusus `order:`.</p>
+          <code class="block bg-gray-700 p-2 rounded">order:score (skor tertinggi)</code>
+          <code class="block bg-gray-700 p-2 rounded">order:rank (paling populer)</code>
+          <p><strong>Memfilter Rating:</strong> Gunakan tag `rating:`.</p>
+          <code class="block bg-gray-700 p-2 rounded">rating:safe (atau rating:g)</code>
+          <code class="block bg-gray-700 p-2 rounded">rating:questionable (atau rating:q)</code>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-cyan-400 mb-2">⚙️ Memahami Sidebar Pengaturan</h2>
+        <p>Klik ikon menu (☰) di pojok kanan atas untuk membuka panel pengaturan. Semua pengaturan Anda akan disimpan di browser untuk kunjungan berikutnya.</p>
+        <ul class="list-none mt-3 space-y-3">
+          <li class="p-3 bg-gray-900/50 rounded-md">
+            <strong>Filter Rating:</strong> Saat diaktifkan, Anda bisa memilih level konten yang ingin ditampilkan.
+            <ul class="list-disc list-inside mt-1 pl-2 text-sm">
+              <li><strong>Safe:</strong> Aman untuk semua umur.</li>
+              <li><strong>Moderate:</strong> Mungkin berisi konten sensitif.</li>
+              <li><strong>Explicit:</strong> Konten dewasa. Memerlukan konfirmasi saat pertama kali diaktifkan.</li>
+            </ul>
+          </li>
+          <li class="p-3 bg-gray-900/50 rounded-md">
+            <strong>Filter Tipe:</strong> Membatasi hasil pencarian hanya untuk gambar atau video.
+          </li>
+          <li class="p-3 bg-gray-900/50 rounded-md">
+            <strong>Konten per Halaman:</strong> Mengatur jumlah postingan yang ditampilkan di setiap halaman (antara 10 hingga 200).
+          </li>
+          <li class="p-3 bg-gray-900/50 rounded-md">
+            <strong>Autoplay Video:</strong> Jika aktif, video akan otomatis diputar saat kursor mouse diarahkan ke thumbnail (hanya di desktop).
+          </li>
+          <li class="p-3 bg-gray-900/50 rounded-md">
+            <strong>Lazy Loading Gambar:</strong> Jika aktif, gambar hanya akan dimuat saat akan muncul di layar. Ini sangat menghemat data dan mempercepat waktu muat halaman.
+          </li>
         </ul>
-      </div>
-      <div>
-        <h2 class="text-xl font-semibold text-cyan-400 mb-2">Bagaimana Cara Menggunakan Filter?</h2>
-        <p>Klik ikon menu (garis tiga) di pojok kanan atas untuk membuka sidebar. Di sana Anda bisa mengaktifkan filter rating, tipe file (gambar/video), dan mengatur jumlah konten per halaman. Klik "Terapkan Filter" untuk melihat hasilnya.</p>
-      </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-semibold text-cyan-400 mb-2">💡 Tips & Trik</h2>
+        <ul class="list-disc list-inside mt-3 space-y-2">
+          <li><strong>Navigasi Cepat:</strong> Gunakan tombol panah <strong>Kiri (←)</strong> dan <strong>Kanan (→)</strong> di keyboard Anda untuk berpindah antar halaman.</li>
+          <li><strong>Kembali ke Home:</strong> Mengklik "Home" akan membersihkan tag pencarian Anda saat ini, namun tetap mempertahankan semua filter yang telah Anda atur di sidebar.</li>
+          <li><strong>Saran Tag:</strong> Saat mengetik di kotak pencarian, tunggu sejenak untuk melihat saran tag yang relevan beserta jumlah postingannya.</li>
+        </ul>
+      </section>
+
     </div>
   </div>
 </main>
