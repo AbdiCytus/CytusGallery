@@ -81,3 +81,15 @@
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* Sembunyikan panah di input type number untuk Chrome, Safari, dll. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Sembunyikan panah di input type number untuk Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}

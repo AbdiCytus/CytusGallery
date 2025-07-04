@@ -5,11 +5,28 @@ document.addEventListener("DOMContentLoaded", () => {
     searchInputOnLoad.value = savedTags.replace(/_/g, " ");
   }
 
+  // === FUNGSI BARU UNTUK KONTROL LOADING SPINNER ===
   const loadingOverlay = document.getElementById("loading-overlay");
-  if (sessionStorage.getItem("isLoading") === "true") {
-    loadingOverlay?.classList.remove("opacity-0", "pointer-events-none");
-    // Hapus pesan agar tidak muncul lagi saat refresh manual
-    sessionStorage.removeItem("isLoading");
+  const loadingText = document.getElementById("loading-text");
+
+  const showLoader = (message = "Loading Contents...") => {
+    if (loadingOverlay && loadingText) {
+      loadingText.textContent = message;
+      loadingOverlay.classList.remove("opacity-0", "pointer-events-none");
+    }
+  };
+
+  const hideLoader = () => {
+    if (loadingOverlay) {
+      setTimeout(() => {
+        loadingOverlay.classList.add("opacity-0", "pointer-events-none");
+      }, 100);
+    }
+  };
+
+  const navigationEntries = performance.getEntriesByType("navigation");
+  if (navigationEntries.length > 0 && navigationEntries[0].type === "reload") {
+    showLoader("Reloading...");
   }
 
   // === BAGIAN 1: PENGUMPULAN ELEMEN DOM ===
@@ -93,10 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const isMobile = () => window.innerWidth < 768;
 
   const navigateWithFilters = (userTypedTags = "", page = 1) => {
-    sessionStorage.setItem("isLoading", "true");
-    const loadingOverlay = document.getElementById("loading-overlay");
-    if (loadingOverlay) loadingOverlay.classList.remove("hidden");
-
     sessionStorage.setItem("lastSearchTags", userTypedTags.trim());
 
     const params = new URLSearchParams();
@@ -262,6 +275,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (imgPreview) imgPreview.classList.remove("hidden");
   };
 
+  // Cek apakah halaman ini seharusnya menampilkan loader
+  if (sessionStorage.getItem("isLoading") === "true") {
+    showLoader("Loading Contents...");
+    sessionStorage.removeItem("isLoading"); // Hapus tanda agar tidak muncul lagi saat refresh
+  }
+
+  // Panggil loadFiltersToUI untuk mengisi sidebar
+  if (filterForm) loadFiltersToUI();
+
+  // Sembunyikan loader HANYA setelah semua aset (gambar, dll) selesai dimuat
+  window.addEventListener("load", hideLoader);
+
+  window.addEventListener("pageshow", (event) => {
+    // Jika halaman dipulihkan dari cache (tombol back/forward)
+    if (event.persisted) {
+      // Sembunyikan loader secara paksa
+      hideLoader();
+    }
+  });
+
   // === BAGIAN 3: MEMASANG SEMUA EVENT LISTENER ===
 
   if (customAlertClose)
@@ -347,12 +380,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     filterForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      showLoader("Applying Settings...");
       navigateWithFilters(searchInput.value, 1);
     });
   }
   if (searchForm) {
     searchForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      showLoader("Searching...");
       navigateWithFilters(searchInput.value, 1);
     });
   }
@@ -406,6 +441,25 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Failed to fetch suggestions:", error);
       }
     });
+    document.addEventListener("keyup", (e) => {
+      // Abaikan jika pengguna sedang mengetik di input
+      if (document.activeElement.tagName === "INPUT") return;
+      // Abaikan jika ada overlay yang aktif
+      if (
+        !customAlert.classList.contains("hidden") ||
+        !sidebar.classList.contains("translate-x-full")
+      )
+        return;
+
+      if (e.key === "ArrowLeft") {
+        const prevButton = document.querySelector('a[rel="prev"]');
+        if (prevButton) prevButton.click();
+      } else if (e.key === "ArrowRight") {
+        const nextButton = document.querySelector('a[rel="next"]');
+        if (nextButton) nextButton.click();
+      }
+    });
+
     searchInput.addEventListener("keydown", (e) => {
       const suggestions = suggestionsBox.querySelectorAll("a");
       if (
@@ -438,16 +492,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Fungsi terpusat untuk menangani klik link "Home"
   const handleHomeLinkClick = (e) => {
+    e.preventDefault(); // Selalu hentikan navigasi default di awal
+
+    const searchInput = document.getElementById("search-input");
+
+    // Selalu bersihkan input dan session saat home diklik
+    if (searchInput) searchInput.value = "";
+
+    sessionStorage.removeItem("lastSearchTags");
+
     const currentPath = window.location.pathname;
     const searchParams = new URLSearchParams(window.location.search);
 
-    if (currentPath === "/search" && !searchParams.has("tags")) {
-      e.preventDefault();
+    // Cek jika kita SUDAH berada di halaman Home yang bersih
+    if (
+      currentPath === "/search" &&
+      !searchParams.has("tags") &&
+      !searchParams.has("page")
+    ) {
+      // Jika ya, cukup scroll ke atas
       window.scrollTo({ top: 0, behavior: "smooth" });
-      // Jika di mobile, tutup juga sidebar setelah diklik
       if (isMobile()) {
         closeSidebar();
       }
+    } else {
+      // Jika TIDAK, artinya kita harus pindah ke halaman Home
+      // sambil membawa semua filter dari sidebar
+      showLoader("Navigating...");
+      navigateWithFilters("", 1); // Panggil navigasi tanpa tag pencarian
     }
   };
 
@@ -467,6 +539,16 @@ document.addEventListener("DOMContentLoaded", () => {
       stopVideo(item);
     });
   });
+
+  // Listener untuk semua form submit
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    sessionStorage.setItem("isLoading", "true"); // Set tanda loading
+    navigateWithFilters(document.getElementById("search-input").value, 1);
+  };
+
+  if (filterForm) filterForm.addEventListener("submit", handleFormSubmit);
+  if (searchForm) searchForm.addEventListener("submit", handleFormSubmit);
 
   document.addEventListener("click", (e) => {
     if (searchForm && !searchForm.contains(e.target)) {
@@ -491,28 +573,39 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     }
+
     const link = e.target.closest("a");
     if (!link) return;
+
+    const isDetailButton = link.classList.contains("detail-button");
+    if (isDetailButton) {
+      showLoader("Getting Data Content...");
+      // Tidak perlu e.preventDefault(), biarkan link bekerja normal
+      return;
+    }
+
+    // Cek jika link adalah salah satu yang memicu loading
     const isPaginationLink = link.closest("#pagination-nav");
     const isSuggestionLink = link.closest("#suggestions-box");
     const isTagLink = link.classList.contains("tag-link");
-    if (link.href.includes("/search") || link.href.includes("/?page=")) {
-      if (isPaginationLink || isSuggestionLink || isTagLink) {
-        e.preventDefault();
-        const url = new URL(link.href);
-        const tags = url.searchParams.get("tags") || "";
-        const page = url.searchParams.get("page") || 1;
-        const userTags = tags
-          .split(" ")
-          .filter(
-            (t) =>
-              !t.startsWith("rating:") &&
-              !t.startsWith("-rating:") &&
-              !t.startsWith("filetype:")
-          )
-          .join(" ");
-        navigateWithFilters(userTags, page);
-      }
+
+    if (isPaginationLink || isSuggestionLink || isTagLink) {
+      e.preventDefault();
+      showLoader("Navigating...");
+      sessionStorage.setItem("isLoading", "true");
+      const url = new URL(link.href);
+      const tags = url.searchParams.get("tags") || "";
+      const page = url.searchParams.get("page") || 1;
+      const userTags = tags
+        .split(" ")
+        .filter(
+          (t) =>
+            !t.startsWith("rating:") &&
+            !t.startsWith("-rating:") &&
+            !t.startsWith("filetype:")
+        )
+        .join(" ");
+      navigateWithFilters(userTags, page);
     }
   });
 
@@ -536,13 +629,16 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     });
   }
-  window.addEventListener("load", () => {
-    const loadingOverlay = document.getElementById("loading-overlay");
+});
+
+window.addEventListener("load", () => {
+  const loadingOverlay = document.getElementById("loading-overlay");
+  const hideLoader = () => {
     if (loadingOverlay) {
-      // Beri sedikit jeda agar transisi terlihat mulus
       setTimeout(() => {
         loadingOverlay.classList.add("opacity-0", "pointer-events-none");
       }, 100);
     }
-  });
+  };
+  hideLoader();
 });

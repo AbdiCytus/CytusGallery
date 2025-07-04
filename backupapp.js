@@ -1,10 +1,8 @@
-//Import Modul
 const express = require("express");
 const path = require("path");
-const axios = require("axios");
+const axios = require("axios"); // Kita butuh axios di sini
 require("dotenv").config();
 
-//Setup Server
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -14,19 +12,14 @@ app.set("views", path.join(__dirname, "views"));
 
 // Setup folder public untuk file statis (CSS, JS, gambar)
 app.use(express.static(path.join(__dirname, "public")));
-
-//Setup Middleware
 app.use((req, res, next) => {
   res.locals.tags = req.query.tags || "";
   next();
 });
 
-//Base API URL
 const baseTagURL = "https://danbooru.donmai.us/tags.json";
 const basePostsURL = "https://danbooru.donmai.us/posts.json";
 const baseCountsPostsURL = "https://danbooru.donmai.us/counts/posts.json";
-
-// 1. Function Handler
 
 async function getTopPostsThisMonth(limit, filter) {
   try {
@@ -35,24 +28,17 @@ async function getTopPostsThisMonth(limit, filter) {
     const month = (today.getMonth() + 1).toString().padStart(2, "0");
     const startOfMonth = `${year}-${month}-01`;
 
-    const query = `order:score date:>=${startOfMonth} ${filter}`;
-    const params = { tags: query, limit: limit };
-    const response = await axios.get(basePostsURL, { params: params });
+    const query = `order:score date:>=${startOfMonth}`;
+    const response = await axios.get(basePostsURL, {
+      params: {
+        tags: query,
+        limit: limit,
+      },
+    });
 
     return response.data;
   } catch (error) {
     console.error("Gagal mengambil data Danbooru:", error);
-    return [];
-  }
-}
-
-async function getTopPosts(tags, filter, limit) {
-  try {
-    const query = `${tags} ${filter} order:score`;
-    const params = { tags: query, limit: limit };
-    const response = await axios.get(basePostsURL, { params: params });
-    return response.data;
-  } catch (err) {
     return [];
   }
 }
@@ -80,27 +66,8 @@ async function getTotalPosts(limit) {
   return { totalPosts, totalPages };
 }
 
-async function getTotalPostsWithParams(tags, query, limit) {
-  let totalPosts;
-  let fallbackResponse;
-  const getCounts = await axios.get(
-    `${baseCountsPostsURL}?tags=${tags} ${query}`
-  );
-  if (getCounts.data.counts.posts === null) {
-    if (tags)
-      fallbackResponse = await axios.get(`${baseCountsPostsURL}?tags=${tags}`);
-    else fallbackResponse = await axios.get(baseCountsPostsURL);
-    totalPosts = fallbackResponse.data.counts.posts;
-  } else {
-    totalPosts = getCounts.data.counts.posts;
-  }
-
-  return Math.ceil(totalPosts / limit);
-}
-
-//2. Functional Routes
-
-const root = async (req, res) => {
+// Route untuk halaman utama
+app.get("/", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
@@ -139,9 +106,10 @@ const root = async (req, res) => {
     console.error("Error fetching homepage data:", error);
     res.status(500).send("Gagal mengambil data dari Danbooru API");
   }
-};
+});
 
-const search = async (req, res) => {
+// Route untuk search
+app.get("/search", async (req, res) => {
   const userTags = (req.query.tags || "").trim();
   const filterQuery = (req.query.query || "").trim();
   const allTags = `${userTags} ${filterQuery}`;
@@ -153,22 +121,48 @@ const search = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    let posts;
-    let totalPages;
+    let totalPosts;
+    const countResponse = await axios.get(
+      `https://danbooru.donmai.us/counts/posts.json?tags=${allTags}`
+    );
+
+    if (countResponse.data.counts.posts === null) {
+      if (userQueryTags) {
+        const fallbackResponse = await axios.get(
+          `https://danbooru.donmai.us/counts/posts.json?tags=${userTags}`
+        );
+        totalPosts = fallbackResponse.data.counts.posts;
+      } else {
+        const totalSiteResponse = await axios.get(
+          `https://danbooru.donmai.us/counts/posts.json`
+        );
+        totalPosts = totalSiteResponse.data.counts.posts;
+      }
+    } else {
+      totalPosts = countResponse.data.counts.posts;
+    }
+
+    const totalPages = Math.ceil(totalPosts / limit);
+
+    const postsResponse = await axios.get(
+      `https://danbooru.donmai.us/posts.json?tags=${allTags}&page=${page}&limit=${limit}`
+    );
+    const posts = postsResponse.data;
+
     let sliderPosts = [];
     let popularTags = [];
     let popularCharacters = [];
 
-    const contentsParams = { tags: allTags, page: page, limit: limit };
-    const contents = await axios.get(basePostsURL, { params: contentsParams });
-
-    posts = contents.data;
-    totalPages = await getTotalPostsWithParams(userTags, filterQuery, limit);
-
     if (page === 1) {
-      userTags
-        ? (sliderPosts = await getTopPosts(userTags, filterQuery, limit))
-        : (sliderPosts = await getTopPostsThisMonth(limit, filterQuery));
+      const sliderApiTags = `${allTags} order:score`;
+      try {
+        const sliderResponse = await axios.get(
+          `https://danbooru.donmai.us/posts.json?tags=${sliderApiTags}&limit=15`
+        );
+        sliderPosts = sliderResponse.data;
+      } catch (sliderError) {
+        sliderPosts = [];
+      }
     }
 
     if (!userTags) {
@@ -192,9 +186,9 @@ const search = async (req, res) => {
     console.error("Error fetching search data:", error);
     res.status(500).send("Gagal mencari data");
   }
-};
+});
 
-const detail = async (req, res) => {
+app.get("/posts/:id", async (req, res) => {
   try {
     const postId = req.params.id;
     const response = await axios.get(
@@ -207,35 +201,22 @@ const detail = async (req, res) => {
     console.error("Error fetching post details:", error);
     res.status(404).send("Konten tidak ditemukan");
   }
-};
+});
 
-//3. Routes
-
-// Route untuk halaman utama
-app.get("/", root);
-// Route untuk search
-app.get("/search", search);
-// Route untuk detail
-app.get("/posts/:id", detail);
-
-// API Endpoint untuk Auto-suggest Tag
+// == API Endpoint untuk Auto-suggest Tag ==
 app.get("/api/tagsuggest", async (req, res) => {
   const searchTerm = req.query.term;
-  if (!searchTerm) return res.json([]);
+  if (!searchTerm) {
+    return res.json([]);
+  }
 
   try {
     // Panggil API Danbooru untuk mencari tag
     // search[order]=count -> Mengurutkan berdasarkan jumlah post (terbanyak dulu)
-    const suggestParams = {
-      "search[name_matches]": `${searchTerm}*`,
-      "search[order]": "count",
-      limit: 10,
-    };
-
-    const response = await axios.get(baseTagURL, { params: suggestParams });
-    const postExist = response.data.filter((tag) => tag.post_count > 0);
-
-    res.json(postExist);
+    const response = await axios.get(
+      `https://danbooru.donmai.us/tags.json?search[name_matches]=${searchTerm}*&search[order]=count&limit=10`
+    );
+    res.json(response.data);
   } catch (error) {
     console.error("Tag suggestion error:", error);
     res.json([]);
@@ -252,7 +233,7 @@ app.get("/bantuan", (req, res) => {
   res.render("bantuan"); // Akan merender file bantuan.ejs
 });
 
-//Run Server
+// Jalankan server
 app.listen(PORT, () => {
   console.log(`Server CytusGallery berjalan di http://localhost:${PORT}`);
 });
