@@ -106,10 +106,9 @@ const root = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const postsResponse = await axios.get(
-      `${basePostsURL}?page=${page}&limit=${limit}`
-    );
-    const posts = postsResponse.data;
+    const contentsParams = { page: page, limit: limit };
+    const contents = await axios.get(basePostsURL, { params: contentsParams });
+    const posts = contents.data;
 
     let totalPosts;
     let totalPages;
@@ -122,7 +121,7 @@ const root = async (req, res) => {
     popularTags = await getSliderTags(3);
     popularCharacters = await getSliderTags(4);
 
-    if (page === 1) sliderPosts = await getTopPostsThisMonth(15).then(posts);
+    if (page === 1) sliderPosts = await getTopPostsThisMonth(15);
 
     res.render("index", {
       posts: posts,
@@ -167,8 +166,8 @@ const search = async (req, res) => {
 
     if (page === 1) {
       userTags
-        ? (sliderPosts = await getTopPosts(userTags, filterQuery, limit))
-        : (sliderPosts = await getTopPostsThisMonth(limit, filterQuery));
+        ? (sliderPosts = await getTopPosts(userTags, filterQuery, 15))
+        : (sliderPosts = await getTopPostsThisMonth(15, filterQuery));
     }
 
     if (!userTags) {
@@ -242,14 +241,12 @@ app.get("/api/tagsuggest", async (req, res) => {
   }
 });
 
-// Rute untuk halaman Tentang
-app.get("/tentang", (req, res) => {
-  res.render("tentang"); // Akan merender file tentang.ejs
-});
+// Route untuk tentang
+app.get("/tentang", (req, res) => res.render("tentang"));
 
-// Rute untuk halaman Bantuan
+// Route untuk bantuan
 app.get("/bantuan", (req, res) => {
-  res.render("bantuan"); // Akan merender file bantuan.ejs
+  res.render("bantuan");
 });
 
 //Run Server
