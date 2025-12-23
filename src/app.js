@@ -83,12 +83,16 @@ async function getTotalPosts(limit) {
 async function getTotalPostsWithParams(tags, query, limit) {
   let totalPosts;
   let fallbackResponse;
-  const getCounts = await axios.get(
-    `${baseCountsPostsURL}?tags=${tags} ${query}`
-  );
+  const getCounts = await axios.get(baseCountsPostsURL, {
+    params: {
+      tags: `${tags} ${query}`,
+    },
+  });
   if (getCounts.data.counts.posts === null) {
     if (tags)
-      fallbackResponse = await axios.get(`${baseCountsPostsURL}?tags=${tags}`);
+      fallbackResponse = await axios.get(baseCountsPostsURL, {
+        params: { tags: tags },
+      });
     else fallbackResponse = await axios.get(baseCountsPostsURL);
     totalPosts = fallbackResponse.data.counts.posts;
   } else {
@@ -189,7 +193,10 @@ const search = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching search data:", error);
-    res.status(500).send("Gagal mencari data");
+    res.status(500).render("error", {
+      message:
+        "Gagal mengambil data dari Danbooru. Kemungkinan server sedang sibuk, atau menggunakan lebih dari 2 tag sekaligus.",
+    });
   }
 };
 

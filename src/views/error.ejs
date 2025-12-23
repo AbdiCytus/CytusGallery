@@ -1,0 +1,24 @@
+<%- include('partials/header', { userTags: '' }) %>
+
+<main class="container mx-auto mt-12 p-2 min-h-[70vh] flex items-center justify-center text-white">
+  <div class="text-center flex flex-col items-center bg-gray-800 p-8 rounded-lg shadow-2xl border border-gray-700">
+
+    <h1 class="text-3xl font-bold pt-4 mb-2 text-white">Terjadi Kesalahan</h1>
+
+    <p class="text-gray-400 mt-4 mb-6" style="width: 70%;">
+      <%= message || "Maaf, sistem mengalami gangguan saat memproses permintaan Anda." %>
+    </p>
+
+    <div class="mb-6 flex gap-3">
+      <button onclick="window.location.reload()" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200">
+        Coba Lagi
+      </button>
+      <a href="/" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200 shadow-lg shadow-cyan-500/30">
+        Kembali ke Beranda
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<%- include('partials/footer') %>

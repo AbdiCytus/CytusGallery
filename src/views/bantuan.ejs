@@ -2,50 +2,158 @@
 
 <main class="container mx-auto p-4 text-gray-300">
   <div class="bg-gray-800/50 p-6 md:p-8 rounded-lg max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-white mb-6 border-b border-gray-700 pb-2">Panduan Pengguna & FAQ</h1>
+    <h1
+      class="text-3xl font-bold text-white mb-6 border-b border-gray-700 pb-2">
+      Panduan Pengguna & FAQ
+    </h1>
 
     <div class="space-y-8">
+      <section
+        class="bg-gray-800 rounded-lg p-6 md:p-8 shadow-lg">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-700 pb-4">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-8 w-8 text-cyan-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <h2 class="text-2xl font-semibold text-white">
+            Menguasai Pencarian Tag
+          </h2>
+        </div>
 
-      <section>
-        <h2 class="text-xl font-semibold text-cyan-400 mb-2">🔍 Menguasai Pencarian Tag</h2>
-        <p>Kotak pencarian adalah alat utama Anda. Anda bisa menggabungkan beberapa tag untuk hasil yang spesifik. Berikut adalah sintaks yang bisa Anda gunakan:</p>
-        <div class="mt-3 bg-gray-900/50 p-4 rounded-md text-sm space-y-2">
-          <p><strong>Menambah Tag:</strong> Cukup pisahkan dengan spasi.</p>
-          <code class="block bg-gray-700 p-2 rounded">genshin_impact 1girl</code>
-          <p><strong>Mengecualikan Tag:</strong> Gunakan tanda minus (-) di depan tag.</p>
-          <code class="block bg-gray-700 p-2 rounded">frieren -solo</code>
-          <p><strong>Mengurutkan Hasil:</strong> Gunakan tag khusus `order:`.</p>
-          <code class="block bg-gray-700 p-2 rounded">order:score (skor tertinggi)</code>
-          <code class="block bg-gray-700 p-2 rounded">order:rank (paling populer)</code>
-          <p><strong>Memfilter Rating:</strong> Gunakan tag `rating:`.</p>
-          <code class="block bg-gray-700 p-2 rounded">rating:safe (atau rating:g)</code>
-          <code class="block bg-gray-700 p-2 rounded">rating:questionable (atau rating:q)</code>
+        <div class="space-y-6 text-gray-300">
+          <div>
+            <h3 class="text-lg font-bold text-white mb-2">
+              🔍 Pencarian Kombinasi (Multi-Tag)
+            </h3>
+            <p class="leading-relaxed">
+              Pengguna dapat mencari gambar yang memuat beberapa elemen
+              sekaligus. Gunakan
+              <span class="text-cyan-400 font-bold">spasi</span> sebagai pemisah
+              antar tag.
+            </p>
+            <div
+              class="mt-3 bg-gray-900 p-3 rounded-md font-mono text-sm border-l-4 border-cyan-500">
+              <span class="text-gray-500">Contoh:</span><br />
+              <span class="text-green-400"
+                >arona_(blue_archive) plana_(blue_archive)
+              </span>
+              <p class="mt-1 text-xs text-gray-400">
+                // Mencari konten yang memiliki kedua tag tersebut
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-lg font-bold text-white mb-2">
+              📝 Tag dengan Nama Panjang
+            </h3>
+            <p class="leading-relaxed">
+              Jika sebuah tag terdiri dari dua kata atau lebih, pengguna
+              <strong>wajib</strong> mengganti spasi pada nama tag tersebut
+              dengan tanda
+              <span class="text-cyan-400 font-bold"
+                >garis bawah (underscore)</span
+              >.
+            </p>
+            <ul class="mt-2 list-disc list-inside space-y-1 ml-2 text-sm">
+              <li>
+                <code class="bg-gray-700 px-1 rounded text-red-300"
+                  >genshin impact</code
+                >
+                <span class="text-gray-500"
+                  >→ Salah (Sistem akan mengira ini 2 tag berbeda)</span
+                >
+              </li>
+              <li>
+                <code class="bg-gray-700 px-1 rounded text-green-300"
+                  >genshin_impact</code
+                >
+                <span class="text-gray-500">→ Benar (Satu tag utuh)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div
+            class="mt-6 bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4 flex items-start gap-3">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6 text-yellow-500 flex-shrink-0 mt-0.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <h4
+                class="text-yellow-400 font-bold text-sm uppercase tracking-wide">
+                Penting: Batasan Pencarian
+              </h4>
+              <p class="text-yellow-100/80 text-sm mt-1 leading-relaxed">
+                Karena batasan dari API Publik Danbooru, pengguna hanya dapat
+                menggunakan maksimal <strong>2 tag</strong> dalam satu kali
+                pencarian.
+              </p>
+              <p class="text-yellow-100/60 text-xs mt-2">
+                *Jika pengguna memasukkan lebih dari 2 tag, hasil pencarian
+                mungkin akan error atau tidak muncul sama sekali.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       <section>
-        <h2 class="text-xl font-semibold text-cyan-400 mb-2">⚙️ Memahami Sidebar Pengaturan</h2>
-        <p>Klik ikon menu (☰) di pojok kanan atas untuk membuka panel pengaturan. Semua pengaturan Anda akan disimpan di browser untuk kunjungan berikutnya.</p>
+        <h2 class="text-xl font-semibold text-cyan-400 mb-2">
+          ⚙️ Memahami Sidebar Pengaturan
+        </h2>
+        <p>
+          Klik ikon menu (☰) di pojok kanan atas untuk membuka panel pengaturan.
+          Semua pengaturan pengguna akan disimpan di browser untuk kunjungan
+          berikutnya.
+        </p>
         <ul class="list-none mt-3 space-y-3">
           <li class="p-3 bg-gray-900/50 rounded-md">
-            <strong>Filter Rating:</strong> Saat diaktifkan, Anda bisa memilih level konten yang ingin ditampilkan.
+            <strong>Filter Rating:</strong> Saat diaktifkan, pengguna bisa
+            memilih level konten yang ingin ditampilkan.
             <ul class="list-disc list-inside mt-1 pl-2 text-sm">
               <li><strong>Safe:</strong> Aman untuk semua umur.</li>
-              <li><strong>Moderate:</strong> Mungkin berisi konten sensitif.</li>
-              <li><strong>Explicit:</strong> Konten dewasa. Memerlukan konfirmasi saat pertama kali diaktifkan.</li>
+              <li>
+                <strong>Moderate:</strong> Mungkin berisi konten sensitif.
+              </li>
+              <li>
+                <strong>Explicit:</strong> Konten dewasa. Memerlukan konfirmasi
+                saat pertama kali diaktifkan.
+              </li>
             </ul>
           </li>
           <li class="p-3 bg-gray-900/50 rounded-md">
-            <strong>Filter Tipe:</strong> Membatasi hasil pencarian hanya untuk gambar atau video.
+            <strong>Filter Tipe:</strong> Membatasi hasil pencarian hanya untuk
+            gambar atau video.
           </li>
           <li class="p-3 bg-gray-900/50 rounded-md">
-            <strong>Konten per Halaman:</strong> Mengatur jumlah postingan yang ditampilkan di setiap halaman (antara 10 hingga 200).
+            <strong>Konten per Halaman:</strong> Mengatur jumlah postingan yang
+            ditampilkan di setiap halaman (antara 10 hingga 200).
           </li>
           <li class="p-3 bg-gray-900/50 rounded-md">
-            <strong>Autoplay Video:</strong> Jika aktif, video akan otomatis diputar saat kursor mouse diarahkan ke thumbnail (hanya di desktop).
+            <strong>Autoplay Video:</strong> Jika aktif, video akan otomatis
+            diputar saat kursor mouse diarahkan ke thumbnail (hanya di desktop).
           </li>
           <li class="p-3 bg-gray-900/50 rounded-md">
-            <strong>Lazy Loading Gambar:</strong> Jika aktif, gambar hanya akan dimuat saat akan muncul di layar. Ini sangat menghemat data dan mempercepat waktu muat halaman.
+            <strong>Lazy Loading Gambar:</strong> Jika aktif, gambar hanya akan
+            dimuat saat akan muncul di layar. Ini sangat menghemat data dan
+            mempercepat waktu muat halaman.
           </li>
         </ul>
       </section>
@@ -53,12 +161,81 @@
       <section>
         <h2 class="text-xl font-semibold text-cyan-400 mb-2">💡 Tips & Trik</h2>
         <ul class="list-disc list-inside mt-3 space-y-2">
-          <li><strong>Navigasi Cepat:</strong> Gunakan tombol panah <strong>Kiri (←)</strong> dan <strong>Kanan (→)</strong> di keyboard Anda untuk berpindah antar halaman.</li>
-          <li><strong>Kembali ke Home:</strong> Mengklik "Home" akan membersihkan tag pencarian Anda saat ini, namun tetap mempertahankan semua filter yang telah Anda atur di sidebar.</li>
-          <li><strong>Saran Tag:</strong> Saat mengetik di kotak pencarian, tunggu sejenak untuk melihat saran tag yang relevan beserta jumlah postingannya.</li>
+          <li>
+            <strong>Navigasi Cepat:</strong> Gunakan tombol panah
+            <strong>Kiri (←)</strong> dan <strong>Kanan (→)</strong> di keyboard
+            pengguna untuk berpindah antar halaman.
+          </li>
+          <li>
+            <strong>Kembali ke Home:</strong> Mengklik "Home" akan membersihkan
+            tag pencarian pengguna saat ini, namun tetap mempertahankan semua
+            filter yang telah pengguna atur di sidebar.
+          </li>
+          <li>
+            <strong>Saran Tag:</strong> Saat mengetik di kotak pencarian, tunggu
+            sejenak untuk melihat saran tag yang relevan beserta jumlah
+            postingannya.
+          </li>
         </ul>
       </section>
 
+      <section class="bg-gray-800 p-4 rounded-lg">
+        <h2
+          class="text-xl font-semibold text-red-400 mb-2 flex items-center gap-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          Masalah Umum: Konten Blank / Tidak Muncul
+        </h2>
+        <p class="mb-3">
+          Jika pengguna melihat kotak kosong atau gambar gagal dimuat, hal ini
+          disebabkan oleh
+          <strong>pemblokiran ISP (Internet Positif)</strong> terhadap sumber
+          data Danbooru.
+        </p>
+        <div class="bg-gray-900/50 p-4 rounded-md text-sm space-y-3">
+          <p><strong>Solusi 1: Menggunakan DNS Pribadi (Disarankan)</strong></p>
+          <ul class="list-disc list-inside pl-2 space-y-1 text-gray-400">
+            <li>
+              <strong class="text-gray-300">Android:</strong> Buka
+              <em>Settings</em> &gt; <em>Network / Connection</em> &gt;
+              <em>Private DNS</em>. Pilih "Private DNS provider hostname" dan
+              isi dengan:
+              <code class="bg-gray-700 px-2 py-0.5 rounded ml-1 text-cyan-300"
+                >one.one.one.one</code
+              >
+            </li>
+            <li>
+              <strong class="text-gray-300">Chrome / Edge (PC):</strong> Buka
+              <em>Settings</em> &gt; <em>Privacy & security</em> &gt;
+              <em>Security</em>. Cari "Use secure DNS", aktifkan, pilih provider
+              "Cloudflare (1.1.1.1)".
+            </li>
+            <li>
+              <strong class="text-gray-300">iOS / Mac:</strong> Unduh aplikasi
+              <span class="text-cyan-300">1.1.1.1</span> dari App Store dan
+              aktifkan.
+            </li>
+          </ul>
+
+          <div class="mt-4 border-t border-gray-700 pt-3">
+            <p><strong>Solusi 2: Menggunakan VPN</strong></p>
+            <p class="text-gray-400 mt-1">
+              pengguna juga dapat menggunakan layanan VPN terpercaya untuk
+              mengakses konten.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </main>

@@ -20,8 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  if (savedTags && searchInputOnLoad)
-    searchInputOnLoad.value = savedTags.replace(/_/g, " ");
+  if (savedTags && searchInputOnLoad) searchInputOnLoad.value = savedTags;
 
   if (navigationEntries.length > 0 && navigationEntries[0].type === "reload")
     showLoader("Reloading...");
@@ -105,8 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const params = new URLSearchParams();
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
 
-    if (userTypedTags)
-      params.append("tags", userTypedTags.trim().replace(/\s+/g, "_"));
+    if (userTypedTags) params.append("tags", userTypedTags.trim());
 
     let filterQueryParts = [];
     let limit = 25;
@@ -437,24 +435,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (searchInput) {
     searchInput.addEventListener("input", async () => {
-      const term = searchInput.value;
+      const fullText = searchInput.value;
+      const terms = fullText.split(" ");
+      const currentTerm = terms[terms.length - 1];
+
       activeSuggestionIndex = -1;
-      if (term.length < 2) {
+
+      if (currentTerm.length < 2) {
         suggestionsBox.classList.add("hidden");
         return;
       }
+
       try {
-        const response = await fetch(`/api/tagsuggest?term=${term}`);
+        const response = await fetch(`/api/tagsuggest?term=${currentTerm}`);
         const tags = await response.json();
+
         suggestionsBox.innerHTML = "";
+
         if (tags.length > 0) {
           tags.forEach((tag) => {
             const suggestionItem = document.createElement("a");
-            suggestionItem.href = `/search?tags=${tag.name}`;
+            suggestionItem.href = "#";
             suggestionItem.className =
-              "block px-4 py-2 hover:bg-gray-700 text-white rounded-md";
+              "block px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer";
+
             const postCount = tag.post_count.toLocaleString("en-US");
             suggestionItem.innerHTML = `<span>${tag.name}</span><span class="text-sm text-gray-400 float-right">${postCount}</span>`;
+
+            suggestionItem.addEventListener("click", (e) => {
+              e.preventDefault();
+
+              const currentTerms = searchInput.value.split(" ");
+              currentTerms[currentTerms.length - 1] = tag.name;
+              searchInput.value = currentTerms.join(" ") + " ";
+
+              suggestionsBox.classList.add("hidden");
+              suggestionsBox.innerHTML = "";
+              searchInput.focus();
+            });
+
             suggestionsBox.appendChild(suggestionItem);
           });
           suggestionsBox.classList.remove("hidden");
@@ -465,6 +484,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Failed to fetch suggestions:", error);
       }
     });
+
     document.addEventListener("keyup", (e) => {
       // Abaikan jika pengguna sedang mengetik di input
       if (document.activeElement.tagName === "INPUT") return;
