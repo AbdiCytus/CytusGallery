@@ -1,13 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const searchInputOnLoad = document.getElementById("search-input");
-  const savedTags = sessionStorage.getItem("lastSearchTags");
-  if (savedTags && searchInputOnLoad) {
-    searchInputOnLoad.value = savedTags.replace(/_/g, " ");
-  }
-
-  // === FUNGSI BARU UNTUK KONTROL LOADING SPINNER ===
   const loadingOverlay = document.getElementById("loading-overlay");
   const loadingText = document.getElementById("loading-text");
+  const searchInputOnLoad = document.getElementById("search-input");
+  const savedTags = sessionStorage.getItem("lastSearchTags");
+  const navigationEntries = performance.getEntriesByType("navigation");
 
   const showLoader = (message = "Loading Contents...") => {
     if (loadingOverlay && loadingText) {
@@ -24,10 +20,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const navigationEntries = performance.getEntriesByType("navigation");
-  if (navigationEntries.length > 0 && navigationEntries[0].type === "reload") {
+  if (savedTags && searchInputOnLoad)
+    searchInputOnLoad.value = savedTags.replace(/_/g, " ");
+
+  if (navigationEntries.length > 0 && navigationEntries[0].type === "reload")
     showLoader("Reloading...");
-  }
 
   // === BAGIAN 1: PENGUMPULAN ELEMEN DOM ===
   const searchForm = document.getElementById("search-form");
@@ -41,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const galleryItems = document.querySelectorAll(".gallery-item");
   const homeLink = document.getElementById("home-link");
   const homeLinkMobile = document.getElementById("home-link-mobile");
+  const brandLink = document.getElementById("brand-link");
 
   const customAlert = document.getElementById("custom-alert");
   const customAlertTitle = document.getElementById("custom-alert-title");
@@ -50,8 +48,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const customAlertConfirm = document.getElementById("custom-alert-confirm");
   const customAlertCancel = document.getElementById("custom-alert-cancel");
 
+  const scrollToTopBtn = document.getElementById("scroll-to-top-btn");
+
   let activeSuggestionIndex = -1;
-  let onConfirmCallback = null; // Untuk menyimpan fungsi yang akan dijalankan saat konfirmasi
+  let onConfirmCallback = null;
   let isInitializingFilters = true;
 
   // === BAGIAN 2: FUNGSI-FUNGSI UTAMA ===
@@ -75,26 +75,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("body-no-scroll");
   };
 
-  const scrollToTopBtn = document.getElementById("scroll-to-top-btn");
-
   if (scrollToTopBtn) {
-    // Tampilkan tombol saat pengguna scroll ke bawah
     window.addEventListener("scroll", () => {
-      if (window.scrollY > 300) {
-        // Muncul setelah scroll 300px
+      if (window.scrollY > 300)
         scrollToTopBtn.classList.remove("opacity-0", "pointer-events-none");
-      } else {
-        scrollToTopBtn.classList.add("opacity-0", "pointer-events-none");
-      }
+      else scrollToTopBtn.classList.add("opacity-0", "pointer-events-none");
     });
 
-    // Aksi saat tombol diklik
-    scrollToTopBtn.addEventListener("click", () => {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth", // Animasi scroll halus
-      });
-    });
+    scrollToTopBtn.addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
   }
 
   const hideAlert = () => {
@@ -114,12 +104,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const params = new URLSearchParams();
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
-    if (userTypedTags) {
+
+    if (userTypedTags)
       params.append("tags", userTypedTags.trim().replace(/\s+/g, "_"));
-    }
+
     let filterQueryParts = [];
     let limit = 25;
     let lazyload = false;
+
     if (filters) {
       if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
         let ratingTag =
@@ -140,10 +132,10 @@ document.addEventListener("DOMContentLoaded", () => {
       limit = filters.limit || 25;
       lazyload = filters.lazyloadToggle;
     }
+
     const filterQuery = filterQueryParts.join(" ");
-    if (filterQuery) {
-      params.append("query", filterQuery);
-    }
+    if (filterQuery) params.append("query", filterQuery);
+
     params.append("limit", limit);
     if (lazyload) params.append("lazyload", "true");
     if (page > 1) params.append("page", page);
@@ -240,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeAllOverlays = () => {
     galleryItems.forEach((item) => {
       item.classList.remove("mobile-active");
-      stopVideo(item);
+      playStopVideo(item, "stop");
     });
   };
 
@@ -252,100 +244,107 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  const playVideo = (item) => {
+  const playStopVideo = (item, option) => {
     if (item.dataset.isVideo !== "true") return;
+
     const imgPreview = item.querySelector(".video-preview");
     const videoElement = item.querySelector(".video-playback");
-    if (imgPreview) imgPreview.classList.add("hidden");
-    if (videoElement) {
-      videoElement.classList.remove("hidden");
-      videoElement.currentTime = 0;
-      videoElement.play().catch((e) => {});
+    const videoUrl = item.dataset.videoUrl;
+
+    if (option == "play") {
+      // if (imgPreview) imgPreview.classList.add("hidden");
+      if (videoElement) {
+        if (!videoElement.src && videoUrl) videoElement.src = videoUrl;
+
+        videoElement.onplaying = () => {
+          if (imgPreview) imgPreview.classList.add("hidden");
+          videoElement.classList.remove("hidden");
+        };
+
+        var playPromise = videoElement.play();
+        if (playPromise !== undefined) playPromise.catch((_) => {});
+      }
+    } else {
+      if (videoElement) {
+        videoElement.pause();
+        videoElement.currentTime = 0;
+        videoElement.classList.add("hidden");
+        videoElement.onplaying = null;
+      }
+
+      if (imgPreview) imgPreview.classList.remove("hidden");
     }
   };
 
-  const stopVideo = (item) => {
-    if (item.dataset.isVideo !== "true") return;
-    const imgPreview = item.querySelector(".video-preview");
-    const videoElement = item.querySelector(".video-playback");
-    if (videoElement) {
-      videoElement.pause();
-      videoElement.classList.add("hidden");
-    }
-    if (imgPreview) imgPreview.classList.remove("hidden");
-  };
-
-  // Cek apakah halaman ini seharusnya menampilkan loader
   if (sessionStorage.getItem("isLoading") === "true") {
     showLoader("Loading Contents...");
-    sessionStorage.removeItem("isLoading"); // Hapus tanda agar tidak muncul lagi saat refresh
+    sessionStorage.removeItem("isLoading");
   }
 
-  // Panggil loadFiltersToUI untuk mengisi sidebar
   if (filterForm) loadFiltersToUI();
 
   // Sembunyikan loader HANYA setelah semua aset (gambar, dll) selesai dimuat
   window.addEventListener("load", hideLoader);
 
-  // Ganti listener 'pageshow' yang lama dengan ini
+  // Ganti event listener 'pageshow' yang lama dengan yang ini:
   window.addEventListener("pageshow", (event) => {
-    // --- LOGIKA BARU UNTUK CEK KONTEN ---
-    const checkMediaAndHideLoader = () => {
-      // Sembunyikan loader hanya jika semua media sudah siap
-      const mediaElements = document.querySelectorAll(
-        "#main-gallery img, #main-gallery video"
-      );
-      // Jika tidak ada media, langsung sembunyikan
-      if (mediaElements.length === 0) {
-        hideLoader();
-        return;
-      }
-      // Cek status semua media
-      const allMediaReady = Array.from(mediaElements).every(
-        (media) => media.complete || media.readyState > 2
-      );
-      if (allMediaReady) {
-        hideLoader();
-      }
-    };
-
-    // Jika halaman dipulihkan dari cache (tombol back/forward)
     if (event.persisted) {
-      // Tampilkan loader terlebih dahulu
       showLoader("Reloading Contents...");
-      // Cek status konten setelah sedikit jeda untuk memastikan DOM sudah siap
-      setTimeout(checkMediaAndHideLoader, 100);
-    }
+
+      const checkIntervalTime = 100;
+      const maxWaitTime = 3000;
+      let elapsed = 0;
+
+      const intervalId = setInterval(() => {
+        const mediaElements = document.querySelectorAll("#main-gallery img");
+
+        if (mediaElements.length === 0) {
+          clearInterval(intervalId);
+          hideLoader();
+          return;
+        }
+
+        // Cek apakah SEMUA gambar sudah complete
+        const allMediaReady = Array.from(mediaElements).every(
+          (media) => media.complete && media.naturalHeight !== 0
+        );
+
+        elapsed += checkIntervalTime;
+
+        if (allMediaReady || elapsed >= maxWaitTime) {
+          clearInterval(intervalId);
+          hideLoader();
+        }
+      }, checkIntervalTime);
+    } else hideLoader();
   });
 
   // === BAGIAN 3: MEMASANG SEMUA EVENT LISTENER ===
 
-  if (customAlertClose)
-    customAlertClose.addEventListener("click", () => {
-      loadFiltersToUI();
-      hideAlert();
-    });
-  if (customAlertOverlay)
-    customAlertOverlay.addEventListener("click", () => {
-      loadFiltersToUI();
-      hideAlert();
-    });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !customAlert.classList.contains("hidden")) {
-      loadFiltersToUI();
-      hideAlert();
-    }
-  });
-  if (customAlertCancel)
-    customAlertCancel.addEventListener("click", () => {
-      loadFiltersToUI();
-      hideAlert();
-    });
-  if (customAlertConfirm)
+  function loadFilterHideAlert() {
+    loadFiltersToUI();
+    hideAlert();
+  }
+
+  if (
+    customAlertClose ||
+    customAlertOverlay ||
+    customAlertCancel ||
+    customAlertConfirm
+  ) {
+    customAlertClose.addEventListener("click", () => loadFilterHideAlert());
+    customAlertOverlay.addEventListener("click", () => loadFilterHideAlert());
+    customAlertCancel.addEventListener("click", () => loadFilterHideAlert());
     customAlertConfirm.addEventListener("click", () => {
       if (onConfirmCallback) onConfirmCallback();
       hideAlert();
     });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !customAlert.classList.contains("hidden"))
+      loadFilterHideAlert();
+  });
 
   if (filterForm) {
     filterForm.addEventListener("change", (e) => {
@@ -401,23 +400,16 @@ document.addEventListener("DOMContentLoaded", () => {
         saveFilters(); // Langsung simpan seperti biasa
       }
     });
+
     filterForm.addEventListener("submit", (e) => {
       e.preventDefault();
       showLoader("Applying Settings...");
       navigateWithFilters(searchInput.value, 1);
     });
-  }
-  if (searchForm) {
-    searchForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      showLoader("Searching...");
-      navigateWithFilters(searchInput.value, 1);
-    });
-  }
 
-  if (filterForm) {
     loadFiltersToUI();
     isInitializingFilters = false;
+
     document
       .getElementById("rating-toggle")
       ?.addEventListener("change", (e) =>
@@ -425,6 +417,7 @@ document.addEventListener("DOMContentLoaded", () => {
           .getElementById("rating-options")
           ?.classList.toggle("hidden", !e.target.checked)
       );
+
     document
       .getElementById("type-toggle")
       ?.addEventListener("change", (e) =>
@@ -432,6 +425,14 @@ document.addEventListener("DOMContentLoaded", () => {
           .getElementById("type-options")
           ?.classList.toggle("hidden", !e.target.checked)
       );
+  }
+
+  if (searchForm) {
+    searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      showLoader("Searching...");
+      navigateWithFilters(searchInput.value, 1);
+    });
   }
 
   if (searchInput) {
@@ -507,43 +508,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (openSidebarButton)
-    openSidebarButton.addEventListener("click", openSidebar);
-  if (closeSidebarButton)
-    closeSidebarButton.addEventListener("click", closeSidebar);
-  if (sidebarOverlay) sidebarOverlay.addEventListener("click", closeSidebar);
+  openSidebarButton.addEventListener("click", openSidebar);
+  closeSidebarButton.addEventListener("click", closeSidebar);
+  sidebarOverlay.addEventListener("click", closeSidebar);
 
   // Fungsi terpusat untuk menangani klik link "Home"
   const handleHomeLinkClick = (e) => {
-    e.preventDefault(); // Selalu hentikan navigasi default di awal
+    e.preventDefault();
 
     const searchInput = document.getElementById("search-input");
-
-    // Selalu bersihkan input dan session saat home diklik
     if (searchInput) searchInput.value = "";
-
     sessionStorage.removeItem("lastSearchTags");
 
     const currentPath = window.location.pathname;
     const searchParams = new URLSearchParams(window.location.search);
 
-    // Cek jika kita SUDAH berada di halaman Home yang bersih
     if (
       currentPath === "/search" &&
       !searchParams.has("tags") &&
       !searchParams.has("page")
     ) {
-      // Jika ya, cukup scroll ke atas
       window.scrollTo({ top: 0, behavior: "smooth" });
-      if (isMobile()) {
-        closeSidebar();
-      }
+      if (isMobile()) closeSidebar();
     } else {
-      // Jika TIDAK, artinya kita harus pindah ke halaman Home
-      // sambil membawa semua filter dari sidebar
       sessionStorage.setItem("isLoading", "true");
       showLoader("Navigating...");
-      navigateWithFilters("", 1); // Panggil navigasi tanpa tag pencarian
+      navigateWithFilters("", 1);
     }
   };
 
@@ -551,23 +541,26 @@ document.addEventListener("DOMContentLoaded", () => {
   if (homeLink) homeLink.addEventListener("click", handleHomeLinkClick);
   if (homeLinkMobile)
     homeLinkMobile.addEventListener("click", handleHomeLinkClick);
+  if (brandLink) brandLink.addEventListener("click", handleHomeLinkClick);
 
   galleryItems.forEach((item) => {
     const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+
     item.addEventListener("mouseenter", () => {
       if (isMobile()) return;
-      if (settings && settings.autoplayToggle) playVideo(item);
+      if (settings && settings.autoplayToggle) playStopVideo(item, "play");
     });
+
     item.addEventListener("mouseleave", () => {
       if (isMobile()) return;
-      stopVideo(item);
+      playStopVideo(item, "stop");
     });
   });
 
   // Listener untuk semua form submit
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    sessionStorage.setItem("isLoading", "true"); // Set tanda loading
+    sessionStorage.setItem("isLoading", "true");
     navigateWithFilters(document.getElementById("search-input").value, 1);
   };
 
@@ -575,25 +568,27 @@ document.addEventListener("DOMContentLoaded", () => {
   if (searchForm) searchForm.addEventListener("submit", handleFormSubmit);
 
   document.addEventListener("click", (e) => {
-    if (searchForm && !searchForm.contains(e.target)) {
-      if (suggestionsBox) suggestionsBox.classList.add("hidden");
-    }
+    if (searchForm && !searchForm.contains(e.target) && suggestionsBox)
+      suggestionsBox.classList.add("hidden");
+
     if (isMobile()) {
       const clickedItem = e.target.closest(".gallery-item");
-      if (!clickedItem) {
-        closeAllOverlays();
-      } else {
+      if (!clickedItem) closeAllOverlays();
+      else {
         if (e.target.closest(".detail-button")) return;
         e.preventDefault();
+
         const isCurrentlyActive =
           clickedItem.classList.contains("mobile-active");
         closeAllOverlays();
+
         if (!isCurrentlyActive) {
           clickedItem.classList.add("mobile-active");
           const settings = JSON.parse(
             localStorage.getItem("cytusGalleryFilters")
           );
-          if (settings && settings.autoplayToggle) playVideo(clickedItem);
+          if (settings && settings.autoplayToggle)
+            playStopVideo(clickedItem, "play");
         }
       }
     }
@@ -604,7 +599,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const isDetailButton = link.classList.contains("detail-button");
     if (isDetailButton) {
       showLoader("Getting Data Content...");
-      // Tidak perlu e.preventDefault(), biarkan link bekerja normal
       return;
     }
 

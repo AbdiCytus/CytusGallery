@@ -1,18 +1,15 @@
 <%
   const formatTags = (tagString, fallback = 'Original') => {
-    if (!tagString || tagString.trim() === '') {
-      return fallback;
-    }
-    // Fungsi untuk mengubah setiap kata menjadi huruf kapital di awal (Title Case)
+    if (!tagString || tagString.trim() === '') return fallback;
     const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
 
-    const tags = tagString.split(' '); // 1. Pisahkan setiap tag menjadi array
+    const tags = tagString.split(' ');
     const formattedTags = tags.map(tag => {
-      const spacedTag = tag.replace(/_/g, ' '); // 2. Ganti '_' dengan spasi
-      return toTitleCase(spacedTag);             // 3. Ubah menjadi Title Case
+      const spacedTag = tag.replace(/_/g, ' '); 
+      return toTitleCase(spacedTag);
     });
 
-    return formattedTags.join(', '); // 4. Gabungkan dengan koma dan spasi
+    return formattedTags.join(', ');
   };
 %>
 <%- include('partials/header', { userTags: '' }) %>
@@ -54,7 +51,7 @@
           <div class="media-container relative w-full h-auto aspect-video bg-black">
             <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %>
             <img src="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" alt="Video preview" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
-            <video class="video-playback hidden absolute inset-0 w-full h-full object-cover" src="<%= post.large_file_url %>" loop muted playsinline></video>
+            <video class="video-playback hidden absolute inset-0 w-full h-full object-cover" preload="none" loop muted playsinline></video>
             <% } else { %>
             <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" <%= isLazyLoadEnabled ? 'loading="lazy"' : '' %>>
             <% } %>
@@ -113,8 +110,7 @@
       <div class="media-container w-full h-auto">
         <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %>
         <img src="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" alt="Video preview" class="video-preview w-full h-auto transition-transform duration-300 group-hover:scale-105">
-        <video class="video-playback hidden w-full h-auto" src="<%= post.large_file_url %>" loop muted playsinline>
-        </video>
+        <video class="video-playback hidden w-full h-auto" preload="none" loop muted playsinline></video>
         <% } else { %>
         <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="w-full h-auto transition-transform duration-300 group-hover:scale-105" <%= isLazyLoadEnabled ? 'loading="lazy"' : '' %>>
         <% } %>

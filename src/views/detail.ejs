@@ -25,7 +25,7 @@
             <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Dimensions:</strong> <%= post.image_width %>x<%= post.image_height %></span>
             <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Uploaded:</strong> <%= new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', 'month': 'short', 'year': 'numeric' }) %></span>
             <% if (post.source) { %>
-            <a href="<%= post.source %>" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded-md flex items-center gap-1 tag-link">
+            <a href="<%= post.source %>" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded-md flex items-center gap-1">
               <strong>Source</strong>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
@@ -63,17 +63,44 @@
           <button id="download-button" class="w-full block text-center bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">
             Download Original
           </button>
-          <a href="<%= post.large_file_url %>" target="_blank" rel="noopener noreferrer" class="tag-link w-full block text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
+          <a href="<%= post.large_file_url %>" target="_blank" rel="noopener noreferrer" class="w-full block text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
             Lihat Gambar Penuh
           </a>
           <button id="share-button" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
-            Share
+            Salin Link
           </button>
         </div>
       </div>
     </div>
   </div>
 </main>
+
+<div id="success-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+  <div id="success-modal-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+
+  <div class="relative rounded-lg p-4 bg-gray-800 border border-gray-700 shadow-2xl w-11/12 max-w-sm transform scale-95 transition-transform duration-300 text-center">
+
+    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-900/30 mb-2 ring-1 ring-green-500/50">
+      <svg class="h-10 w-10 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
+
+    <h3 class="text-2xl font-bold text-white tracking-wide">Berhasil!</h3>
+
+    <div class="mt-3">
+      <p class="text-sm text-gray-400 leading-relaxed">
+        Link tautan telah berhasil disalin ke clipboard.
+      </p>
+    </div>
+
+    <div class="mt-3 flex justify-center">
+      <button id="close-modal-btn" type="button" class=" rounded inline-flex w-full py-1 justify-center shadow-lg shadow-cyan-900/20 bg-cyan-600 text-sm font-bold text-white hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-cyan-500 transition-colors duration-200">
+        OK
+      </button>
+    </div>
+  </div>
+</div>
 
 <script>
   // Logika untuk tombol Download
@@ -116,28 +143,69 @@
       }
     });
   }
-  // Logika untuk tombol Share
-  const shareButton = document.getElementById('share-button');
-  if (shareButton) {
-    shareButton.addEventListener('click', async () => {
-      const shareData = {
-        title: 'Lihat konten di CytusGallery',
-        text: 'Dibagikan dari CytusGallery - Artist: <%= post.tag_string_artist.replace(/_/g, " ") %>',
-        url: window.location.href
-      };
-      try {
-        if (navigator.share) {
-          await navigator.share(shareData);
-        } else {
-          navigator.clipboard.writeText(window.location.href);
-          alert('Web Share tidak didukung. Link sudah disalin ke clipboard!');
+  // === LOGIKA SHARE & MODAL ===
+  document.addEventListener('DOMContentLoaded', () => {
+    const shareButton = document.getElementById('share-button');
+    const modal = document.getElementById('success-modal');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const backdrop = document.getElementById('success-modal-backdrop');
+
+    // Fungsi: Tampilkan Modal
+    const showSuccessModal = () => {
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modal.querySelector('.transform').classList.remove('scale-95');
+      modal.querySelector('.transform').classList.add('scale-100');
+    };
+
+    // Fungsi: Sembunyikan Modal
+    const hideSuccessModal = () => {
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modal.querySelector('.transform').classList.add('scale-95');
+      modal.querySelector('.transform').classList.remove('scale-100');
+    };
+
+    // Event Listener Tutup Modal
+    if (closeModalBtn) closeModalBtn.addEventListener('click', hideSuccessModal);
+    if (backdrop) backdrop.addEventListener('click', hideSuccessModal);
+
+    // Event Listener Tombol Share
+    if (shareButton) {
+      shareButton.addEventListener('click', async () => {
+        const url = window.location.href;
+
+        // Fungsi Helper: Copy Manual (Fallback untuk HTTP/Mobile Lama)
+        const manualCopy = () => {
+          const textArea = document.createElement("textarea");
+          textArea.value = url;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+            document.execCommand('copy');
+            showSuccessModal(); // Tampilkan modal sukses
+          } catch (err) {
+            prompt('Salin link manual:', url);
+          }
+          document.body.removeChild(textArea);
+        };
+
+        try {
+          // Coba cara modern dulu (Clipboard API)
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(url);
+            showSuccessModal(); // Tampilkan modal sukses
+          } else {
+            throw new Error("Clipboard API unavailable");
+          }
+        } catch (err) {
+          // Jika gagal (misal karena belum HTTPS), pakai cara manual
+          manualCopy();
         }
-      } catch (err) {
-        console.error('Error sharing:', err);
-        alert('Gagal membagikan. Silakan salin URL secara manual.');
-      }
-    });
-  }
+      });
+    }
+  });
 </script>
 
 <%- include('partials/footer') %>

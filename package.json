@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/app.js",
+    "build": "tailwindcss -i ./src/input.css -o ./src/public/css/style.css --minify",
     "dev:css": "tailwindcss -i ./src/input.css -o ./src/public/css/style.css --watch",
     "dev:server": "nodemon src/app.js",
     "dev": "concurrently \"npm:dev:css\" \"npm:dev:server\""
