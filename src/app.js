@@ -1,5 +1,6 @@
 //Import Modul
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const path = require("path");
 const axios = require("axios");
 require("dotenv").config();
@@ -7,6 +8,22 @@ require("dotenv").config();
 //Setup Server
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Setup Rate Limiter
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 60,
+  message:
+    "Terlalu banyak request dari IP ini, silakan coba lagi setelah 1 menit.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.ip;
+  },
+});
+
+//Setup Trust Proxy
+app.set('trust proxy', 1);
 
 // Setup Template Engine EJS
 app.set("view engine", "ejs");
@@ -18,6 +35,37 @@ app.use(express.static(path.join(__dirname, "public")));
 //Setup Middleware
 app.use((req, res, next) => {
   res.locals.tags = req.query.tags || "";
+  next();
+});
+
+//Setup Middleware untuk memblokir User-Agent yang mencurigakan (bot/scraper) & Rate Limiter
+app.use((req, res, next) => {
+  const userAgent = req.headers["user-agent"] || "";
+  const blockedAgents = [
+    "python-requests",
+    "curl",
+    "wget",
+    "scrapy",
+    "postman",
+  ];
+
+  const isBot = blockedAgents.some((bot) =>
+    userAgent.toLowerCase().includes(bot),
+  );
+
+  if (isBot || userAgent.trim() === "") {
+    return res.status(403).send("Akses ditolak. Bot/Scraper terdeteksi.");
+  }
+  next();
+});
+
+// Terapkan rate limiter ke semua route
+app.use(limiter);
+
+app.use((req, res, next) => {
+  res.locals.tags = req.query.tags || "";
+  if (req.method === "GET")
+    res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
   next();
 });
 
@@ -204,7 +252,7 @@ const detail = async (req, res) => {
   try {
     const postId = req.params.id;
     const response = await axios.get(
-      `https://danbooru.donmai.us/posts/${postId}.json`
+      `https://danbooru.donmai.us/posts/${postId}.json`,
     );
     const post = response.data;
 
