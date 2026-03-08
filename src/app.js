@@ -13,8 +13,12 @@ const PORT = process.env.PORT || 3000;
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 60,
-  message:
-    "Terlalu banyak request dari IP ini, silakan coba lagi setelah 1 menit.",
+  handler: (req, res, next, options) => {
+    res.status(options.statusCode).render("error", {
+      message:
+        "Terlalu banyak request dari IP ini. Sistem mendeteksi aktivitas yang tidak wajar. Silakan coba lagi setelah 1 menit.",
+    });
+  },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
@@ -23,7 +27,7 @@ const limiter = rateLimit({
 });
 
 //Setup Trust Proxy
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Setup Template Engine EJS
 app.set("view engine", "ejs");
@@ -188,7 +192,9 @@ const root = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching homepage data:", error);
-    res.status(500).send("Gagal mengambil data dari Danbooru API");
+    res.status(500).render("error", {
+      message: "Gagal mengambil data dari Danbooru API",
+    });
   }
 };
 
@@ -243,7 +249,7 @@ const search = async (req, res) => {
     console.error("Error fetching search data:", error);
     res.status(500).render("error", {
       message:
-        "Gagal mengambil data dari Danbooru. Kemungkinan server sedang sibuk, atau menggunakan lebih dari 2 tag sekaligus.",
+        "Gagal mengambil data. Kemungkinan server sedang sibuk, atau menggunakan lebih dari 2 tag sekaligus, atau telah mencapai batas halaman (>1000).",
     });
   }
 };
