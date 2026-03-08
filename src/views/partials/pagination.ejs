@@ -27,7 +27,6 @@
     <% } %>
     <% if (endPage < totalPages) { %>
     <% if (endPage < totalPages - 1) { %><span class="px-2 py-1 md:px-3 md:py-2 text-gray-500 text-xs md:text-sm">...</span><% } %>
-    <a href="<%= baseUrl %><%= pageParam %><%= totalPages %>" class="px-2 py-1 md:px-3 md:py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-xs md:text-sm"><%= totalPages %></a>
     <% } %>
   </div>
 
@@ -45,7 +44,6 @@
     <% } %>
     <% if (endPageMobile < totalPages) { %>
     <% if (endPageMobile < totalPages - 1) { %><span class="px-3 py-2 text-gray-500 text-sm">...</span><% } %>
-    <a href="<%= baseUrl %><%= pageParam %><%= totalPages %>" class="px-3 py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm"><%= totalPages %></a>
     <% } %>
   </div>
 
