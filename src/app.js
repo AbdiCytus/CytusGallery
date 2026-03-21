@@ -3,6 +3,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 const axios = require("axios");
+const ejs = require("ejs");
 require("dotenv").config();
 
 //Setup Server
