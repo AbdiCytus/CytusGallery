@@ -1,0 +1,9 @@
+[build]
+  # Memberitahu Netlify di mana letak function-nya
+  functions = "netlify/functions"
+
+[[redirects]]
+  # Mengarahkan semua traffic pengunjung ke function 'api' yang memuat Express
+  from = "/*"
+  to = "/.netlify/functions/api"
+  status = 200
