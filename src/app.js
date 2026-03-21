@@ -4,6 +4,7 @@ const rateLimit = require("express-rate-limit");
 const path = require("path");
 const axios = require("axios");
 const ejs = require("ejs");
+const fs = require("fs");
 require("dotenv").config();
 
 //Setup Server
@@ -41,6 +42,25 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use((req, res, next) => {
   res.locals.tags = req.query.tags || "";
   next();
+});
+
+//Middleware untuk file logo (Netlify)
+app.get("/arona_doro.png", (req, res) => {
+  // Path file logo di dalam bundle Netlify function
+  const logoPath = path.join(process.cwd(), 'src', 'public', 'arona_doro.png');
+
+  // Baca file logo sebagai biner buffer
+  fs.readFile(logoPath, (err, data) => {
+    if (err) {
+      console.error('Error reading logo file:', err);
+      // Jika error, biarkan Express lanjut ke middleware static biasa (mungkin filenya tidak ada)
+      return res.status(404).send('Logo tidak ditemukan');
+    }
+    // Set Content-Type yang benar
+    res.contentType('image/png');
+    // Kirim data biner mentah (buffer)
+    res.send(data);
+  });
 });
 
 //Setup Middleware untuk memblokir User-Agent yang mencurigakan (bot/scraper) & Rate Limiter
