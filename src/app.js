@@ -46,19 +46,16 @@ app.use((req, res, next) => {
 
 //Middleware untuk file logo (Netlify)
 app.get("/arona_doro.png", (req, res) => {
-  // Path file logo di dalam bundle Netlify function
-  const logoPath = path.join(process.cwd(), 'src', 'public', 'arona_doro.png');
+  // Gunakan __dirname agar path-nya relatif terhadap lokasi file app.js
+  const logoPath = path.join(__dirname, "public", "arona_doro.png");
 
   // Baca file logo sebagai biner buffer
   fs.readFile(logoPath, (err, data) => {
     if (err) {
-      console.error('Error reading logo file:', err);
-      // Jika error, biarkan Express lanjut ke middleware static biasa (mungkin filenya tidak ada)
-      return res.status(404).send('Logo tidak ditemukan');
+      console.error("Error reading logo file:", err);
+      return res.status(404).send("Logo tidak ditemukan");
     }
-    // Set Content-Type yang benar
-    res.contentType('image/png');
-    // Kirim data biner mentah (buffer)
+    res.contentType("image/png");
     res.send(data);
   });
 });
