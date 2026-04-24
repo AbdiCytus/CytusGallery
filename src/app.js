@@ -91,6 +91,8 @@ app.use((req, res, next) => {
   next();
 });
 
+axios.defaults.headers.common['User-Agent'] = 'CytusGallery/1.0 (Project Personal oleh AbdiCytus)';
+
 //Base API URL
 const baseTagURL = "https://danbooru.donmai.us/tags.json";
 const basePostsURL = "https://danbooru.donmai.us/posts.json";
