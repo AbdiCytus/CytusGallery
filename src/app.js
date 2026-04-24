@@ -7,26 +7,6 @@ const ejs = require("ejs");
 const fs = require("fs");
 require("dotenv").config();
 
-// ==========================================
-// KONFIGURASI GLOBAL AXIOS (Danbooru API Auth)
-// ==========================================
-axios.interceptors.request.use((config) => {
-  // 1. Paksa User-Agent untuk setiap request agar stabil di Node.js
-  config.headers["User-Agent"] = "CytusGallery/1.0 (AbdiCytus)";
-
-  // 2. Otomatis suntikkan API Key jika URL mengarah ke Danbooru
-  if (config.url && config.url.includes("danbooru.donmai.us")) {
-    config.params = config.params || {};
-    // Cek apakah variabel lingkungan sudah terpasang
-    if (process.env.DANBOORU_LOGIN && process.env.DANBOORU_API_KEY) {
-      config.params.login = process.env.DANBOORU_LOGIN;
-      config.params.api_key = process.env.DANBOORU_API_KEY;
-    }
-  }
-  return config;
-});
-// ==========================================
-
 //Setup Server
 const app = express();
 const PORT = process.env.PORT || 3000;
