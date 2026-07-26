@@ -94,14 +94,74 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Light Mode */
+/* Light Mode Fixes */
 body.light-mode {
+  /* Hilangkan filter di body agar position: fixed tidak rusak */
+  filter: none;
+}
+/* Paksa warna background body di light mode */
+body.light-mode:not(.theme-safe):not(.theme-moderate):not(.theme-explicit) {
+  background-color: #ffffff !important;
+}
+body.light-mode.theme-safe {
+  @apply bg-gradient-to-br from-gray-100 to-green-100;
+}
+body.light-mode.theme-moderate {
+  @apply bg-gradient-to-br from-gray-100 to-yellow-100;
+}
+body.light-mode.theme-explicit {
+  @apply bg-gradient-to-br from-gray-100 to-red-100;
+}
+
+/* Invert semua elemen langsung di bawah body, KECUALI yang harus tetap */
+body.light-mode > *:not(script):not(style) {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* Kembalikan warna asli untuk gambar/video dengan meng-invert ulang */
 body.light-mode img,
-body.light-mode video,
-body.light-mode .media-container,
-body.light-mode .swiper-slide,
-body.light-mode .gallery-item {
+body.light-mode video {
   filter: invert(1) hue-rotate(180deg);
 }
+
+/* Fix untuk tombol biru dan toggle agar teks tidak hitam */
+body.light-mode .bg-cyan-600,
+body.light-mode .hover\:bg-cyan-600:hover,
+body.light-mode .peer-checked\:bg-cyan-600,
+body.light-mode button.bg-cyan-600,
+body.light-mode button.bg-gray-700,
+body.light-mode .bg-green-600,
+body.light-mode .bg-yellow-600,
+body.light-mode .bg-red-600,
+body.light-mode .bg-purple-600,
+body.light-mode .bg-blue-600,
+body.light-mode .bg-gray-600,
+body.light-mode a.rounded-full.bg-gray-800,
+body.light-mode a.rounded-full.bg-gray-700,
+body.light-mode span.bg-gray-600,
+body.light-mode span.bg-green-600,
+body.light-mode span.bg-yellow-600,
+body.light-mode span.bg-purple-600,
+body.light-mode span.bg-red-600,
+body.light-mode span.bg-blue-600 {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Neutralize gray backgrounds in light mode to prevent blue/purple tint */
+body.light-mode .bg-gray-900 {
+  background-color: #000000 !important;
+}
+body.light-mode .bg-gray-800 {
+  background-color: #0f0f0f !important;
+}
+body.light-mode .bg-gray-700 {
+  background-color: #1a1a1a !important;
+}
+
+/* Fix untuk warna navbar (header) di mode terang agar menjadi putih (invert dari hitam) */
+body.light-mode header {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Fix bug masonry di halaman profil sudah di-handle oleh rule di atas */
+

@@ -1,6 +1,6 @@
 <%- include('partials/header', { tags: '' }) %>
 
-<main class="container mx-auto p-4">
+<main id="main-content" class="container mx-auto p-4">
   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
 
     <div class="md:col-span-2 bg-gray-800 rounded-lg p-2 flex justify-center items-center">
@@ -125,25 +125,39 @@
   </div>
 </div>
 
+<main id="error-content" class="hidden container mx-auto mt-12 p-2 min-h-[70vh] flex items-center justify-center text-white">
+  <div class="text-center flex flex-col items-center bg-gray-800 p-8 rounded-lg shadow-2xl border border-gray-700">
+    <h1 class="text-3xl font-bold pt-4 mb-2 text-white">Konten Tidak Ditemukan</h1>
+    <p id="error-message" class="text-gray-400 mt-4 mb-6 max-w-md"></p>
+    <a href="/" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-lg shadow-cyan-500/30">Kembali ke Beranda</a>
+  </div>
+</main>
+
 <script>
   // Validasi rating di sisi klien (agar tidak tembus via link langsung)
   (function() {
     const postRating = '<%= post.rating %>';
     const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters')) || {};
+    const mainContent = document.getElementById('main-content');
+    const errorContent = document.getElementById('error-content');
+    const errorMessage = document.getElementById('error-message');
+    
+    let showError = (msg) => {
+      if(mainContent) mainContent.classList.add('hidden');
+      if(errorContent) errorContent.classList.remove('hidden');
+      if(errorMessage) errorMessage.textContent = msg;
+    };
     
     if (postRating === 'e') {
-      alert('Konten explicit telah dikunci dan tidak dapat diakses.');
-      window.location.replace('/');
+      showError('Konten explicit telah dikunci dan tidak dapat diakses.');
       return;
     }
     
     if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
       if (filters.rating === 'g' && postRating !== 'g') {
-        alert('Konten ini tidak sesuai dengan filter Safe Anda.');
-        window.location.replace('/');
+        showError('Konten ini tidak sesuai dengan filter Safe Anda.');
       } else if (filters.rating === 'not_e' && postRating === 'q') {
-        alert('Konten ini tidak sesuai dengan filter Moderate Anda.');
-        window.location.replace('/');
+        showError('Konten ini tidak sesuai dengan filter Moderate Anda.');
       }
     }
   })();
@@ -352,39 +366,48 @@
     if (saveButton) {
       saveButton.addEventListener('click', async () => {
         saveButton.disabled = true;
+        const originalHtml = saveButton.innerHTML;
+        saveButton.innerHTML = `
+          <svg class="animate-spin mr-1.5 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span id="save-button-text">Menyimpan...</span>
+        `;
+        
         try {
           const res = await fetch('/api/save/<%= post.id %>', { method: 'POST' });
           const data = await res.json();
           
           if (data.saved !== undefined) {
-            const svg = saveButton.querySelector('svg');
-            const span = document.getElementById('save-button-text');
+            saveButton.innerHTML = `
+              <svg class="w-5 h-5" fill="${data.saved ? 'currentColor' : 'none'}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+              <span id="save-button-text">${data.saved ? 'Tersimpan' : 'Simpan Konten'}</span>
+            `;
+            
+            saveButton.classList.remove('bg-yellow-600', 'bg-green-600', 'hover:bg-yellow-700', 'hover:bg-green-700');
             if (data.saved) {
-              saveButton.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors";
-              svg.setAttribute('fill', 'currentColor');
-              span.textContent = 'Tersimpan';
+              saveButton.classList.add('bg-green-600', 'hover:bg-green-700');
             } else {
-              saveButton.className = "w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors";
-              svg.setAttribute('fill', 'none');
-              span.textContent = 'Simpan Konten';
+              saveButton.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
             }
             
-            // Show alert modal
-            const customAlert = document.getElementById('custom-alert');
-            if (customAlert) {
-              document.getElementById('custom-alert-title').textContent = 'Berhasil';
-              document.getElementById('custom-alert-message').textContent = data.message;
-              document.getElementById('custom-alert-cancel').style.display = 'none';
-              document.getElementById('custom-alert-confirm').textContent = 'OK';
-              
-              customAlert.classList.remove('hidden');
-              setTimeout(() => customAlert.classList.remove('opacity-0'), 10);
+            if (typeof window.showAlert === 'function') {
+              window.showAlert('Berhasil', data.message, null);
             } else {
               alert(data.message);
             }
+          } else {
+            throw new Error(data.error || "Gagal menyimpan konten");
           }
         } catch (err) {
           console.error(err);
+          saveButton.innerHTML = originalHtml;
+          if (typeof window.showAlert === 'function') {
+            window.showAlert('Error', 'Terjadi kesalahan saat menyimpan konten.');
+          } else {
+            alert('Terjadi kesalahan saat menyimpan konten.');
+          }
         } finally {
           saveButton.disabled = false;
         }

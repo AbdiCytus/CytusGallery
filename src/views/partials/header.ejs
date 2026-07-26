@@ -27,8 +27,8 @@
       </button>
 
       <div class="p-6 flex items-start gap-4">
-        <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-red-900/50">
-          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <div id="custom-alert-icon-wrapper" class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-red-900/50">
+          <svg id="custom-alert-icon" class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
           </svg>
         </div>
@@ -50,17 +50,27 @@
   </div>
   <script>
     (function() {
-      // Jalankan hanya di halaman utama
-      if (window.location.pathname !== '/') return;
+      // Jalankan hanya di halaman utama ATAU di halaman pencarian tanpa query parameter
+      const isHome = window.location.pathname === '/';
+      const isSearchWithoutQuery = window.location.pathname === '/search' && window.location.search === '';
+      if (!isHome && !isSearchWithoutQuery) return;
 
       // Fungsi untuk membangun URL dari filter
       const buildUrlFromFilters = (filters) => {
         const params = new URLSearchParams();
         let filterQueryParts = [];
 
-        if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
-          let ratingTag = filters.rating === "not_g" ? "-rating:g" : (filters.rating === "not_e" ? "-rating:e" : `rating:${filters.rating}`);
-          filterQueryParts.push(ratingTag);
+        // Rating toggle is implicitly always active in Milestone 2.
+        // rating: 'g' means safe. 'not_e' means safe + moderate.
+        if (filters.rating) {
+          if (filters.rating === "g") {
+             filterQueryParts.push("rating:g");
+          } else if (filters.rating === "not_e") {
+             filterQueryParts.push("rating:s,g");
+          }
+          // Always exclude explicit and questionable
+          filterQueryParts.push("-rating:e");
+          filterQueryParts.push("-rating:q");
         }
         if (filters.typeToggle && filters.type) {
           let typeTag = '';
@@ -99,8 +109,8 @@
         localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
       }
 
-      // Cek jika perlu redirect (pengguna baru atau ada filter aktif)
-      const needsRedirect = !localStorage.getItem("cytusGalleryFilters") || filters.ratingToggle || filters.typeToggle;
+      // Cek jika perlu redirect (pengguna baru atau URL cocok untuk redirect)
+      const needsRedirect = true;
 
       if (needsRedirect) {
         const newUrl = buildUrlFromFilters(filters);
@@ -126,17 +136,22 @@
       <div class="md:hidden pb-4 mb-4 border-b border-gray-700">
         <h2 class="text-xl font-bold text-white mb-4">Menu</h2>
         <nav class="flex flex-col space-y-1 text-gray-300">
+          <% if (locals.user) { %>
+            <div class="flex items-center justify-between px-3 py-2 bg-gray-700/50 rounded-md mb-2">
+              <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-3 flex-grow min-w-0">
+                <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
+                <span class="truncate"><%= user.name || user.email %></span>
+              </a>
+              <a href="/notifikasi" class="relative text-gray-300 hover:text-white transition-colors flex-shrink-0 p-1 block">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                <span id="mobile-notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+              </a>
+            </div>
+          <% } %>
           <a id="home-link-mobile" href="/search" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Beranda</a>
           <a href="/tentang" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Tentang</a>
           <a href="/bantuan" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Bantuan</a>
-          <% if (locals.user) { %>
-            <a href="/profil" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-cyan-400 font-bold transition-colors">Profil (<%= user.name || user.email %>)</a>
-            <a href="/notifikasi" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors flex justify-between items-center">
-              Notifikasi 
-              <span id="mobile-notification-badge" class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
-            </a>
-            <a href="/logout" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-red-400 transition-colors">Logout</a>
-          <% } else { %>
+          <% if (!locals.user) { %>
             <a href="/login" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-cyan-400 transition-colors">Login / Daftar</a>
           <% } %>
         </nav>
@@ -239,20 +254,32 @@
           <a href="/tentang" class="hover:text-white transition-colors">Tentang</a>
           <a href="/bantuan" class="hover:text-white transition-colors">Bantuan</a>
           <% if (locals.user) { %>
-            <div class="relative">
-              <button id="notification-btn" class="relative text-gray-300 hover:text-white transition-colors focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
-              </button>
-              <div id="notification-dropdown" class="absolute right-0 mt-2 w-72 bg-gray-800 rounded-md shadow-lg overflow-hidden z-50 hidden border border-gray-700">
-                <div class="p-3 border-b border-gray-700 font-bold text-white">Notifikasi</div>
-                <div id="notification-list" class="max-h-64 overflow-y-auto">
+            <div class="relative flex items-center gap-4 bg-gray-700/50 px-3 py-2 rounded-full border border-gray-600/50">
+              <div class="flex items-center mt-1">
+                <button id="notification-btn" class="relative text-gray-300 hover:text-white transition-colors focus:outline-none block">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                  <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+                </button>
+              </div>
+              
+              <div id="notification-dropdown" class="absolute right-0 top-full mt-4 w-80 bg-gray-800 rounded-md shadow-2xl overflow-hidden z-50 hidden border border-gray-700 flex flex-col">
+                <div class="p-3 border-b border-gray-700 font-bold text-white flex justify-between items-center shrink-0">
+                  Notifikasi
+                </div>
+                <div id="notification-list" class="max-h-64 overflow-y-auto flex-grow">
                   <div class="p-4 text-sm text-gray-400 text-center">Memuat...</div>
                 </div>
+                <div class="p-2 bg-gray-900 border-t border-gray-700 text-center shrink-0">
+                  <a href="/notifikasi" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a>
+                </div>
               </div>
+
+              <div class="h-6 w-px bg-gray-600"></div>
+              <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-2">
+                <span class="truncate max-w-[150px]"><%= user.name || user.email %></span>
+                <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
+              </a>
             </div>
-            <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors"><%= user.name || user.email %></a>
-            <a href="/logout" class="hover:text-red-400 transition-colors">Logout</a>
           <% } else { %>
             <a href="/login" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded transition-colors">Login</a>
           <% } %>
@@ -340,7 +367,7 @@
                     ${n.imageUrl ? `<img src="${n.imageUrl}" class="w-12 h-12 object-cover rounded-md mr-3" alt="Thumb">` : ''}
                     <div class="flex-grow">
                       <div class="font-semibold text-white text-sm mb-1">${n.title}</div>
-                      <div class="text-xs text-gray-300 line-clamp-2">${n.message}</div>
+                      <div class="text-xs text-gray-300 line-clamp-2">${n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div>
                       <div class="flex items-center gap-2 mt-1">
                         ${n.extension ? `<span class="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">${n.extension.toUpperCase()}</span>` : ''}
                         ${n.rating ? `<span class="${n.rating==='g'?'bg-green-600':n.rating==='s'?'bg-yellow-600':n.rating==='q'?'bg-purple-600':'bg-red-600'} text-white text-[10px] font-bold px-1.5 py-0.5 rounded">${n.rating.toUpperCase()}</span>` : ''}
@@ -352,10 +379,6 @@
               } else {
                 notifList.innerHTML = '<div class="p-4 text-sm text-gray-400 text-center">Belum ada notifikasi</div>';
               }
-              
-              // Add footer link to full notifications page
-              const footerHtml = `<div class="p-2 bg-gray-900 border-t border-gray-700 text-center"><a href="/notifikasi" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a></div>`;
-              notifList.insertAdjacentHTML('beforeend', footerHtml);
             }
           } catch (e) {
             console.error("Failed to fetch notifications");

@@ -19,58 +19,181 @@
         <p class="text-gray-400 mt-2"><%= userProfile.email %></p>
         <p class="text-xs text-gray-500 mt-1">Bergabung sejak: <%= new Date(userProfile.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
         
-        <div class="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
+        <div class="mt-6 flex flex-wrap gap-3 justify-center md:justify-start items-center">
+          <form id="avatar-form" action="/api/profil/upload" method="POST" enctype="multipart/form-data" class="flex items-center gap-2">
+            <input type="file" name="avatar" id="avatar-input" accept="image/*" class="hidden">
+            <button type="button" onclick="document.getElementById('avatar-input').click()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium transition-colors border border-gray-600 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              Ganti Foto
+            </button>
+          </form>
           <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-lg">
             Logout
           </a>
         </div>
+        <p id="avatar-msg" class="text-xs mt-2 hidden text-center md:text-left"></p>
+        
+        <script>
+          document.getElementById('avatar-input').addEventListener('change', async function() {
+            if (!this.files || !this.files[0]) return;
+            const formData = new FormData(document.getElementById('avatar-form'));
+            const msgEl = document.getElementById('avatar-msg');
+            msgEl.textContent = "Mengunggah...";
+            msgEl.className = "text-xs mt-2 text-yellow-400 text-center md:text-left block";
+            try {
+              const res = await fetch('/api/profil/upload', { method: 'POST', body: formData });
+              const data = await res.json();
+              if (res.ok) {
+                msgEl.textContent = data.message;
+                msgEl.className = "text-xs mt-2 text-green-400 text-center md:text-left block";
+                setTimeout(() => window.location.reload(), 1000);
+              } else {
+                throw new Error(data.error);
+              }
+            } catch (err) {
+              msgEl.textContent = err.message || "Gagal mengunggah.";
+              msgEl.className = "text-xs mt-2 text-red-400 text-center md:text-left block";
+            }
+          });
+        </script>
       </div>
     </div>
     
-    <div class="mt-10 border-t border-gray-700 pt-8">
-      <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-        <svg class="w-6 h-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-        </svg>
-        Konten yang Disimpan (<%= userProfile.saves.length %>)
-      </h2>
-      
+    <!-- Tabs Header -->
+    <div class="mt-8 border-b border-gray-700 flex">
+      <button id="tab-koleksi-btn" class="py-3 px-6 text-cyan-400 border-b-2 border-cyan-400 font-bold focus:outline-none transition-colors">
+        Koleksi (<%= typeof totalSaves !== 'undefined' ? totalSaves : userProfile.saves.length %>)
+      </button>
+      <button id="tab-mengikuti-btn" class="py-3 px-6 text-gray-400 hover:text-white font-bold focus:outline-none transition-colors">
+        Mengikuti (<%= userProfile.followedTags ? userProfile.followedTags.length : 0 %>)
+      </button>
+    </div>
+
+    <!-- Tab Koleksi Content -->
+    <div id="tab-koleksi-content" class="pt-6 block">
+      <% if (userProfile.saves.length > 0 || (typeof currentSearch !== 'undefined' && currentSearch !== '') || (typeof currentRating !== 'undefined' && currentRating !== '')) { %>
+        <!-- Filter, Search, and View Toggle -->
+        <form id="profil-form" action="/profil" method="GET" class="grid grid-cols-2 sm:flex sm:flex-row items-center gap-4 mb-4 w-full relative z-20">
+          
+          <!-- Rating Filter: Mobile Row 2 Left, Desktop Left -->
+          <div class="relative order-2 sm:order-1 col-span-1">
+            <select name="rating" onchange="this.form.submit()" class="appearance-none bg-gray-700 text-white rounded px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-cyan-500 hover:bg-gray-600 transition-colors cursor-pointer text-sm font-semibold w-full sm:w-auto">
+              <option value="" <%= typeof currentRating !== 'undefined' && currentRating === '' ? 'selected' : '' %>>Semua Rating</option>
+              <option value="g" <%= typeof currentRating !== 'undefined' && currentRating === 'g' ? 'selected' : '' %>>Safe</option>
+              <option value="s" <%= typeof currentRating !== 'undefined' && currentRating === 's' ? 'selected' : '' %>>Sensitive</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+          </div>
+          
+          <!-- Search Input: Mobile Row 1 Full Width, Desktop Center -->
+          <div class="relative w-full col-span-2 sm:order-2 flex-grow order-1">
+            <input type="text" name="search" id="koleksi-search-input" value="<%= typeof currentSearch !== 'undefined' ? currentSearch : '' %>" class="w-full bg-gray-700 text-white rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400" placeholder="Cari tag..." autocomplete="off">
+            <div id="koleksi-search-suggestions" class="absolute left-0 mt-1 w-full bg-gray-800 border border-gray-600 rounded-md shadow-lg hidden z-50 max-h-60 overflow-y-auto"></div>
+          </div>
+
+          <button type="submit" class="hidden">Cari</button>
+
+          <!-- View Toggles: Mobile Row 2 Right, Desktop Right -->
+          <div class="flex justify-end gap-2 shrink-0 order-3 sm:order-3 col-span-1">
+            <button type="button" id="view-masonry-btn" class="p-2 bg-cyan-600 text-white rounded focus:outline-none transition-colors" title="Tampilan Masonry">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+            </button>
+            <button type="button" id="view-data-btn" class="p-2 bg-gray-700 text-gray-400 hover:text-white rounded focus:outline-none transition-colors" title="Tampilan Data">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+            </button>
+          </div>
+        </form>
+      <% } %>
+        
       <% if (userProfile.saves.length > 0) { %>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="main-gallery">
+        <!-- Masonry View -->
+        <div id="koleksi-masonry" class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4" style="column-fill: balance;">
+          <% userProfile.saves.forEach(save => { 
+             const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
+          %>
+            <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item" <%= isVideo ? 'data-is-video="true"' : '' %>>
+              <a href="/posts/<%= save.postId %>" class="block relative w-full h-full">
+                <% if (isVideo && save.fileUrl) { %>
+                  <div class="relative w-full pb-[100%]">
+                    <img src="<%= save.imageUrl %>" class="absolute inset-0 w-full h-full object-cover video-preview" alt="Saved Post <%= save.postId %>" loading="lazy">
+                    <video src="<%= save.fileUrl %>" class="absolute inset-0 w-full h-full object-cover video-playback hidden" muted loop playsinline></video>
+                    <div class="absolute top-2 left-2 bg-black/60 rounded-full p-1 video-indicator">
+                      <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
+                    </div>
+                  </div>
+                <% } else if (save.imageUrl) { %>
+                  <img src="<%= save.imageUrl %>" class="w-full h-auto object-cover" alt="Saved Post <%= save.postId %>" loading="lazy">
+                <% } else { %>
+                  <div class="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center p-4 text-center">
+                    <span class="text-sm font-medium text-cyan-400 break-all">ID: <%= save.postId %></span>
+                  </div>
+                <% } %>
+              </a>
+            </div>
+          <% }); %>
+        </div>
+
+        <!-- Data View -->
+        <div id="koleksi-data" class="flex flex-col gap-3 hidden">
           <% userProfile.saves.forEach(save => { %>
-            <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300">
-              <a href="/posts/<%= save.postId %>" class="block aspect-square">
-                <!-- Kita hanya punya postId. Idealnya kita fetch thumbnail dari Danbooru atau simpan previewUrl saat disave -->
-                <div class="w-full h-full bg-gray-800 flex items-center justify-center p-4 text-center group-hover:bg-gray-700 transition-colors">
-                  <span class="text-sm font-medium text-cyan-400 break-all">ID: <%= save.postId %></span>
+            <div class="flex flex-col sm:flex-row bg-gray-900 border border-gray-700 rounded-lg overflow-hidden group hover:shadow-cyan-900/20 transition-all">
+              <a href="/posts/<%= save.postId %>" class="flex-grow flex flex-col sm:flex-row hover:bg-gray-800/50 transition-colors">
+                <div class="w-full h-48 sm:w-28 sm:h-28 flex-shrink-0 relative bg-gray-800">
+                  <% if (save.imageUrl) { %>
+                    <img src="<%= save.imageUrl %>" class="w-full h-full object-cover" alt="Saved Post <%= save.postId %>" loading="lazy">
+                  <% } else { %>
+                    <div class="w-full h-full flex items-center justify-center p-2 text-center">
+                      <span class="text-xs font-medium text-cyan-400 break-all">ID: <%= save.postId %></span>
+                    </div>
+                  <% } %>
+                </div>
+                <div class="p-4 flex flex-col justify-center">
+                  <div class="font-bold text-white mb-2">Post ID: <%= save.postId %></div>
+                  <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-300">
+                    <div><span class="text-gray-500">Rating:</span> <span class="font-semibold text-white"><%= save.rating ? save.rating.toUpperCase() : 'N/A' %></span></div>
+                    <div><span class="text-gray-500">Score:</span> <span class="font-semibold text-green-400"><%= save.score || 0 %></span></div>
+                    <div><span class="text-gray-500">Size:</span> <span class="font-semibold text-white"><%= save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A' %></span></div>
+                    <div><span class="text-gray-500">Uploaded:</span> <span class="font-semibold text-white"><%= save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A' %></span></div>
+                  </div>
                 </div>
               </a>
-              <button onclick="removeSave('<%= save.postId %>', this)" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-red-600 hover:bg-red-700 rounded-full text-white shadow-lg">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
+              <div class="p-4 flex flex-col sm:border-l border-t sm:border-t-0 border-gray-700 bg-gray-900 shrink-0 sm:w-48">
+                <div class="w-full mt-auto flex flex-col gap-2">
+                  <% if (save.source) { 
+                     let sourceName = 'Source';
+                     try {
+                        let url = new URL(save.source);
+                        let hostname = url.hostname.replace('www.', '');
+                        sourceName = hostname.split('.')[0];
+                     } catch(e) { sourceName = 'Source'; }
+                  %>
+                    <a href="<%= save.source %>" target="_blank" class="w-full justify-center text-sm bg-gray-700 hover:bg-gray-600 text-cyan-300 font-bold px-4 py-2 rounded transition-colors capitalize flex items-center gap-1 shadow-sm overflow-hidden">
+                      <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                      <span class="truncate">Source: <%= sourceName %></span>
+                    </a>
+                  <% } %>
+                  <div class="flex gap-2 w-full">
+                    <% if (save.fileUrl) { %>
+                      <button onclick="forceDownload('<%= save.fileUrl %>', 'CytusGallery_<%= save.postId %>', this)" class="flex-grow justify-center text-sm bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-3 py-2 rounded transition-colors flex items-center gap-1 shadow-sm text-center" title="Download">
+                        <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                      </button>
+                    <% } %>
+                    <button onclick="removeSave('<%= save.postId %>', this, false)" class="flex-grow justify-center text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded transition-colors flex items-center gap-1 shadow-sm" title="Hapus">
+                      <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           <% }); %>
         </div>
         
-        <script>
-          async function removeSave(postId, btnEl) {
-            btnEl.disabled = true;
-            try {
-              const res = await fetch('/api/save/' + postId, { method: 'POST' });
-              const data = await res.json();
-              if (data.saved === false) {
-                // Remove the parent element
-                btnEl.closest('.group').remove();
-                
-                // Update count if possible, or just reload the page to refresh UI
-                window.location.reload();
-              }
-            } catch (err) {
-              console.error(err);
-              btnEl.disabled = false;
-            }
-          }
-        </script>
+        <div id="koleksi-loader" class="hidden text-center py-6 mt-4">
+          <div class="inline-block w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+          <p class="text-sm text-cyan-400 font-bold">Memuat lebih banyak...</p>
+        </div>
       <% } else { %>
         <div class="bg-gray-700/30 rounded-lg p-8 text-center border border-gray-700 border-dashed">
           <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,9 +204,323 @@
         </div>
       <% } %>
     </div>
+
+    <!-- Tab Mengikuti Content -->
+    <div id="tab-mengikuti-content" class="pt-6 hidden">
+      <% 
+        const followed = userProfile.followedTags || [];
+        const copyrights = followed.filter(t => t.tagType === 3);
+        const characters = followed.filter(t => t.tagType === 4);
+        const artists = followed.filter(t => t.tagType === 1);
+        
+        const renderTagGroup = (title, items, colorClass) => {
+          if (items.length === 0) return '';
+          let html = `<div class="mb-6"><h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">${title} <span class="text-gray-500 text-sm font-normal">(${items.length})</span></h3><div class="flex flex-wrap gap-2">`;
+          items.forEach(item => {
+            html += `<a href="/search?tags=${encodeURIComponent(item.tagName)}" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 ${colorClass} px-3 py-1.5 rounded-full text-sm transition-colors flex items-center gap-2 shadow-sm">
+              <span class="font-medium">${item.tagName.replace(/_/g, ' ')}</span>
+            </a>`;
+          });
+          html += `</div></div>`;
+          return html;
+        };
+      %>
+      
+      <% if (followed.length > 0) { %>
+        <%- renderTagGroup('Copyright', copyrights, 'text-purple-400') %>
+        <%- renderTagGroup('Character', characters, 'text-green-400') %>
+        <%- renderTagGroup('Artist', artists, 'text-red-400') %>
+      <% } else { %>
+        <div class="bg-gray-700/30 rounded-lg p-8 text-center border border-gray-700 border-dashed">
+          <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <p class="text-gray-400">Belum ada tag yang diikuti.</p>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Script for Tabs, View Toggle and Remove Confirm -->
+    <script>
+      // Tab logic
+      const btnKoleksi = document.getElementById('tab-koleksi-btn');
+      const btnMengikuti = document.getElementById('tab-mengikuti-btn');
+      const contentKoleksi = document.getElementById('tab-koleksi-content');
+      const contentMengikuti = document.getElementById('tab-mengikuti-content');
+
+      if (btnKoleksi && btnMengikuti) {
+        btnKoleksi.addEventListener('click', () => {
+          contentKoleksi.classList.remove('hidden');
+          contentMengikuti.classList.add('hidden');
+          btnKoleksi.className = "py-3 px-6 text-cyan-400 border-b-2 border-cyan-400 font-bold focus:outline-none transition-colors";
+          btnMengikuti.className = "py-3 px-6 text-gray-400 hover:text-white font-bold focus:outline-none transition-colors";
+        });
+
+        btnMengikuti.addEventListener('click', () => {
+          contentMengikuti.classList.remove('hidden');
+          contentKoleksi.classList.add('hidden');
+          btnMengikuti.className = "py-3 px-6 text-cyan-400 border-b-2 border-cyan-400 font-bold focus:outline-none transition-colors";
+          btnKoleksi.className = "py-3 px-6 text-gray-400 hover:text-white font-bold focus:outline-none transition-colors";
+        });
+      }
+
+      // View toggle logic
+      const btnMasonry = document.getElementById('view-masonry-btn');
+      const btnData = document.getElementById('view-data-btn');
+      const viewMasonry = document.getElementById('koleksi-masonry');
+      const viewData = document.getElementById('koleksi-data');
+
+      if (btnMasonry && btnData) {
+        btnMasonry.addEventListener('click', () => {
+          viewMasonry.classList.remove('hidden');
+          viewData.classList.add('hidden');
+          btnMasonry.classList.replace('bg-gray-700', 'bg-cyan-600');
+          btnMasonry.classList.replace('text-gray-400', 'text-white');
+          btnData.classList.replace('bg-cyan-600', 'bg-gray-700');
+          btnData.classList.replace('text-white', 'text-gray-400');
+        });
+
+        btnData.addEventListener('click', () => {
+          viewData.classList.remove('hidden');
+          viewMasonry.classList.add('hidden');
+          btnData.classList.replace('bg-gray-700', 'bg-cyan-600');
+          btnData.classList.replace('text-white', 'text-gray-400');
+          btnMasonry.classList.replace('bg-cyan-600', 'bg-gray-700');
+          btnMasonry.classList.replace('text-white', 'text-gray-400');
+        });
+      }
+
+      // Remove logic
+      let itemToRemove = null;
+      function removeSaveConfirm(postId, btnEl) {
+        itemToRemove = { postId, btnEl };
+        if (typeof window.showAlert === 'function') {
+          window.showAlert("Hapus Koleksi", "Apakah Anda yakin ingin menghapus konten ini dari koleksi?", confirmRemove);
+        } else {
+          if (confirm("Apakah Anda yakin ingin menghapus konten ini dari koleksi?")) {
+            confirmRemove();
+          }
+        }
+      }
+
+      async function confirmRemove() {
+        if (!itemToRemove) return;
+        const { postId, btnEl } = itemToRemove;
+        btnEl.disabled = true;
+        try {
+          const res = await fetch('/api/save/' + postId, { method: 'POST' });
+          const data = await res.json();
+          if (data.saved === false) {
+             window.location.reload();
+          }
+        } catch (err) {
+          console.error(err);
+          btnEl.disabled = false;
+        }
+      }
+      
+      async function removeSave(postId, btnEl, skipConfirm = false) {
+         if(!skipConfirm) {
+            removeSaveConfirm(postId, btnEl);
+            return;
+         }
+         removeSaveConfirm(postId, btnEl); // Always confirm for now as requested by user "akan memunculkan modal popup konfirmasi" for BOTH! Wait, if skipConfirm is true, skip? I will just confirm for both since they are removing a save. Let me just confirm for both to be safe. Actually, the user asked "kemudian di paling kanan ada tombol hapus dari koleksi yang akan memunculkan modal popup konfirmasi" specifically for data view, but it's safe to ask for both. 
+         // Wait, the prompt said "memunculkan modal popup konfirmasi". Let me just trigger it for both!
+         // Wait, the code logic `removeSaveConfirm` triggers the custom alert anyway. I'll just use it!
+      }
+      
+      // Override removeSave to ALWAYS confirm for safety
+      window.removeSave = function(postId, btnEl, skipConfirm = false) {
+          removeSaveConfirm(postId, btnEl);
+      };
+
+      // Infinite Scroll Logic
+      let currentPage = 1;
+      let isFetching = false;
+      let hasMore = "<%= (typeof totalSaves !== 'undefined' ? totalSaves : userProfile.saves.length) > 25 ? 'true' : 'false' %>" === "true";
+      const loader = document.getElementById('koleksi-loader');
+      const masonryContainer = document.getElementById('koleksi-masonry');
+      const dataContainer = document.getElementById('koleksi-data');
+      
+      let currentSearch = "<%= typeof currentSearch !== 'undefined' ? currentSearch : '' %>";
+      let currentRating = "<%= typeof currentRating !== 'undefined' ? currentRating : '' %>";
+
+      async function loadMoreSaves() {
+        if (isFetching || !hasMore || document.getElementById('tab-koleksi-content').classList.contains('hidden')) return;
+        
+        isFetching = true;
+        if (loader) loader.classList.remove('hidden');
+
+        try {
+          currentPage++;
+          const res = await fetch(`/api/profil/saves?page=${currentPage}&search=${encodeURIComponent(currentSearch)}&rating=${encodeURIComponent(currentRating)}`);
+          const saves = await res.json();
+          
+          if (saves.length === 0) {
+            hasMore = false;
+            if (loader) loader.classList.add('hidden');
+            return;
+          }
+
+          saves.forEach(save => {
+            const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
+            let masonryItem = `
+              <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item" ${isVideo ? 'data-is-video="true"' : ''}>
+                <a href="/posts/${save.postId}" class="block relative w-full h-full">
+                  ${isVideo && save.fileUrl ? `
+                    <div class="relative w-full pb-[100%]">
+                      <img src="${save.imageUrl}" class="absolute inset-0 w-full h-full object-cover video-preview" alt="Saved Post ${save.postId}" loading="lazy">
+                      <video src="${save.fileUrl}" class="absolute inset-0 w-full h-full object-cover video-playback hidden" muted loop playsinline></video>
+                      <div class="absolute top-2 left-2 bg-black/60 rounded-full p-1 video-indicator">
+                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
+                      </div>
+                    </div>
+                  ` : save.imageUrl ? `
+                    <img src="${save.imageUrl}" class="w-full h-auto object-cover" alt="Saved Post ${save.postId}" loading="lazy">
+                  ` : `
+                    <div class="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center p-4 text-center">
+                      <span class="text-sm font-medium text-cyan-400 break-all">ID: ${save.postId}</span>
+                    </div>
+                  `}
+                </a>
+              </div>
+            `;
+            if(masonryContainer) masonryContainer.insertAdjacentHTML('beforeend', masonryItem);
+
+            let sourceName = 'Source';
+            if(save.source) {
+               try {
+                  let url = new URL(save.source);
+                  let hostname = url.hostname.replace('www.', '');
+                  sourceName = hostname.split('.')[0];
+               } catch(e) {}
+            }
+
+            let dataItem = `
+              <div class="flex flex-col sm:flex-row bg-gray-900 border border-gray-700 rounded-lg overflow-hidden group hover:shadow-cyan-900/20 transition-all">
+                <a href="/posts/${save.postId}" class="flex-grow flex flex-col sm:flex-row hover:bg-gray-800/50 transition-colors">
+                  <div class="w-full h-48 sm:w-28 sm:h-28 flex-shrink-0 relative bg-gray-800">
+                    ${save.imageUrl ? `
+                      <img src="${save.imageUrl}" class="w-full h-full object-cover" alt="Saved Post ${save.postId}" loading="lazy">
+                    ` : `
+                      <div class="w-full h-full flex items-center justify-center p-2 text-center">
+                        <span class="text-xs font-medium text-cyan-400 break-all">ID: ${save.postId}</span>
+                      </div>
+                    `}
+                  </div>
+                  <div class="p-4 flex flex-col justify-center">
+                    <div class="font-bold text-white mb-2">Post ID: ${save.postId}</div>
+                    <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-300">
+                      <div><span class="text-gray-500">Rating:</span> <span class="font-semibold text-white">${save.rating ? save.rating.toUpperCase() : 'N/A'}</span></div>
+                      <div><span class="text-gray-500">Score:</span> <span class="font-semibold text-green-400">${save.score || 0}</span></div>
+                      <div><span class="text-gray-500">Size:</span> <span class="font-semibold text-white">${save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}</span></div>
+                      <div><span class="text-gray-500">Uploaded:</span> <span class="font-semibold text-white">${save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A'}</span></div>
+                    </div>
+                  </div>
+                </a>
+                <div class="p-4 flex flex-col sm:border-l border-t sm:border-t-0 border-gray-700 bg-gray-900 shrink-0 sm:w-48">
+                  <div class="w-full mt-auto flex flex-col gap-2">
+                    ${save.source ? `
+                      <a href="${save.source}" target="_blank" class="w-full justify-center text-sm bg-gray-700 hover:bg-gray-600 text-cyan-300 font-bold px-4 py-2 rounded transition-colors capitalize flex items-center gap-1 shadow-sm overflow-hidden">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        <span class="truncate">Source: ${sourceName}</span>
+                      </a>
+                    ` : ''}
+                    <div class="flex gap-2 w-full">
+                      ${save.fileUrl ? `
+                        <button onclick="forceDownload('${save.fileUrl}', 'CytusGallery_${save.postId}', this)" class="flex-grow justify-center text-sm bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-3 py-2 rounded transition-colors flex items-center gap-1 shadow-sm text-center" title="Download">
+                          <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </button>
+                      ` : ''}
+                      <button onclick="removeSave('${save.postId}', this, false)" class="flex-grow justify-center text-sm bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-2 rounded transition-colors flex items-center gap-1 shadow-sm" title="Hapus">
+                        <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+            if(dataContainer) dataContainer.insertAdjacentHTML('beforeend', dataItem);
+          });
+          
+          if (saves.length < 25) {
+            hasMore = false;
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          isFetching = false;
+          if (loader) {
+            if(!hasMore) {
+              loader.innerHTML = '<p class="text-sm text-gray-500">Semua koleksi telah dimuat.</p>';
+            } else {
+              loader.classList.add('hidden');
+            }
+          }
+        }
+      }
+
+      window.addEventListener('scroll', () => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+          loadMoreSaves();
+        }
+      });
+      
+      // Autocomplete untuk Filter Tag Koleksi
+      const filterSearchInput = document.getElementById('koleksi-search-input');
+      const filterSearchSuggestions = document.getElementById('koleksi-search-suggestions');
+      let filterSearchTimeout;
+
+      if (filterSearchInput) {
+        filterSearchInput.addEventListener('input', (e) => {
+          clearTimeout(filterSearchTimeout);
+          const val = e.target.value;
+          
+          const tags = val.split(' ');
+          const currentTag = tags[tags.length - 1];
+
+          if (currentTag.length < 2) {
+            filterSearchSuggestions.classList.add('hidden');
+            return;
+          }
+
+          filterSearchTimeout = setTimeout(async () => {
+            try {
+              const res = await fetch(`/api/tagsuggest?term=${encodeURIComponent(currentTag)}`);
+              const data = await res.json();
+              if (data.length > 0) {
+                filterSearchSuggestions.innerHTML = data.map(tag => `
+                  <div class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white tag-suggestion" data-value="${tag.name}">
+                    <div class="font-medium truncate max-w-full">${tag.name}</div>
+                  </div>
+                `).join('');
+                filterSearchSuggestions.classList.remove('hidden');
+                
+                document.querySelectorAll('.tag-suggestion').forEach(item => {
+                  item.addEventListener('click', () => {
+                    tags[tags.length - 1] = item.dataset.value;
+                    filterSearchInput.value = tags.join(' ') + ' ';
+                    filterSearchSuggestions.classList.add('hidden');
+                    filterSearchInput.focus();
+                  });
+                });
+              } else {
+                filterSearchSuggestions.classList.add('hidden');
+              }
+            } catch (err) {
+              console.error(err);
+            }
+          }, 300);
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!filterSearchInput.contains(e.target) && filterSearchSuggestions && !filterSearchSuggestions.contains(e.target)) {
+            filterSearchSuggestions.classList.add('hidden');
+          }
+        });
+      }
+    </script>
   </div>
 </main>
 
 <%- include('partials/footer.ejs') %>
-</body>
-</html>

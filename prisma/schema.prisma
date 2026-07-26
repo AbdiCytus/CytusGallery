@@ -30,6 +30,16 @@ model SavedContent {
   postId        String   // ID post from danbooru
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imageUrl      String?
+  fileUrl       String?
+  extension     String?
+  rating        String?
+  score         Int?
+  size          Int?
+  uploadedAt    DateTime?
+  source        String?
+  tags          String?
+
   savedAt       DateTime @default(now())
 
   @@unique([userId, postId])

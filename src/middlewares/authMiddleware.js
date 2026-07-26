@@ -16,13 +16,20 @@ const requireAuth = (req, res, next) => {
   }
 };
 
-const checkUser = (req, res, next) => {
+const checkUser = async (req, res, next) => {
   const token = req.cookies.token;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'cytus_gallery_secret_key');
-      req.user = decoded;
-      res.locals.user = decoded;
+      const prisma = require('../lib/prisma');
+      const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+      if (user) {
+        req.user = user;
+        res.locals.user = user;
+      } else {
+        req.user = null;
+        res.locals.user = null;
+      }
     } catch (err) {
       req.user = null;
       res.locals.user = null;

@@ -4,3 +4,11 @@ node_modules
 
 .env
 /src/generated/prisma
+
+# AI Agents & IDE tools
+.agents/
+.claude/
+.windsurf/
+
+# Temp scripts
+backfill_tags.js

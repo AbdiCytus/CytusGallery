@@ -98,6 +98,34 @@ document.addEventListener("DOMContentLoaded", () => {
     customAlertTitle.textContent = title;
     customAlertMessage.textContent = message;
 
+    const iconWrapper = document.getElementById('custom-alert-icon-wrapper');
+    const icon = document.getElementById('custom-alert-icon');
+    
+    if (iconWrapper && icon) {
+      if (title.toLowerCase().includes('berhasil')) {
+        iconWrapper.className = 'flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-green-900/50';
+        icon.setAttribute('class', 'w-6 h-6 text-green-400');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+      } else {
+        iconWrapper.className = 'flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-red-900/50';
+        icon.setAttribute('class', 'w-6 h-6 text-red-400');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>';
+      }
+    }
+    
+    if (customAlertConfirm) {
+      if (title.toLowerCase().includes('hapus')) {
+        customAlertConfirm.textContent = 'Hapus';
+        customAlertConfirm.className = 'px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500';
+      } else if (title.toLowerCase().includes('nonaktifkan')) {
+        customAlertConfirm.textContent = 'Nonaktifkan';
+        customAlertConfirm.className = 'px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-500';
+      } else {
+        customAlertConfirm.textContent = 'Aktifkan';
+        customAlertConfirm.className = 'px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-cyan-500';
+      }
+    }
+
     onConfirmCallback = typeof onConfirm === "function" ? onConfirm : null;
 
     if (onConfirmCallback) {
@@ -110,7 +138,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     customAlert.classList.remove("hidden", "opacity-0");
     document.body.classList.add("body-no-scroll");
+    
+    // Add overlay logic if exists
+    if (customAlertOverlay) {
+        customAlertOverlay.classList.remove("hidden", "opacity-0");
+    }
   };
+  window.showAlert = showAlert;
 
   const scrollToBottomBtn = document.getElementById("scroll-to-bottom-btn");
 
@@ -317,9 +351,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const setActiveSuggestion = () => {
     if (!suggestionsBox) return;
-    const suggestions = suggestionsBox.querySelectorAll("a");
+    const suggestions = suggestionsBox.querySelectorAll(".suggestion-item");
     suggestions.forEach((item, index) => {
       item.classList.toggle("bg-gray-700", index === activeSuggestionIndex);
+      // Remove bg-gray-700 hover class if it's currently active to override default look
+      if (index === activeSuggestionIndex) {
+         item.style.backgroundColor = "rgba(55, 65, 81, 1)"; // Tailwind gray-700
+      } else {
+         item.style.backgroundColor = "";
+      }
     });
   };
 
@@ -483,7 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
     filterForm.addEventListener("submit", (e) => {
       e.preventDefault();
       showLoader("Applying Settings...");
-      navigateWithFilters(searchInput.value, 1);
+      navigateWithFilters(searchInput ? searchInput.value : "", 1);
     });
 
     loadFiltersToUI();
@@ -560,12 +600,14 @@ document.addEventListener("DOMContentLoaded", () => {
       suggestionsBox.innerHTML = '<div class="px-3 py-1 text-xs text-gray-500 font-bold uppercase tracking-wider">Recent Searches</div>';
       recentTags.forEach(tag => {
         const item = document.createElement('div');
-        item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2";
+        item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2 suggestion-item";
         
         const textSpan = document.createElement('span');
         textSpan.className = "truncate flex-grow";
         textSpan.textContent = tag.replace(/_/g, ' ');
-        textSpan.addEventListener("click", (e) => {
+        // For click on the item directly
+        item.addEventListener("click", (e) => {
+          if (e.target.closest('button')) return; // Ignore if delete button clicked
           e.preventDefault();
           addChip(tag);
           searchInputVisual.value = "";
@@ -644,7 +686,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const suggestionItem = document.createElement("a");
             suggestionItem.href = "#";
             suggestionItem.className =
-              "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2";
+              "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2 suggestion-item";
 
             const postCount = tag.post_count.toLocaleString("en-US");
             suggestionItem.innerHTML = `<span class="truncate">${tag.name.replace(/_/g, ' ')}</span><span class="text-sm text-gray-400 whitespace-nowrap">${postCount}</span>`;
@@ -679,7 +721,7 @@ document.addEventListener("DOMContentLoaded", () => {
          }
       }
       
-      const suggestions = suggestionsBox.querySelectorAll("a");
+      const suggestions = suggestionsBox.querySelectorAll(".suggestion-item");
       if (
         suggestions.length === 0 ||
         suggestionsBox.classList.contains("hidden")
@@ -852,6 +894,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Fast Navigation Pagination
+  document.addEventListener("keydown", (e) => {
+    // Ignore if user is typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    // Also ignore if the search bar dropdown is open, maybe? Not strictly necessary.
+    if (e.key === "ArrowRight") {
+      const nextBtn = document.querySelector('nav#pagination-nav a[rel="next"]');
+      if (nextBtn) {
+        e.preventDefault();
+        showLoader("Navigating...");
+        setTimeout(() => {
+          window.location.href = nextBtn.href;
+        }, 50);
+      }
+    } else if (e.key === "ArrowLeft") {
+      const prevBtn = document.querySelector('nav#pagination-nav a[rel="prev"]');
+      if (prevBtn) {
+        e.preventDefault();
+        showLoader("Navigating...");
+        setTimeout(() => {
+          window.location.href = prevBtn.href;
+        }, 50);
+      }
+    }
+  });
+
   // Infinite Scroll Logic
   const initInfiniteScroll = () => {
     const paginationNav = document.getElementById("pagination-nav");
@@ -920,3 +989,103 @@ window.addEventListener("load", () => {
   };
   hideLoader();
 });
+
+window.savePostOverlay = async function(event, postId, btnEl) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  btnEl.disabled = true;
+  const originalHtml = btnEl.innerHTML;
+  btnEl.innerHTML = `<svg class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+  
+  try {
+    const res = await fetch('/api/save/' + postId, { method: 'POST' });
+    if (res.status === 401) {
+      window.location.href = '/login';
+      return;
+    }
+    const data = await res.json();
+    
+    if (data.saved !== undefined) {
+      if (data.saved) {
+        btnEl.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'bg-yellow-600', 'hover:bg-yellow-700');
+        btnEl.classList.add('bg-green-600', 'hover:bg-green-700');
+        btnEl.innerHTML = `<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>`;
+      } else {
+        btnEl.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'bg-green-600', 'hover:bg-green-700');
+        btnEl.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+        btnEl.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>`;
+      }
+      if (typeof window.showAlert === 'function') {
+        window.showAlert('Berhasil', data.message, null);
+      } else {
+        alert(data.message);
+      }
+    } else {
+      throw new Error(data.error || "Gagal menyimpan konten");
+    }
+  } catch (err) {
+    console.error(err);
+    btnEl.innerHTML = originalHtml;
+    if (typeof window.showAlert === 'function') {
+      window.showAlert('Error', 'Terjadi kesalahan saat menyimpan konten.');
+    } else {
+      alert('Terjadi kesalahan saat menyimpan konten.');
+    }
+  } finally {
+    btnEl.disabled = false;
+  }
+};
+
+window.forceDownload = async function(url, filename, btnEl) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  if (btnEl) btnEl.disabled = true;
+  const originalHtml = btnEl ? btnEl.innerHTML : '';
+  
+  if (btnEl) {
+    btnEl.innerHTML = `<svg class="animate-spin h-4 w-4 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+  }
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Gagal mengunduh file.");
+    const blob = await response.blob();
+    
+    // Attempt to guess extension from content type if URL doesn't have one
+    const contentType = response.headers.get('content-type');
+    let ext = url.split('.').pop().split(/#|\?/)[0];
+    if (ext.length > 4 || !ext) {
+      if (contentType === 'image/jpeg') ext = 'jpg';
+      else if (contentType === 'image/png') ext = 'png';
+      else if (contentType === 'image/gif') ext = 'gif';
+      else if (contentType === 'video/mp4') ext = 'mp4';
+      else if (contentType === 'video/webm') ext = 'webm';
+      else ext = 'jpg'; // Fallback
+    }
+    
+    const finalFilename = `${filename}.${ext}`;
+    
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = finalFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (error) {
+    console.error('Download error:', error);
+    if (typeof window.showAlert === 'function') {
+      window.showAlert('Error', 'Gagal mengunduh file. Kemungkinan dihalangi oleh browser (CORS).');
+    } else {
+      alert('Gagal mengunduh file.');
+    }
+  } finally {
+    if (btnEl) {
+      btnEl.innerHTML = originalHtml;
+      btnEl.disabled = false;
+    }
+  }
+};

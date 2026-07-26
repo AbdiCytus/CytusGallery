@@ -68,17 +68,133 @@ app.get("/arona_doro.png", (req, res) => {
   });
 });
 
+const multer = require('multer');
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${req.user.id}-${Date.now()}${ext}`);
+  }
+});
+const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+app.post("/api/profil/upload", requireAuth, upload.single('avatar'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Tidak ada file yang diunggah" });
+  
+  const avatarUrl = `/uploads/${req.file.filename}`;
+  const prisma = require('./lib/prisma');
+  
+  try {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { avatarUrl: avatarUrl }
+    });
+    res.json({ message: "Berhasil memperbarui foto profil", avatarUrl });
+  } catch(e) {
+    console.error("Avatar upload error:", e);
+    res.status(500).json({ error: "Gagal menyimpan foto profil" });
+  }
+});
+
+app.get("/test-search", async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const search = req.query.search || '';
+    const rating = req.query.rating || '';
+    
+    let whereClause = { userId: "6087237b-e6b3-49fe-b290-93af95568a07" }; // Using user ID from crash log
+    if (search) {
+      const searchTags = search.trim().split(/\s+/).filter(t => t.length > 0);
+      if (searchTags.length > 0) {
+        whereClause.AND = searchTags.map(tag => ({
+          tags: { contains: tag }
+        }));
+      }
+    }
+    if (rating) whereClause.rating = rating;
+
+    const saves = await prisma.savedContent.findMany({
+      where: whereClause,
+      orderBy: { savedAt: 'desc' },
+      take: 25
+    });
+    res.json(saves);
+  } catch (error) {
+    res.status(500).send(error.stack || error.message);
+  }
+});
+
 app.get("/profil", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
   try {
+    const search = req.query.search || '';
+    const rating = req.query.rating || '';
+    
+    let whereClause = { userId: req.user.id };
+    if (search) {
+      const searchTags = search.trim().split(/\s+/).filter(t => t.length > 0);
+      if (searchTags.length > 0) {
+        whereClause.AND = searchTags.map(tag => ({
+          tags: { contains: tag }
+        }));
+      }
+    }
+    if (rating) whereClause.rating = rating;
+
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      include: { saves: true }
+      include: { followedTags: true }
     });
-    res.render("profil", { hideSearchbar: true, userProfile: user });
+    const saves = await prisma.savedContent.findMany({
+      where: whereClause,
+      orderBy: { savedAt: 'desc' },
+      take: 25
+    });
+    user.saves = saves;
+    
+    const totalSaves = await prisma.savedContent.count({ where: whereClause });
+    res.render("profil", { hideSearchbar: true, userProfile: user, totalSaves, currentSearch: search, currentRating: rating });
   } catch (error) {
     console.error(error);
     res.status(500).render("error", { message: "Gagal memuat profil." });
+  }
+});
+
+app.get("/api/profil/saves", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const search = req.query.search || '';
+    const rating = req.query.rating || '';
+    
+    let whereClause = { userId: req.user.id };
+    if (search) {
+      const searchTags = search.trim().split(/\s+/).filter(t => t.length > 0);
+      if (searchTags.length > 0) {
+        whereClause.AND = searchTags.map(tag => ({
+          tags: { contains: tag }
+        }));
+      }
+    }
+    if (rating) whereClause.rating = rating;
+    
+    const take = 25;
+    const skip = (page - 1) * take;
+    const saves = await prisma.savedContent.findMany({
+      where: whereClause,
+      orderBy: { savedAt: 'desc' },
+      take,
+      skip
+    });
+    res.json(saves);
+  } catch (error) {
+    res.status(500).json({ error: "Gagal memuat" });
   }
 });
 
@@ -98,8 +214,24 @@ app.post("/api/save/:id", requireAuth, async (req, res) => {
       });
       res.json({ saved: false, message: "Berhasil dihapus dari koleksi." });
     } else {
+      let imageUrl = null, fileUrl = null, extension = null, rating = null, score = null, size = null, uploadedAt = null, source = null, tags = null;
+      try {
+        const dRes = await axios.get(`https://danbooru.donmai.us/posts/${postId}.json`);
+        const post = dRes.data;
+        imageUrl = post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url || null;
+        fileUrl = post.file_url || post.large_file_url || null;
+        extension = post.file_ext || null;
+        rating = post.rating || null;
+        score = post.score || null;
+        size = post.file_size || null;
+        uploadedAt = post.created_at ? new Date(post.created_at) : null;
+        source = post.source || null;
+        tags = post.tag_string || null;
+      } catch (e) {
+        console.error("Failed to fetch post details for saving", e.message);
+      }
       await prisma.savedContent.create({
-        data: { userId, postId }
+        data: { userId, postId, imageUrl, fileUrl, extension, rating, score, size, uploadedAt, source, tags }
       });
       res.json({ saved: true, message: "Berhasil disimpan ke koleksi." });
     }
@@ -269,10 +401,19 @@ const root = async (req, res) => {
     popularTags = await getSliderTags(3);
     popularCharacters = await getSliderTags(4);
 
-    if (page === 1) sliderPosts = await getTopPostsThisMonth(15);
+    let savedPostIds = new Set();
+    if (req.user) {
+      const prisma = require('./lib/prisma');
+      const saves = await prisma.savedContent.findMany({
+        where: { userId: req.user.id },
+        select: { postId: true }
+      });
+      savedPostIds = new Set(saves.map(s => s.postId));
+    }
 
     res.render("index", {
       posts: posts,
+      savedPostIds: savedPostIds,
       sliderPosts: sliderPosts,
       popularTags: popularTags,
       popularCharacters: popularCharacters,
@@ -325,8 +466,19 @@ const search = async (req, res) => {
       popularCharacters = await getSliderTags(4);
     }
 
+    let savedPostIds = new Set();
+    if (req.user) {
+      const prisma = require('./lib/prisma');
+      const saves = await prisma.savedContent.findMany({
+        where: { userId: req.user.id },
+        select: { postId: true }
+      });
+      savedPostIds = new Set(saves.map(s => s.postId));
+    }
+
     res.render("search", {
       posts: posts,
+      savedPostIds: savedPostIds,
       sliderPosts: sliderPosts,
       popularTags: popularTags,
       popularCharacters: popularCharacters,
@@ -454,12 +606,20 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
           const latestPost = posts[0];
           if (tag.lastPostId && latestPost.id > tag.lastPostId) {
             const previewUrl = latestPost.media_asset?.variants?.find(v => v.type === '360x360')?.url || latestPost.preview_file_url || null;
+            let tagTypeName = "General";
+            if (tag.tagType === 1) tagTypeName = "Artist";
+            if (tag.tagType === 3) tagTypeName = "Copyright";
+            if (tag.tagType === 4) tagTypeName = "Character";
+            
+            const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+            const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
+
             // New post found!
             await prisma.notification.create({
               data: {
                 userId,
-                title: "Update Tag Baru",
-                message: `Ada konten baru untuk tag yang Anda ikuti: ${tag.tagName.replace(/_/g, ' ')}`,
+                title: "Konten Baru",
+                message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
                 link: `/posts/${latestPost.id}`,
                 imageUrl: previewUrl,
                 extension: latestPost.file_ext,
@@ -521,7 +681,7 @@ app.get("/notifikasi", requireAuth, async (req, res) => {
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.id },
       orderBy: { createdAt: 'desc' },
-      take: 50 // limit to last 50
+      take: 50
     });
     
     // Mark as read when page is visited
@@ -530,10 +690,64 @@ app.get("/notifikasi", requireAuth, async (req, res) => {
       data: { isRead: true }
     });
 
-    res.render("notifications", { notifications: notifications });
+    res.render("notifications", { notifications: notifications, hideSearchbar: true });
   } catch (error) {
     console.error(error);
     res.status(500).render("error", { message: "Gagal memuat notifikasi." });
+  }
+});
+
+app.get("/api/notifications/more", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const take = 50;
+    const skip = (page - 1) * take;
+    const notifications = await prisma.notification.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take,
+      skip
+    });
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ error: "Gagal memuat" });
+  }
+});
+
+app.post("/api/notifications/delete", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const { action, id, date } = req.body;
+    
+    if (action === 'all') {
+      await prisma.notification.deleteMany({
+        where: { userId: req.user.id }
+      });
+    } else if (action === 'day' && date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      await prisma.notification.deleteMany({
+        where: {
+          userId: req.user.id,
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        }
+      });
+    } else if (action === 'single' && id) {
+      await prisma.notification.delete({
+        where: { id: parseInt(id) }
+      });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Gagal menghapus notifikasi." });
   }
 });
 
@@ -568,6 +782,82 @@ app.get("/tentang", (req, res) => res.render("tentang", { hideSearchbar: true })
 app.get("/bantuan", (req, res) => {
   res.render("bantuan", { hideSearchbar: true });
 });
+
+// Background Worker for Notifications
+setInterval(async () => {
+  const prisma = require('./lib/prisma');
+  const axios = require('axios');
+  try {
+    // Process 10 oldest checked tags across ALL users
+    const tagsToCheck = await prisma.followedTag.findMany({
+      orderBy: { updatedAt: 'asc' },
+      take: 10
+    });
+    if (!tagsToCheck || tagsToCheck.length === 0) return;
+
+    for (const tag of tagsToCheck) {
+      try {
+        // Gunakan rating Safe & Sensitive (not_e) sebagai standar untuk pengecekan background
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}+rating:s,g&limit=1`;
+        const dRes = await axios.get(query);
+        const posts = dRes.data;
+        
+        if (posts && posts.length > 0) {
+          const latestPost = posts[0];
+          if (tag.lastPostId && latestPost.id > tag.lastPostId) {
+            const previewUrl = latestPost.media_asset?.variants?.find(v => v.type === '360x360')?.url || latestPost.preview_file_url || null;
+            let tagTypeName = "General";
+            if (tag.tagType === 1) tagTypeName = "Artist";
+            if (tag.tagType === 3) tagTypeName = "Copyright";
+            if (tag.tagType === 4) tagTypeName = "Character";
+            
+            const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+            const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
+
+            // Check duplicate
+            const existingNotif = await prisma.notification.findFirst({
+              where: { userId: tag.userId, link: `/posts/${latestPost.id}` }
+            });
+
+            if (!existingNotif) {
+              await prisma.notification.create({
+                data: {
+                  userId: tag.userId,
+                  title: "Konten Baru",
+                  message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
+                  link: `/posts/${latestPost.id}`,
+                  imageUrl: previewUrl,
+                  extension: latestPost.file_ext,
+                  rating: latestPost.rating
+                }
+              });
+            }
+          }
+          
+          // Update timestamp agar berotasi di antrean
+          await prisma.followedTag.update({
+            where: { id: tag.id },
+            data: { lastPostId: latestPost.id, updatedAt: new Date() }
+          });
+        } else {
+          // Rotasi jika tidak ada post
+          await prisma.followedTag.update({
+            where: { id: tag.id },
+            data: { updatedAt: new Date() }
+          });
+        }
+      } catch (err) {
+        // Rotasi jika error
+        await prisma.followedTag.update({
+          where: { id: tag.id },
+          data: { updatedAt: new Date() }
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Background sync error:", error.message);
+  }
+}, 2 * 60 * 1000); // Berjalan setiap 2 menit
 
 //Run Server
 app.listen(PORT, () => {
