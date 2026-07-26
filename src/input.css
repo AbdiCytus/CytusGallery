@@ -97,7 +97,6 @@ input[type="number"] {
 /* Light Mode */
 body.light-mode {
   filter: invert(1) hue-rotate(180deg);
-  background-color: #f3f4f6;
 }
 body.light-mode img,
 body.light-mode video,

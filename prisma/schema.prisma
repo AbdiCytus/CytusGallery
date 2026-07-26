@@ -56,5 +56,8 @@ model Notification {
   message     String
   link        String?  
   isRead      Boolean  @default(false)
+  imageUrl    String?
+  extension   String?
+  rating      String?
   createdAt   DateTime @default(now())
 }

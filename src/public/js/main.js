@@ -274,7 +274,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     const scrollToggleEl = document.getElementById("scroll-toggle");
-    if (scrollToggleEl) scrollToggleEl.checked = scrollToggle || false;
+    if (scrollToggleEl) {
+      scrollToggleEl.checked = scrollToggle || false;
+      const limitInputContainer = document.getElementById("limit-input-container");
+      if (limitInputContainer) {
+        limitInputContainer.classList.toggle("hidden", scrollToggleEl.checked);
+      }
+    }
     
     const themeToggleEl = document.getElementById("theme-toggle");
     if (themeToggleEl) {
@@ -505,6 +511,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.target.checked) document.body.classList.add("light-mode");
         else document.body.classList.remove("light-mode");
       });
+
+    document
+      .getElementById("scroll-toggle")
+      ?.addEventListener("change", (e) => {
+        document
+          .getElementById("limit-input-container")
+          ?.classList.toggle("hidden", e.target.checked);
+      });
   }
 
   if (searchForm) {
@@ -545,11 +559,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (recentTags.length > 0) {
       suggestionsBox.innerHTML = '<div class="px-3 py-1 text-xs text-gray-500 font-bold uppercase tracking-wider">Recent Searches</div>';
       recentTags.forEach(tag => {
-        const item = document.createElement('a');
-        item.href = "#";
+        const item = document.createElement('div');
         item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2";
-        item.innerHTML = `<span class="truncate">${tag.replace(/_/g, ' ')}</span><span class="text-xs text-gray-500">Recent</span>`;
-        item.addEventListener("click", (e) => {
+        
+        const textSpan = document.createElement('span');
+        textSpan.className = "truncate flex-grow";
+        textSpan.textContent = tag.replace(/_/g, ' ');
+        textSpan.addEventListener("click", (e) => {
           e.preventDefault();
           addChip(tag);
           searchInputVisual.value = "";
@@ -557,6 +573,30 @@ document.addEventListener("DOMContentLoaded", () => {
           suggestionsBox.innerHTML = "";
           searchInputVisual.focus();
         });
+
+        const rightSide = document.createElement('div');
+        rightSide.className = "flex items-center gap-2";
+        
+        const recentLabel = document.createElement('span');
+        recentLabel.className = "text-xs text-gray-500";
+        recentLabel.textContent = "Recent";
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = "text-gray-500 hover:text-red-400 focus:outline-none p-1 rounded-full hover:bg-gray-600 transition-colors";
+        deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
+        deleteBtn.addEventListener('click', (e) => {
+           e.stopPropagation();
+           let rTags = JSON.parse(localStorage.getItem('recentSearchTags') || '[]');
+           rTags = rTags.filter(t => t !== tag);
+           localStorage.setItem('recentSearchTags', JSON.stringify(rTags));
+           showRecentTags();
+        });
+
+        rightSide.appendChild(recentLabel);
+        rightSide.appendChild(deleteBtn);
+        item.appendChild(textSpan);
+        item.appendChild(rightSide);
+        
         suggestionsBox.appendChild(item);
       });
       suggestionsBox.classList.remove("hidden");
@@ -827,9 +867,9 @@ document.addEventListener("DOMContentLoaded", () => {
           paginationNav.classList.add('hidden'); // hide traditional pagination
           
           const loaderDiv = document.createElement('div');
-          loaderDiv.className = 'w-full text-center py-8 text-cyan-400 font-bold col-span-full';
+          loaderDiv.className = 'w-full text-center py-8 text-cyan-400 font-bold mt-4';
           loaderDiv.innerHTML = 'Loading next page...';
-          mainGallery.appendChild(loaderDiv);
+          mainGallery.parentNode.insertBefore(loaderDiv, mainGallery.nextSibling);
           
           let nextPage = currentPage + 1;
           let isFetching = false;
@@ -845,7 +885,7 @@ document.addEventListener("DOMContentLoaded", () => {
                    const newItems = doc.querySelectorAll('#main-gallery .gallery-item');
                    
                    newItems.forEach(item => {
-                      mainGallery.insertBefore(item, loaderDiv);
+                      mainGallery.appendChild(item);
                    });
                    
                    nextPage++;

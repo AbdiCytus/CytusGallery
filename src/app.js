@@ -354,6 +354,13 @@ const detail = async (req, res) => {
     );
     const post = response.data;
     
+    // Check if the post is Explicit or Questionable
+    if (post.rating === 'e' || post.rating === 'q') {
+      return res.status(404).render("error", {
+        message: "Konten tidak ditemukan. Konten mungkin dihapus atau disembunyikan karena rating."
+      });
+    }
+
     let isSaved = false;
     let followedTags = [];
     if (req.user) {
@@ -372,7 +379,9 @@ const detail = async (req, res) => {
     res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags });
   } catch (error) {
     console.error("Error fetching post details:", error);
-    res.status(404).send("Konten tidak ditemukan");
+    res.status(404).render("error", {
+        message: "Konten tidak ditemukan."
+    });
   }
 };
 
@@ -418,6 +427,7 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
   try {
     const userId = req.user.id;
+    const ratingParam = req.query.rating || 'not_e';
     const follows = await prisma.followedTag.findMany({ where: { userId } });
     
     let newNotificationsCount = 0;
@@ -425,22 +435,35 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
     // Process top 5 oldest checked tags to avoid rate limits
     const tagsToCheck = follows.sort((a, b) => a.updatedAt - b.updatedAt).slice(0, 5);
     
+    let ratingFilter = '';
+    if (ratingParam === 'g') {
+       ratingFilter = '+rating:g';
+    } else if (ratingParam === 'not_e') {
+       ratingFilter = '+rating:s,g';
+    } else {
+       ratingFilter = '+-rating:e+-rating:q';
+    }
+
     for (const tag of tagsToCheck) {
       try {
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}&limit=1`;
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=1`;
         const dRes = await axios.get(query);
         const posts = dRes.data;
         
         if (posts && posts.length > 0) {
           const latestPost = posts[0];
           if (tag.lastPostId && latestPost.id > tag.lastPostId) {
+            const previewUrl = latestPost.media_asset?.variants?.find(v => v.type === '360x360')?.url || latestPost.preview_file_url || null;
             // New post found!
             await prisma.notification.create({
               data: {
                 userId,
                 title: "Update Tag Baru",
                 message: `Ada konten baru untuk tag yang Anda ikuti: ${tag.tagName.replace(/_/g, ' ')}`,
-                link: `/search?tags=${encodeURIComponent(tag.tagName)}`,
+                link: `/posts/${latestPost.id}`,
+                imageUrl: previewUrl,
+                extension: latestPost.file_ext,
+                rating: latestPost.rating
               }
             });
             newNotificationsCount++;
@@ -491,6 +514,28 @@ app.get("/", root);
 app.get("/search", search);
 // Route untuk detail
 app.get("/posts/:id", detail);
+// Route Notifikasi
+app.get("/notifikasi", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50 // limit to last 50
+    });
+    
+    // Mark as read when page is visited
+    await prisma.notification.updateMany({
+      where: { userId: req.user.id, isRead: false },
+      data: { isRead: true }
+    });
+
+    res.render("notifications", { notifications: notifications });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("error", { message: "Gagal memuat notifikasi." });
+  }
+});
 
 // API Endpoint untuk Auto-suggest Tag
 app.get("/api/tagsuggest", async (req, res) => {
