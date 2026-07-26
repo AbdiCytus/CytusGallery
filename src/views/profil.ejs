@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<%- include('partials/header.ejs') %>
+
+<main class="container mx-auto px-4 py-8 flex-grow">
+  <div class="max-w-3xl mx-auto bg-gray-800 rounded-lg shadow-xl shadow-cyan-900/10 p-6 md:p-8 border border-gray-700">
+    <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
+      <div class="flex-shrink-0">
+        <% if (userProfile.avatarUrl) { %>
+          <img src="<%= userProfile.avatarUrl %>" alt="Profile" class="w-32 h-32 rounded-full border-4 border-cyan-600 object-cover shadow-lg">
+        <% } else { %>
+          <div class="w-32 h-32 rounded-full bg-cyan-700 flex items-center justify-center text-4xl font-bold text-white border-4 border-gray-600 shadow-lg">
+            <%= (userProfile.name || userProfile.email).charAt(0).toUpperCase() %>
+          </div>
+        <% } %>
+      </div>
+      <div class="flex-grow text-center md:text-left">
+        <h1 class="text-3xl font-bold text-white"><%= userProfile.name || "User CytusGallery" %></h1>
+        <p class="text-gray-400 mt-2"><%= userProfile.email %></p>
+        <p class="text-xs text-gray-500 mt-1">Bergabung sejak: <%= new Date(userProfile.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+        
+        <div class="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
+          <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-lg">
+            Logout
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-10 border-t border-gray-700 pt-8">
+      <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+        <svg class="w-6 h-6 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+        </svg>
+        Konten yang Disimpan (<%= userProfile.saves.length %>)
+      </h2>
+      
+      <% if (userProfile.saves.length > 0) { %>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="main-gallery">
+          <% userProfile.saves.forEach(save => { %>
+            <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300">
+              <a href="/posts/<%= save.postId %>" class="block aspect-square">
+                <!-- Kita hanya punya postId. Idealnya kita fetch thumbnail dari Danbooru atau simpan previewUrl saat disave -->
+                <div class="w-full h-full bg-gray-800 flex items-center justify-center p-4 text-center group-hover:bg-gray-700 transition-colors">
+                  <span class="text-sm font-medium text-cyan-400 break-all">ID: <%= save.postId %></span>
+                </div>
+              </a>
+              <button onclick="removeSave('<%= save.postId %>', this)" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-red-600 hover:bg-red-700 rounded-full text-white shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+          <% }); %>
+        </div>
+        
+        <script>
+          async function removeSave(postId, btnEl) {
+            btnEl.disabled = true;
+            try {
+              const res = await fetch('/api/save/' + postId, { method: 'POST' });
+              const data = await res.json();
+              if (data.saved === false) {
+                // Remove the parent element
+                btnEl.closest('.group').remove();
+                
+                // Update count if possible, or just reload the page to refresh UI
+                window.location.reload();
+              }
+            } catch (err) {
+              console.error(err);
+              btnEl.disabled = false;
+            }
+          }
+        </script>
+      <% } else { %>
+        <div class="bg-gray-700/30 rounded-lg p-8 text-center border border-gray-700 border-dashed">
+          <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 4v16l7-4 7 4V4H5z"></path>
+          </svg>
+          <p class="text-gray-400">Belum ada konten yang disimpan.</p>
+          <a href="/search" class="inline-block mt-4 text-cyan-400 hover:text-cyan-300 hover:underline">Jelajahi konten</a>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer.ejs') %>
+</body>
+</html>

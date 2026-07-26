@@ -1,3 +1,5 @@
 node_modules
 *.pdf
 *.txt
+
+/src/generated/prisma

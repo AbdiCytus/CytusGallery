@@ -67,6 +67,12 @@
         <% renderTags('General Tags', post.tag_string_general, 'text-blue-400', true); %>
 
         <div class="pt-4 space-y-3">
+          <% if (locals.user) { %>
+            <button id="save-button" class="w-full bg-<%= isSaved ? 'green' : 'yellow' %>-600 hover:bg-<%= isSaved ? 'green' : 'yellow' %>-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors">
+              <svg class="w-5 h-5" fill="<%= isSaved ? 'currentColor' : 'none' %>" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+              <span id="save-button-text"><%= isSaved ? 'Tersimpan' : 'Simpan Konten' %></span>
+            </button>
+          <% } %>
           <button id="download-button" class="w-full block text-center bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">
             Download Original
           </button>
@@ -279,6 +285,50 @@
         } catch (err) {
           // Jika gagal (misal karena belum HTTPS), pakai cara manual
           manualCopy();
+        }
+      });
+    }
+
+    // Logika untuk tombol Simpan
+    const saveButton = document.getElementById('save-button');
+    if (saveButton) {
+      saveButton.addEventListener('click', async () => {
+        saveButton.disabled = true;
+        try {
+          const res = await fetch('/api/save/<%= post.id %>', { method: 'POST' });
+          const data = await res.json();
+          
+          if (data.saved !== undefined) {
+            const svg = saveButton.querySelector('svg');
+            const span = document.getElementById('save-button-text');
+            if (data.saved) {
+              saveButton.className = "w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors";
+              svg.setAttribute('fill', 'currentColor');
+              span.textContent = 'Tersimpan';
+            } else {
+              saveButton.className = "w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors";
+              svg.setAttribute('fill', 'none');
+              span.textContent = 'Simpan Konten';
+            }
+            
+            // Show alert modal
+            const customAlert = document.getElementById('custom-alert');
+            if (customAlert) {
+              document.getElementById('custom-alert-title').textContent = 'Berhasil';
+              document.getElementById('custom-alert-message').textContent = data.message;
+              document.getElementById('custom-alert-cancel').style.display = 'none';
+              document.getElementById('custom-alert-confirm').textContent = 'OK';
+              
+              customAlert.classList.remove('hidden');
+              setTimeout(() => customAlert.classList.remove('opacity-0'), 10);
+            } else {
+              alert(data.message);
+            }
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          saveButton.disabled = false;
         }
       });
     }

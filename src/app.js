@@ -5,7 +5,10 @@ const path = require("path");
 const axios = require("axios");
 const ejs = require("ejs");
 const fs = require("fs");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
+const authRoutes = require("./routes/auth");
+const { checkUser, requireAuth } = require("./middlewares/authMiddleware");
 
 //Setup Server
 const app = express();
@@ -39,10 +42,18 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
 //Setup Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(cookieParser());
+app.use(checkUser);
+
 app.use((req, res, next) => {
   res.locals.tags = req.query.tags || "";
   next();
 });
+
+// Setup Auth Routes
+app.use(authRoutes);
 
 //Middleware untuk file logo (Netlify)
 app.get("/arona_doro.png", (req, res) => {
@@ -58,6 +69,47 @@ app.get("/arona_doro.png", (req, res) => {
     res.contentType("image/png");
     res.send(data);
   });
+});
+
+app.get("/profil", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { saves: true }
+    });
+    res.render("profil", { hideSearchbar: true, userProfile: user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).render("error", { message: "Gagal memuat profil." });
+  }
+});
+
+app.post("/api/save/:id", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const postId = req.params.id;
+    const userId = req.user.id;
+    
+    const existingSave = await prisma.savedContent.findUnique({
+      where: { userId_postId: { userId, postId } }
+    });
+    
+    if (existingSave) {
+      await prisma.savedContent.delete({
+        where: { id: existingSave.id }
+      });
+      res.json({ saved: false, message: "Berhasil dihapus dari koleksi." });
+    } else {
+      await prisma.savedContent.create({
+        data: { userId, postId }
+      });
+      res.json({ saved: true, message: "Berhasil disimpan ke koleksi." });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Gagal menyimpan konten." });
+  }
 });
 
 //Setup Middleware untuk memblokir User-Agent yang mencurigakan (bot/scraper) & Rate Limiter
@@ -304,8 +356,17 @@ const detail = async (req, res) => {
       `https://danbooru.donmai.us/posts/${postId}.json`,
     );
     const post = response.data;
+    
+    let isSaved = false;
+    if (req.user) {
+      const prisma = require('./lib/prisma');
+      const saved = await prisma.savedContent.findUnique({
+        where: { userId_postId: { userId: req.user.id, postId: postId } }
+      });
+      if (saved) isSaved = true;
+    }
 
-    res.render("detail", { post: post });
+    res.render("detail", { post: post, isSaved: isSaved });
   } catch (error) {
     console.error("Error fetching post details:", error);
     res.status(404).send("Konten tidak ditemukan");
