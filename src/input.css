@@ -93,3 +93,16 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Light Mode */
+body.light-mode {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #f3f4f6;
+}
+body.light-mode img,
+body.light-mode video,
+body.light-mode .media-container,
+body.light-mode .swiper-slide,
+body.light-mode .gallery-item {
+  filter: invert(1) hue-rotate(180deg);
+}

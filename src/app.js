@@ -118,11 +118,21 @@ async function getTopPostsThisMonth(limit, filter) {
 
 async function getTopPosts(tags, filter, limit) {
   try {
-    const query = `${tags} ${filter} order:score`;
+    const query = `${tags} ${filter} order:score`.trim();
     const params = { tags: query, limit: limit };
     const response = await axios.get(basePostsURL, { params: params });
     return response.data;
   } catch (err) {
+    if (err.response && err.response.status === 422) {
+      try {
+        const fallbackQuery = `${tags} ${filter}`.trim();
+        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 } });
+        let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
+        return sorted.slice(0, limit);
+      } catch (fallbackErr) {
+        return [];
+      }
+    }
     return [];
   }
 }
@@ -321,11 +331,11 @@ app.get("/api/tagsuggest", async (req, res) => {
 });
 
 // Route untuk tentang
-app.get("/tentang", (req, res) => res.render("tentang"));
+app.get("/tentang", (req, res) => res.render("tentang", { hideSearchbar: true }));
 
 // Route untuk bantuan
 app.get("/bantuan", (req, res) => {
-  res.render("bantuan");
+  res.render("bantuan", { hideSearchbar: true });
 });
 
 //Run Server

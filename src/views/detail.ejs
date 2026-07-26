@@ -36,12 +36,19 @@
           </div>
         </div>
 
-        <%const renderTags = (title, tagString, colorClass) => {
+        <%const renderTags = (title, tagString, colorClass, collapsible = false) => {
             if (tagString && tagString.trim() !== '') {
                   const tags = tagString.split(' ');%>
-        <div>
-          <h3 class="font-semibold mb-2 <%= colorClass %>"><%= title %></h3>
-          <div class="flex flex-wrap gap-2">
+        <div class="<%= collapsible ? 'mt-4' : '' %>">
+          <div class="flex justify-between items-center <%= collapsible ? 'cursor-pointer collapse-trigger' : '' %>">
+            <h3 class="font-semibold mb-2 <%= colorClass %>"><%= title %> <%= collapsible ? `(${tags.length})` : '' %></h3>
+            <% if (collapsible) { %>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 transition-transform duration-300 transform collapse-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            <% } %>
+          </div>
+          <div class="flex flex-wrap gap-2 <%= collapsible ? 'hidden mt-2 collapse-content' : '' %>">
             <% tags.forEach(tag => { %>
             <a href="/search?tags=<%= tag %>" class="bg-gray-700 hover:bg-gray-600 tag-link text-sm px-2 py-1 rounded-md">
               <%= tag.replace(/_/g, ' ') %>
@@ -57,7 +64,7 @@
         <% renderTags('Character(s)', post.tag_string_character, 'text-green-400'); %>
         <% renderTags('Artist', post.tag_string_artist, 'text-red-400'); %>
         <% renderTags('Meta Tags', post.tag_string_meta, 'text-yellow-400'); %>
-        <% renderTags('General Tags', post.tag_string_general, 'text-blue-400'); %>
+        <% renderTags('General Tags', post.tag_string_general, 'text-blue-400', true); %>
 
         <div class="pt-4 space-y-3">
           <button id="download-button" class="w-full block text-center bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">
@@ -106,13 +113,22 @@
   // Logika untuk tombol Download
   const downloadButton = document.getElementById('download-button');
   if (downloadButton) {
+    let isDownloading = false;
+    window.addEventListener('beforeunload', (e) => {
+      if (isDownloading) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
     downloadButton.addEventListener('click', async () => {
       const fileUrl = '<%= post.file_url %>';
       const filename = '<%= post.md5 %>.<%= post.file_ext %>';
 
       // Beri feedback ke user
-      downloadButton.textContent = 'Downloading...';
+      downloadButton.textContent = 'Downloading... (Mohon jangan tutup halaman)';
       downloadButton.disabled = true;
+      isDownloading = true;
 
       try {
         // Ambil data file sebagai blob
@@ -140,9 +156,26 @@
         // Kembalikan tombol ke keadaan semula
         downloadButton.textContent = 'Download Original';
         downloadButton.disabled = false;
+        isDownloading = false;
       }
     });
   }
+
+  // Logika untuk Expand/Collapse General Tags
+  const collapseTriggers = document.querySelectorAll('.collapse-trigger');
+  collapseTriggers.forEach(trigger => {
+    trigger.addEventListener('click', () => {
+      const content = trigger.nextElementSibling;
+      const icon = trigger.querySelector('.collapse-icon');
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.classList.add('rotate-180');
+      } else {
+        content.classList.add('hidden');
+        icon.classList.remove('rotate-180');
+      }
+    });
+  });
   // === LOGIKA SHARE & MODAL ===
   document.addEventListener('DOMContentLoaded', () => {
     const shareButton = document.getElementById('share-button');

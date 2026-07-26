@@ -74,15 +74,31 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.add("body-no-scroll");
   };
 
+  const scrollToBottomBtn = document.getElementById("scroll-to-bottom-btn");
+
   if (scrollToTopBtn) {
     window.addEventListener("scroll", () => {
       if (window.scrollY > 300)
         scrollToTopBtn.classList.remove("opacity-0", "pointer-events-none");
       else scrollToTopBtn.classList.add("opacity-0", "pointer-events-none");
+      
+      if (scrollToBottomBtn) {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+           scrollToBottomBtn.classList.add("opacity-0", "pointer-events-none");
+        } else {
+           scrollToBottomBtn.classList.remove("opacity-0", "pointer-events-none");
+        }
+      }
     });
 
     scrollToTopBtn.addEventListener("click", () =>
       window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+  }
+  
+  if (scrollToBottomBtn) {
+    scrollToBottomBtn.addEventListener("click", () =>
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
     );
   }
 
@@ -152,6 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
       limit: document.getElementById("limit-input").value,
       autoplayToggle: document.getElementById("autoplay-toggle").checked,
       lazyloadToggle: document.getElementById("lazyload-toggle").checked,
+      themeToggle: document.getElementById("theme-toggle") ? document.getElementById("theme-toggle").checked : false,
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
   };
@@ -168,6 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
       limit,
       autoplayToggle,
       lazyloadToggle,
+      themeToggle,
     } = filters;
     const ratingToggleEl = document.getElementById("rating-toggle");
     if (ratingToggleEl) {
@@ -206,6 +224,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (rating === "g") document.body.classList.add("theme-safe");
       if (rating === "not_e") document.body.classList.add("theme-moderate");
       if (rating === "not_g") document.body.classList.add("theme-explicit");
+    }
+    
+    const themeToggleEl = document.getElementById("theme-toggle");
+    if (themeToggleEl) {
+      themeToggleEl.checked = themeToggle || false;
+      if (themeToggleEl.checked) document.body.classList.add("light-mode");
+      else document.body.classList.remove("light-mode");
     }
   };
 
@@ -423,6 +448,13 @@ document.addEventListener("DOMContentLoaded", () => {
           .getElementById("type-options")
           ?.classList.toggle("hidden", !e.target.checked)
       );
+
+    document
+      .getElementById("theme-toggle")
+      ?.addEventListener("change", (e) => {
+        if (e.target.checked) document.body.classList.add("light-mode");
+        else document.body.classList.remove("light-mode");
+      });
   }
 
   if (searchForm) {
@@ -457,10 +489,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const suggestionItem = document.createElement("a");
             suggestionItem.href = "#";
             suggestionItem.className =
-              "block px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer";
+              "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2";
 
             const postCount = tag.post_count.toLocaleString("en-US");
-            suggestionItem.innerHTML = `<span>${tag.name}</span><span class="text-sm text-gray-400 float-right">${postCount}</span>`;
+            suggestionItem.innerHTML = `<span class="truncate">${tag.name}</span><span class="text-sm text-gray-400 whitespace-nowrap">${postCount}</span>`;
 
             suggestionItem.addEventListener("click", (e) => {
               e.preventDefault();
@@ -591,11 +623,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchForm && !searchForm.contains(e.target) && suggestionsBox)
       suggestionsBox.classList.add("hidden");
 
+    const link = e.target.closest("a");
+    const isDetailButton = link && link.classList.contains("detail-button");
+    
+    if (isDetailButton) {
+      showLoader("Getting Data Content...");
+      return;
+    }
+
     if (isMobile()) {
       const clickedItem = e.target.closest(".gallery-item");
       if (!clickedItem) closeAllOverlays();
       else {
-        if (e.target.closest(".detail-button")) return;
         e.preventDefault();
 
         const isCurrentlyActive =
@@ -613,14 +652,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    const link = e.target.closest("a");
     if (!link) return;
-
-    const isDetailButton = link.classList.contains("detail-button");
-    if (isDetailButton) {
-      showLoader("Getting Data Content...");
-      return;
-    }
 
     // Cek jika link adalah salah satu yang memicu loading
     const isPaginationLink = link.closest("#pagination-nav");
