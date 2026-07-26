@@ -129,10 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (filters) {
       if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
         let ratingTag =
-          filters.rating === "not_g"
-            ? "-rating:g"
-            : filters.rating === "not_e"
-            ? "-rating:e"
+          filters.rating === "moderate"
+            ? "-rating:q"
             : `rating:${filters.rating}`;
         filterQueryParts.push(ratingTag);
       }
@@ -168,6 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
       limit: document.getElementById("limit-input").value,
       autoplayToggle: document.getElementById("autoplay-toggle").checked,
       lazyloadToggle: document.getElementById("lazyload-toggle").checked,
+      infiniteScrollToggle: document.getElementById("infinite-scroll-toggle") ? document.getElementById("infinite-scroll-toggle").checked : false,
       themeToggle: document.getElementById("theme-toggle") ? document.getElementById("theme-toggle").checked : false,
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
@@ -177,6 +176,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!filterForm) return;
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
     if (!filters) return;
+    if (filters.rating === "not_e" || filters.rating === "not_g") {
+      filters.rating = "all";
+      localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+    }
     const {
       ratingToggle,
       rating,
@@ -185,6 +188,7 @@ document.addEventListener("DOMContentLoaded", () => {
       limit,
       autoplayToggle,
       lazyloadToggle,
+      infiniteScrollToggle,
       themeToggle,
     } = filters;
     const ratingToggleEl = document.getElementById("rating-toggle");
@@ -216,14 +220,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("limit-input").value = limit || 25;
     document.getElementById("autoplay-toggle").checked = autoplayToggle;
     document.getElementById("lazyload-toggle").checked = lazyloadToggle;
+    const isToggleEl = document.getElementById("infinite-scroll-toggle");
+    if (isToggleEl) isToggleEl.checked = infiniteScrollToggle || false;
     document.body.className = document.body.className.replace(
       /\btheme-\S+/g,
       ""
     );
     if (ratingToggle && rating) {
       if (rating === "g") document.body.classList.add("theme-safe");
-      if (rating === "not_e") document.body.classList.add("theme-moderate");
-      if (rating === "not_g") document.body.classList.add("theme-explicit");
+      if (rating === "moderate") document.body.classList.add("theme-moderate");
     }
     
     const themeToggleEl = document.getElementById("theme-toggle");
@@ -457,24 +462,121 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
+  const hiddenSearchInput = document.getElementById("hidden-search-input");
+  const tagsContainer = document.getElementById("tags-container");
+
+  const syncHiddenInput = () => {
+    if (!hiddenSearchInput || !tagsContainer) return;
+    const chips = Array.from(tagsContainer.querySelectorAll(".search-chip")).map(c => c.dataset.tag);
+    const typed = searchInput ? searchInput.value.trim() : "";
+    if (typed) chips.push(typed);
+    hiddenSearchInput.value = chips.join(" ");
+  };
+
+  const createChip = (tag) => {
+    if (!tag || !tagsContainer) return;
+    tag = tag.toLowerCase().replace(/\s+/g, '_');
+    const existing = Array.from(tagsContainer.querySelectorAll(".search-chip")).find(c => c.dataset.tag === tag);
+    if (existing) return;
+    const chip = document.createElement("span");
+    chip.className = "bg-cyan-700 text-white px-2 py-0.5 rounded-md text-sm flex items-center gap-1 search-chip";
+    chip.dataset.tag = tag;
+    chip.innerHTML = `${tag.replace(/_/g, ' ')} <button type="button" class="hover:text-red-300 font-bold ml-1 remove-chip-btn">&times;</button>`;
+    tagsContainer.appendChild(chip);
+  };
+
+  if (tagsContainer) {
+    tagsContainer.addEventListener("click", (e) => {
+      if (e.target.closest(".remove-chip-btn")) {
+        e.preventDefault();
+        const chip = e.target.closest(".search-chip");
+        if (chip) chip.remove();
+        syncHiddenInput();
+        if (searchInput) searchInput.focus();
+      }
+    });
+  }
+
+  const saveRecentSearch = (tags) => {
+    if (!tags) return;
+    let recents = JSON.parse(localStorage.getItem('cytusGalleryRecentSearches') || '[]');
+    recents = recents.filter(t => t !== tags);
+    recents.unshift(tags);
+    if (recents.length > 5) recents.pop();
+    localStorage.setItem('cytusGalleryRecentSearches', JSON.stringify(recents));
+  };
+
+  const showRecentSearches = () => {
+    const recents = JSON.parse(localStorage.getItem('cytusGalleryRecentSearches') || '[]');
+    if (recents.length === 0) {
+      if (suggestionsBox) suggestionsBox.classList.add("hidden");
+      return;
+    }
+    if (!suggestionsBox) return;
+    suggestionsBox.innerHTML = '<div class="px-4 py-2 text-xs text-gray-400 uppercase tracking-wider">Pencarian Terakhir</div>';
+    recents.forEach(tag => {
+      const item = document.createElement("a");
+      item.href = "#";
+      item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-white cursor-pointer gap-2";
+      item.innerHTML = `<span class="truncate text-gray-300">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        ${tag}</span>
+        <button type="button" class="text-gray-500 hover:text-red-400 p-1 remove-recent-btn" data-tag="${tag}">&times;</button>`;
+      
+      item.addEventListener("click", (e) => {
+        if (e.target.closest(".remove-recent-btn")) {
+          e.preventDefault();
+          e.stopPropagation();
+          const tagToRemove = e.target.closest(".remove-recent-btn").dataset.tag;
+          let r = JSON.parse(localStorage.getItem('cytusGalleryRecentSearches') || '[]');
+          r = r.filter(t => t !== tagToRemove);
+          localStorage.setItem('cytusGalleryRecentSearches', JSON.stringify(r));
+          showRecentSearches();
+          return;
+        }
+        e.preventDefault();
+        saveRecentSearch(tag);
+        navigateWithFilters(tag, 1);
+      });
+      suggestionsBox.appendChild(item);
+    });
+    suggestionsBox.classList.remove("hidden");
+  };
+
   if (searchForm) {
     searchForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      syncHiddenInput();
+      const tags = hiddenSearchInput ? hiddenSearchInput.value : "";
+      if (tags) saveRecentSearch(tags);
       showLoader("Searching...");
-      navigateWithFilters(searchInput.value, 1);
+      navigateWithFilters(tags, 1);
     });
   }
 
   if (searchInput) {
-    searchInput.addEventListener("input", async () => {
-      const fullText = searchInput.value;
-      const terms = fullText.split(" ");
-      const currentTerm = terms[terms.length - 1];
+    searchInput.addEventListener("focus", () => {
+      if (!searchInput.value.trim()) showRecentSearches();
+    });
+
+    searchInput.addEventListener("input", debounce(async () => {
+      const currentTerm = searchInput.value.trim();
+      
+      if (searchInput.value.endsWith(" ")) {
+        if (currentTerm) {
+           createChip(currentTerm);
+           searchInput.value = "";
+           syncHiddenInput();
+           suggestionsBox.classList.add("hidden");
+        }
+        return;
+      }
 
       activeSuggestionIndex = -1;
 
       if (currentTerm.length < 2) {
-        suggestionsBox.classList.add("hidden");
+        if (currentTerm.length === 0) showRecentSearches();
+        else suggestionsBox.classList.add("hidden");
         return;
       }
 
@@ -496,10 +598,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             suggestionItem.addEventListener("click", (e) => {
               e.preventDefault();
-
-              const currentTerms = searchInput.value.split(" ");
-              currentTerms[currentTerms.length - 1] = tag.name;
-              searchInput.value = currentTerms.join(" ") + " ";
+              createChip(tag.name);
+              searchInput.value = "";
+              syncHiddenInput();
 
               suggestionsBox.classList.add("hidden");
               suggestionsBox.innerHTML = "";
@@ -515,7 +616,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);
       }
-    });
+    }, 300));
 
     document.addEventListener("keyup", (e) => {
       // Abaikan jika pengguna sedang mengetik di input
@@ -537,6 +638,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && searchInput.value === "") {
+        if (tagsContainer) {
+          const chips = tagsContainer.querySelectorAll(".search-chip");
+          if (chips.length > 0) {
+            chips[chips.length - 1].remove();
+            syncHiddenInput();
+            showRecentSearches();
+          }
+        }
+        return;
+      }
+      
       const suggestions = suggestionsBox.querySelectorAll("a");
       if (
         suggestions.length === 0 ||
@@ -699,6 +812,71 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     });
   }
+  
+  // Infinite Scroll Logic
+  const initInfiniteScroll = () => {
+    const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters') || '{}');
+    if (!filters.infiniteScrollToggle) return;
+
+    const gallery = document.getElementById('main-gallery');
+    const paginationNav = document.getElementById('pagination-nav');
+    if (!gallery || !paginationNav) return;
+
+    paginationNav.style.display = 'none';
+    
+    let currentPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1');
+    let isLoadingNextPage = false;
+    let hasMorePages = true;
+
+    const loaderEl = document.createElement('div');
+    loaderEl.id = 'infinite-loader';
+    loaderEl.className = 'w-full text-center py-4 text-gray-400 hidden col-span-2 md:col-span-5';
+    loaderEl.innerHTML = '<svg class="animate-spin h-6 w-6 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    gallery.appendChild(loaderEl);
+
+    window.addEventListener('scroll', async () => {
+      if (isLoadingNextPage || !hasMorePages) return;
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
+        isLoadingNextPage = true;
+        currentPage++;
+        loaderEl.classList.remove('hidden');
+
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('page', currentPage);
+          const res = await fetch(url.toString());
+          const html = await res.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+
+          const newItems = doc.querySelectorAll('#main-gallery .gallery-item');
+          if (newItems.length === 0) {
+            hasMorePages = false;
+          } else {
+            newItems.forEach(item => {
+              gallery.insertBefore(item, loaderEl);
+              if (filters.autoplayToggle) {
+                const isVideo = item.getAttribute("data-is-video") === "true";
+                if (isVideo) {
+                  item.addEventListener("mouseenter", playVideo);
+                  item.addEventListener("mouseleave", stopVideo);
+                  item.addEventListener("touchstart", playVideo, { passive: true });
+                  item.addEventListener("touchend", stopVideo, { passive: true });
+                }
+              }
+            });
+          }
+        } catch (e) {
+          console.error("Infinite scroll error:", e);
+        } finally {
+          isLoadingNextPage = false;
+          loaderEl.classList.add('hidden');
+        }
+      }
+    });
+  };
+
+  initInfiniteScroll();
 });
 
 window.addEventListener("load", () => {

@@ -131,30 +131,56 @@
       isDownloading = true;
 
       try {
-        // Ambil data file sebagai blob
         const response = await fetch(fileUrl);
-        const blob = await response.blob();
-
-        // Buat URL sementara untuk blob
-        const blobUrl = window.URL.createObjectURL(blob);
-
-        // Buat link sementara, klik, lalu hapus
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-
-        // Hapus link dan URL sementara
-        window.URL.revokeObjectURL(blobUrl);
-        a.remove();
+        
+        const contentLength = response.headers.get('content-length');
+        if (!contentLength) {
+           // fallback if no content-length
+           const blob = await response.blob();
+           const blobUrl = window.URL.createObjectURL(blob);
+           const a = document.createElement('a');
+           a.style.display = 'none';
+           a.href = blobUrl;
+           a.download = filename;
+           document.body.appendChild(a);
+           a.click();
+           window.URL.revokeObjectURL(blobUrl);
+           a.remove();
+        } else {
+           const total = parseInt(contentLength, 10);
+           let loaded = 0;
+           
+           const reader = response.body.getReader();
+           const chunks = [];
+           
+           while (true) {
+             const {done, value} = await reader.read();
+             if (done) break;
+             chunks.push(value);
+             loaded += value.length;
+             const percent = Math.round((loaded / total) * 100);
+             downloadButton.textContent = `Downloading... ${percent}%`;
+             downloadButton.style.background = `linear-gradient(to right, #0891b2 ${percent}%, #1f2937 ${percent}%)`;
+           }
+           
+           const blob = new Blob(chunks);
+           const blobUrl = window.URL.createObjectURL(blob);
+           const a = document.createElement('a');
+           a.style.display = 'none';
+           a.href = blobUrl;
+           a.download = filename;
+           document.body.appendChild(a);
+           a.click();
+           window.URL.revokeObjectURL(blobUrl);
+           a.remove();
+        }
       } catch (err) {
         console.error('Download error:', err);
         alert('Gagal mengunduh file.');
       } finally {
         // Kembalikan tombol ke keadaan semula
         downloadButton.textContent = 'Download Original';
+        downloadButton.style.background = '';
         downloadButton.disabled = false;
         isDownloading = false;
       }

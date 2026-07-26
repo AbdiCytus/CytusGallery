@@ -105,7 +105,7 @@ async function getTopPostsThisMonth(limit, filter) {
     const month = (today.getMonth() + 1).toString().padStart(2, "0");
     const startOfMonth = `${year}-${month}-01`;
 
-    const query = `order:score date:>=${startOfMonth} ${filter}`;
+    const query = `order:score date:>=${startOfMonth} ${filter} -rating:e`.trim();
     const params = { tags: query, limit: limit };
     const response = await axios.get(basePostsURL, { params: params });
 
@@ -118,7 +118,7 @@ async function getTopPostsThisMonth(limit, filter) {
 
 async function getTopPosts(tags, filter, limit) {
   try {
-    const query = `${tags} ${filter} order:score`.trim();
+    const query = `${tags} ${filter} -rating:e order:score`.trim();
     const params = { tags: query, limit: limit };
     const response = await axios.get(basePostsURL, { params: params });
     return response.data;
@@ -190,7 +190,7 @@ const root = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const contentsParams = { page: page, limit: limit };
+    const contentsParams = { tags: '-rating:e', page: page, limit: limit };
     const contents = await axios.get(basePostsURL, { params: contentsParams });
     const posts = contents.data;
 
@@ -229,7 +229,7 @@ const root = async (req, res) => {
 const search = async (req, res) => {
   const userTags = (req.query.tags || "").trim();
   const filterQuery = (req.query.query || "").trim();
-  const allTags = `${userTags} ${filterQuery}`;
+  const allTags = `${userTags} ${filterQuery} -rating:e`.trim();
 
   if (!allTags) return res.redirect("/");
 
@@ -290,6 +290,12 @@ const detail = async (req, res) => {
     );
     const post = response.data;
 
+    if (post.rating === 'e') {
+      return res.status(403).render("error", {
+        message: "Konten dewasa (Explicit) telah dikunci dan tidak dapat diakses pada platform ini."
+      });
+    }
+
     res.render("detail", { post: post });
   } catch (error) {
     console.error("Error fetching post details:", error);
@@ -339,8 +345,8 @@ app.get("/bantuan", (req, res) => {
 });
 
 //Run Server
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server CytusGallery berjalan di http://0.0.0.0:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server CytusGallery berjalan di http://[IP_ADDRESS]:${PORT}`);
 });
 
 module.exports = app;
