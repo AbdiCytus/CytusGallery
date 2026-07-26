@@ -36,7 +36,7 @@
           </div>
         </div>
 
-        <%const renderTags = (title, tagString, colorClass, collapsible = false) => {
+        <%const renderTags = (title, tagString, colorClass, tagType, collapsible = false) => {
             if (tagString && tagString.trim() !== '') {
                   const tags = tagString.split(' ');%>
         <div class="<%= collapsible ? 'mt-4' : '' %>">
@@ -49,10 +49,20 @@
             <% } %>
           </div>
           <div class="flex flex-wrap gap-2 <%= collapsible ? 'hidden mt-2 collapse-content' : '' %>">
-            <% tags.forEach(tag => { %>
-            <a href="/search?tags=<%= tag %>" class="bg-gray-700 hover:bg-gray-600 tag-link text-sm px-2 py-1 rounded-md">
-              <%= tag.replace(/_/g, ' ') %>
-            </a>
+            <% tags.forEach(tag => { 
+                 const isFollowed = locals.followedTags && locals.followedTags.includes(tag);
+            %>
+            <div class="flex items-stretch bg-gray-700 hover:bg-gray-600 rounded-md overflow-hidden border border-gray-600">
+              <a href="/search?tags=<%= tag %>" class="tag-link text-sm px-2 py-1 flex items-center">
+                <%= tag.replace(/_/g, ' ') %>
+              </a>
+              <% if (locals.user && tagType) { %>
+                <button data-tag="<%= tag %>" data-type="<%= tagType %>" class="follow-btn px-2 flex items-center border-l border-gray-600 <%= isFollowed ? 'bg-cyan-600 text-white hover:bg-cyan-700' : 'text-gray-400 hover:bg-gray-500 hover:text-white' %> transition-colors" title="<%= isFollowed ? 'Unfollow' : 'Follow' %>">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 follow-icon <%= isFollowed ? 'hidden' : 'block' %>" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 followed-icon <%= isFollowed ? 'block' : 'hidden' %>" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </button>
+              <% } %>
+            </div>
             <% }); %>
           </div>
         </div>
@@ -60,11 +70,11 @@
             }
           }
         %>
-        <% renderTags('Copyright', post.tag_string_copyright, 'text-purple-400'); %>
-        <% renderTags('Character(s)', post.tag_string_character, 'text-green-400'); %>
-        <% renderTags('Artist', post.tag_string_artist, 'text-red-400'); %>
-        <% renderTags('Meta Tags', post.tag_string_meta, 'text-yellow-400'); %>
-        <% renderTags('General Tags', post.tag_string_general, 'text-blue-400', true); %>
+        <% renderTags('Copyright', post.tag_string_copyright, 'text-purple-400', 3); %>
+        <% renderTags('Character(s)', post.tag_string_character, 'text-green-400', 4); %>
+        <% renderTags('Artist', post.tag_string_artist, 'text-red-400', 1); %>
+        <% renderTags('Meta Tags', post.tag_string_meta, 'text-yellow-400', null); %>
+        <% renderTags('General Tags', post.tag_string_general, 'text-blue-400', null, true); %>
 
         <div class="pt-4 space-y-3">
           <% if (locals.user) { %>
@@ -223,6 +233,54 @@
       } else {
         content.classList.add('hidden');
         icon.classList.remove('rotate-180');
+      }
+    });
+  });
+
+  // Logika untuk Tombol Follow Tag
+  const followBtns = document.querySelectorAll('.follow-btn');
+  followBtns.forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const tagName = btn.dataset.tag;
+      const tagType = btn.dataset.type;
+      
+      try {
+        const res = await fetch('/api/follow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tagName, tagType })
+        });
+        
+        if (!res.ok) {
+           if (res.status === 401) window.location.href = '/login';
+           else alert('Gagal memproses permintaan.');
+           return;
+        }
+        
+        const data = await res.json();
+        
+        // Toggle visual
+        const followIcon = btn.querySelector('.follow-icon');
+        const followedIcon = btn.querySelector('.followed-icon');
+        
+        if (data.followed) {
+          btn.classList.replace('text-gray-400', 'text-white');
+          btn.classList.replace('hover:bg-gray-500', 'bg-cyan-600');
+          btn.classList.add('hover:bg-cyan-700');
+          btn.title = 'Unfollow';
+          followIcon.classList.replace('block', 'hidden');
+          followedIcon.classList.replace('hidden', 'block');
+        } else {
+          btn.classList.replace('text-white', 'text-gray-400');
+          btn.classList.replace('bg-cyan-600', 'hover:bg-gray-500');
+          btn.classList.remove('hover:bg-cyan-700');
+          btn.title = 'Follow';
+          followedIcon.classList.replace('block', 'hidden');
+          followIcon.classList.replace('hidden', 'block');
+        }
+      } catch (err) {
+        console.error(err);
       }
     });
   });

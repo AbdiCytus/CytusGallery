@@ -355,20 +355,133 @@ const detail = async (req, res) => {
     const post = response.data;
     
     let isSaved = false;
+    let followedTags = [];
     if (req.user) {
       const prisma = require('./lib/prisma');
       const saved = await prisma.savedContent.findUnique({
         where: { userId_postId: { userId: req.user.id, postId: postId } }
       });
       if (saved) isSaved = true;
+
+      const follows = await prisma.followedTag.findMany({
+        where: { userId: req.user.id }
+      });
+      followedTags = follows.map(f => f.tagName);
     }
 
-    res.render("detail", { post: post, isSaved: isSaved });
+    res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags });
   } catch (error) {
     console.error("Error fetching post details:", error);
     res.status(404).send("Konten tidak ditemukan");
   }
 };
+
+app.post("/api/follow", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const { tagName, tagType } = req.body;
+    const userId = req.user.id;
+    
+    const existing = await prisma.followedTag.findUnique({
+      where: { userId_tagName: { userId, tagName } }
+    });
+    
+    if (existing) {
+      await prisma.followedTag.delete({
+        where: { id: existing.id }
+      });
+      res.json({ followed: false, message: "Berhasil unfollow tag." });
+    } else {
+      // Get the latest post ID for this tag to start tracking
+      let lastPostId = null;
+      try {
+        const dRes = await axios.get(`https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tagName)}&limit=1`);
+        if (dRes.data && dRes.data.length > 0) {
+          lastPostId = dRes.data[0].id;
+        }
+      } catch (e) {
+        console.error("Failed to fetch latest post ID for tag", tagName);
+      }
+
+      await prisma.followedTag.create({
+        data: { userId, tagName, tagType: parseInt(tagType), lastPostId }
+      });
+      res.json({ followed: true, message: "Berhasil follow tag." });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Gagal memproses follow/unfollow." });
+  }
+});
+
+app.get("/api/notifications/sync", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const userId = req.user.id;
+    const follows = await prisma.followedTag.findMany({ where: { userId } });
+    
+    let newNotificationsCount = 0;
+    
+    // Process top 5 oldest checked tags to avoid rate limits
+    const tagsToCheck = follows.sort((a, b) => a.updatedAt - b.updatedAt).slice(0, 5);
+    
+    for (const tag of tagsToCheck) {
+      try {
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}&limit=1`;
+        const dRes = await axios.get(query);
+        const posts = dRes.data;
+        
+        if (posts && posts.length > 0) {
+          const latestPost = posts[0];
+          if (tag.lastPostId && latestPost.id > tag.lastPostId) {
+            // New post found!
+            await prisma.notification.create({
+              data: {
+                userId,
+                title: "Update Tag Baru",
+                message: `Ada konten baru untuk tag yang Anda ikuti: ${tag.tagName.replace(/_/g, ' ')}`,
+                link: `/search?tags=${encodeURIComponent(tag.tagName)}`,
+              }
+            });
+            newNotificationsCount++;
+          }
+          // Update lastPostId and updatedAt
+          await prisma.followedTag.update({
+            where: { id: tag.id },
+            data: { lastPostId: latestPost.id, updatedAt: new Date() }
+          });
+        }
+      } catch (err) {
+        console.error("Sync error for tag", tag.tagName, err.message);
+      }
+    }
+    
+    const unread = await prisma.notification.count({ where: { userId, isRead: false } });
+    const latestNotifications = await prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    });
+    
+    res.json({ unreadCount: unread, notifications: latestNotifications, synced: newNotificationsCount });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Gagal sinkronisasi notifikasi." });
+  }
+});
+
+app.post("/api/notifications/read", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    await prisma.notification.updateMany({
+      where: { userId: req.user.id, isRead: false },
+      data: { isRead: true }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Gagal update status." });
+  }
+});
 
 //3. Routes
 

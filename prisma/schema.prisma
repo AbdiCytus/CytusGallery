@@ -21,6 +21,8 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   saves         SavedContent[]
+  followedTags  FollowedTag[]
+  notifications Notification[]
 }
 
 model SavedContent {
@@ -31,4 +33,28 @@ model SavedContent {
   savedAt       DateTime @default(now())
 
   @@unique([userId, postId])
+}
+
+model FollowedTag {
+  id          String   @id @default(uuid())
+  tagName     String
+  tagType     Int      
+  lastPostId  Int?     
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, tagName])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  message     String
+  link        String?  
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }

@@ -234,6 +234,18 @@
           <a href="/tentang" class="hover:text-white transition-colors">Tentang</a>
           <a href="/bantuan" class="hover:text-white transition-colors">Bantuan</a>
           <% if (locals.user) { %>
+            <div class="relative">
+              <button id="notification-btn" class="relative text-gray-300 hover:text-white transition-colors focus:outline-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+              </button>
+              <div id="notification-dropdown" class="absolute right-0 mt-2 w-72 bg-gray-800 rounded-md shadow-lg overflow-hidden z-50 hidden border border-gray-700">
+                <div class="p-3 border-b border-gray-700 font-bold text-white">Notifikasi</div>
+                <div id="notification-list" class="max-h-64 overflow-y-auto">
+                  <div class="p-4 text-sm text-gray-400 text-center">Memuat...</div>
+                </div>
+              </div>
+            </div>
             <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors"><%= user.name || user.email %></a>
             <a href="/logout" class="hover:text-red-400 transition-colors">Logout</a>
           <% } else { %>
@@ -270,3 +282,64 @@
       </div>
     </section>
     <% } %>
+  <% if (locals.user) { %>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const notifBtn = document.getElementById('notification-btn');
+      if (notifBtn) {
+        const notifBadge = document.getElementById('notification-badge');
+        const notifDropdown = document.getElementById('notification-dropdown');
+        const notifList = document.getElementById('notification-list');
+        
+        notifBtn.addEventListener('click', async () => {
+          notifDropdown.classList.toggle('hidden');
+          if (!notifDropdown.classList.contains('hidden')) {
+             try {
+                await fetch('/api/notifications/read', { method: 'POST' });
+                notifBadge.classList.add('hidden');
+                notifBadge.textContent = '0';
+             } catch(e) {}
+          }
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!notifBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
+            notifDropdown.classList.add('hidden');
+          }
+        });
+
+        async function fetchNotifications() {
+          try {
+            const res = await fetch('/api/notifications/sync');
+            if (res.ok) {
+              const data = await res.json();
+              if (data.unreadCount > 0) {
+                notifBadge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
+                notifBadge.classList.remove('hidden');
+              } else {
+                notifBadge.classList.add('hidden');
+              }
+              
+              if (data.notifications && data.notifications.length > 0) {
+                notifList.innerHTML = data.notifications.map(n => `
+                  <a href="${n.link}" class="block p-3 border-b border-gray-700 hover:bg-gray-700 transition-colors ${n.isRead ? 'opacity-75' : 'bg-gray-700/50'}">
+                    <div class="font-semibold text-white text-sm mb-1">${n.title}</div>
+                    <div class="text-xs text-gray-300 line-clamp-2">${n.message}</div>
+                    <div class="text-[10px] text-gray-500 mt-1">${new Date(n.createdAt).toLocaleString()}</div>
+                  </a>
+                `).join('');
+              } else {
+                notifList.innerHTML = '<div class="p-4 text-sm text-gray-400 text-center">Belum ada notifikasi</div>';
+              }
+            }
+          } catch (e) {
+            console.error("Failed to fetch notifications");
+          }
+        }
+        
+        fetchNotifications();
+        setInterval(fetchNotifications, 5 * 60 * 1000);
+      }
+    });
+  </script>
+  <% } %>
