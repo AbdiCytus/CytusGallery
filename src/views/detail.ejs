@@ -110,6 +110,27 @@
 </div>
 
 <script>
+  // Validasi rating di sisi klien (agar tidak tembus via link langsung)
+  (function() {
+    const postRating = '<%= post.rating %>';
+    const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters')) || {};
+    
+    if (postRating === 'e') {
+      alert('Konten explicit telah dikunci dan tidak dapat diakses.');
+      window.location.replace('/');
+      return;
+    }
+    
+    if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
+      if (filters.rating === 'g' && postRating !== 'g') {
+        alert('Konten ini tidak sesuai dengan filter Safe Anda.');
+        window.location.replace('/');
+      } else if (filters.rating === 'not_e' && postRating === 'q') {
+        alert('Konten ini tidak sesuai dengan filter Moderate Anda.');
+        window.location.replace('/');
+      }
+    }
+  })();
   // Logika untuk tombol Download
   const downloadButton = document.getElementById('download-button');
   if (downloadButton) {
@@ -125,62 +146,59 @@
       const fileUrl = '<%= post.file_url %>';
       const filename = '<%= post.md5 %>.<%= post.file_ext %>';
 
-      // Beri feedback ke user
-      downloadButton.textContent = 'Downloading... (Mohon jangan tutup halaman)';
+      // Beri feedback ke user dan siapkan progress bar UI
+      downloadButton.innerHTML = `<div class="bg-cyan-800 absolute left-0 top-0 h-full" id="dl-progress" style="width: 0%"></div><span class="relative z-10">Menyiapkan unduhan...</span>`;
+      downloadButton.classList.add('relative', 'overflow-hidden');
       downloadButton.disabled = true;
       isDownloading = true;
 
       try {
         const response = await fetch(fileUrl);
+        if (!response.ok) throw new Error('Network response was not ok');
         
         const contentLength = response.headers.get('content-length');
-        if (!contentLength) {
-           // fallback if no content-length
-           const blob = await response.blob();
-           const blobUrl = window.URL.createObjectURL(blob);
-           const a = document.createElement('a');
-           a.style.display = 'none';
-           a.href = blobUrl;
-           a.download = filename;
-           document.body.appendChild(a);
-           a.click();
-           window.URL.revokeObjectURL(blobUrl);
-           a.remove();
-        } else {
-           const total = parseInt(contentLength, 10);
-           let loaded = 0;
-           
-           const reader = response.body.getReader();
-           const chunks = [];
-           
-           while (true) {
-             const {done, value} = await reader.read();
-             if (done) break;
-             chunks.push(value);
-             loaded += value.length;
-             const percent = Math.round((loaded / total) * 100);
-             downloadButton.textContent = `Downloading... ${percent}%`;
-             downloadButton.style.background = `linear-gradient(to right, #0891b2 ${percent}%, #1f2937 ${percent}%)`;
-           }
-           
-           const blob = new Blob(chunks);
-           const blobUrl = window.URL.createObjectURL(blob);
-           const a = document.createElement('a');
-           a.style.display = 'none';
-           a.href = blobUrl;
-           a.download = filename;
-           document.body.appendChild(a);
-           a.click();
-           window.URL.revokeObjectURL(blobUrl);
-           a.remove();
+        const total = parseInt(contentLength, 10);
+        let loaded = 0;
+        
+        const reader = response.body.getReader();
+        const chunks = [];
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          chunks.push(value);
+          loaded += value.length;
+          
+          if (total) {
+            const percent = Math.round((loaded / total) * 100);
+            document.getElementById('dl-progress').style.width = percent + '%';
+            downloadButton.querySelector('span').textContent = `Downloading... ${percent}%`;
+          } else {
+            downloadButton.querySelector('span').textContent = `Downloading... ${Math.round(loaded/1024)}KB`;
+          }
         }
+        
+        const blob = new Blob(chunks);
+        const blobUrl = window.URL.createObjectURL(blob);
+
+        // Buat link sementara, klik, lalu hapus
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+
+        // Hapus link dan URL sementara
+        window.URL.revokeObjectURL(blobUrl);
+        a.remove();
       } catch (err) {
         console.error('Download error:', err);
         alert('Gagal mengunduh file.');
       } finally {
         // Kembalikan tombol ke keadaan semula
         downloadButton.textContent = 'Download Original';
-        downloadButton.style.background = '';
         downloadButton.disabled = false;
         isDownloading = false;
       }

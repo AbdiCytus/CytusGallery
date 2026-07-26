@@ -1,5 +1,4 @@
 <% if (totalPages > 1) { %>
-<nav id="pagination-nav" class="flex justify-center items-center space-x-1 my-12">
   <%
         const urlParams = new URLSearchParams();
         if (tagsForPagination) urlParams.append('tags', tagsForPagination);
@@ -8,6 +7,7 @@
         const baseUrl = `/search?${urlParams.toString()}`;
         const pageParam = (tagsForPagination || limit) ? `&page=` : `page=`;
     %>
+<nav id="pagination-nav" data-current-page="<%= currentPage %>" data-total-pages="<%= totalPages %>" data-base-url="<%= baseUrl %><%= pageParam %>" class="flex justify-center items-center space-x-1 my-12">
 
   <% if (currentPage > 1) { %>
   <a href="<%= baseUrl %><%= pageParam %><%= currentPage - 1 %>" class="px-3 py-2 md:px-3 md:py-2 bg-gray-700 rounded-md hover:bg-cyan-500 text-sm md:text-lg" rel="prev">«</a>

@@ -28,6 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // === BAGIAN 1: PENGUMPULAN ELEMEN DOM ===
   const searchForm = document.getElementById("search-form");
   const searchInput = document.getElementById("search-input");
+  const searchInputVisual = document.getElementById("search-input-visual");
+  const searchChipsContainer = document.getElementById("search-chips");
   const suggestionsBox = document.getElementById("suggestions-box");
   const sidebar = document.getElementById("sidebar");
   const sidebarOverlay = document.getElementById("sidebar-overlay");
@@ -54,6 +56,42 @@ document.addEventListener("DOMContentLoaded", () => {
   let isInitializingFilters = true;
 
   // === BAGIAN 2: FUNGSI-FUNGSI UTAMA ===
+
+  const renderChips = () => {
+    if (!searchChipsContainer || !searchInput) return;
+    searchChipsContainer.innerHTML = '';
+    const tags = searchInput.value.split(' ').filter(t => t.trim());
+    tags.forEach(tag => {
+      const chip = document.createElement('div');
+      chip.className = 'flex items-center bg-cyan-600 text-white px-2 py-1 rounded-full text-sm font-semibold shadow-sm';
+      chip.innerHTML = `<span>${tag.replace(/_/g, ' ')}</span><button type="button" class="ml-1 text-cyan-200 hover:text-white" onclick="removeChip('${tag}')">&times;</button>`;
+      searchChipsContainer.appendChild(chip);
+    });
+  };
+
+  window.removeChip = (tagToRemove) => {
+    if (!searchInput) return;
+    let tags = searchInput.value.split(' ').filter(t => t.trim());
+    tags = tags.filter(t => t !== tagToRemove);
+    searchInput.value = tags.join(' ');
+    renderChips();
+    if (searchInputVisual) searchInputVisual.focus();
+  };
+  
+  const addChip = (tag) => {
+    if (!searchInput) return;
+    let tags = searchInput.value.split(' ').filter(t => t.trim());
+    if (!tags.includes(tag)) {
+      tags.push(tag);
+      searchInput.value = tags.join(' ');
+      renderChips();
+    }
+  };
+
+  if (savedTags && searchInputOnLoad) {
+    searchInputOnLoad.value = savedTags;
+    renderChips();
+  }
 
   const showAlert = (title, message, onConfirm) => {
     if (!customAlert) return;
@@ -127,12 +165,15 @@ document.addEventListener("DOMContentLoaded", () => {
     let lazyload = false;
 
     if (filters) {
+      // Explicit is permanently locked
+      filterQueryParts.push("-rating:e");
+
       if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
-        let ratingTag =
-          filters.rating === "moderate"
-            ? "-rating:q"
-            : `rating:${filters.rating}`;
-        filterQueryParts.push(ratingTag);
+        if (filters.rating === "not_e") {
+          filterQueryParts.push("-rating:q");
+        } else if (filters.rating === "g") {
+          filterQueryParts.push("rating:g");
+        }
       }
       if (filters.typeToggle && filters.type) {
         let typeTag = "";
@@ -166,7 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
       limit: document.getElementById("limit-input").value,
       autoplayToggle: document.getElementById("autoplay-toggle").checked,
       lazyloadToggle: document.getElementById("lazyload-toggle").checked,
-      infiniteScrollToggle: document.getElementById("infinite-scroll-toggle") ? document.getElementById("infinite-scroll-toggle").checked : false,
+      scrollToggle: document.getElementById("scroll-toggle") ? document.getElementById("scroll-toggle").checked : false,
       themeToggle: document.getElementById("theme-toggle") ? document.getElementById("theme-toggle").checked : false,
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
@@ -176,10 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!filterForm) return;
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
     if (!filters) return;
-    if (filters.rating === "not_e" || filters.rating === "not_g") {
-      filters.rating = "all";
-      localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
-    }
     const {
       ratingToggle,
       rating,
@@ -188,7 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
       limit,
       autoplayToggle,
       lazyloadToggle,
-      infiniteScrollToggle,
+      scrollToggle,
       themeToggle,
     } = filters;
     const ratingToggleEl = document.getElementById("rating-toggle");
@@ -220,16 +257,17 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("limit-input").value = limit || 25;
     document.getElementById("autoplay-toggle").checked = autoplayToggle;
     document.getElementById("lazyload-toggle").checked = lazyloadToggle;
-    const isToggleEl = document.getElementById("infinite-scroll-toggle");
-    if (isToggleEl) isToggleEl.checked = infiniteScrollToggle || false;
     document.body.className = document.body.className.replace(
       /\btheme-\S+/g,
       ""
     );
     if (ratingToggle && rating) {
       if (rating === "g") document.body.classList.add("theme-safe");
-      if (rating === "moderate") document.body.classList.add("theme-moderate");
+      if (rating === "not_e") document.body.classList.add("theme-moderate");
     }
+    
+    const scrollToggleEl = document.getElementById("scroll-toggle");
+    if (scrollToggleEl) scrollToggleEl.checked = scrollToggle || false;
     
     const themeToggleEl = document.getElementById("theme-toggle");
     if (themeToggleEl) {
@@ -462,120 +500,88 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  const hiddenSearchInput = document.getElementById("hidden-search-input");
-  const tagsContainer = document.getElementById("tags-container");
-
-  const syncHiddenInput = () => {
-    if (!hiddenSearchInput || !tagsContainer) return;
-    const chips = Array.from(tagsContainer.querySelectorAll(".search-chip")).map(c => c.dataset.tag);
-    const typed = searchInput ? searchInput.value.trim() : "";
-    if (typed) chips.push(typed);
-    hiddenSearchInput.value = chips.join(" ");
-  };
-
-  const createChip = (tag) => {
-    if (!tag || !tagsContainer) return;
-    tag = tag.toLowerCase().replace(/\s+/g, '_');
-    const existing = Array.from(tagsContainer.querySelectorAll(".search-chip")).find(c => c.dataset.tag === tag);
-    if (existing) return;
-    const chip = document.createElement("span");
-    chip.className = "bg-cyan-700 text-white px-2 py-0.5 rounded-md text-sm flex items-center gap-1 search-chip";
-    chip.dataset.tag = tag;
-    chip.innerHTML = `${tag.replace(/_/g, ' ')} <button type="button" class="hover:text-red-300 font-bold ml-1 remove-chip-btn">&times;</button>`;
-    tagsContainer.appendChild(chip);
-  };
-
-  if (tagsContainer) {
-    tagsContainer.addEventListener("click", (e) => {
-      if (e.target.closest(".remove-chip-btn")) {
-        e.preventDefault();
-        const chip = e.target.closest(".search-chip");
-        if (chip) chip.remove();
-        syncHiddenInput();
-        if (searchInput) searchInput.focus();
-      }
-    });
-  }
-
-  const saveRecentSearch = (tags) => {
-    if (!tags) return;
-    let recents = JSON.parse(localStorage.getItem('cytusGalleryRecentSearches') || '[]');
-    recents = recents.filter(t => t !== tags);
-    recents.unshift(tags);
-    if (recents.length > 5) recents.pop();
-    localStorage.setItem('cytusGalleryRecentSearches', JSON.stringify(recents));
-  };
-
-  const showRecentSearches = () => {
-    const recents = JSON.parse(localStorage.getItem('cytusGalleryRecentSearches') || '[]');
-    if (recents.length === 0) {
-      if (suggestionsBox) suggestionsBox.classList.add("hidden");
-      return;
-    }
-    if (!suggestionsBox) return;
-    suggestionsBox.innerHTML = '<div class="px-4 py-2 text-xs text-gray-400 uppercase tracking-wider">Pencarian Terakhir</div>';
-    recents.forEach(tag => {
-      const item = document.createElement("a");
-      item.href = "#";
-      item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-white cursor-pointer gap-2";
-      item.innerHTML = `<span class="truncate text-gray-300">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        ${tag}</span>
-        <button type="button" class="text-gray-500 hover:text-red-400 p-1 remove-recent-btn" data-tag="${tag}">&times;</button>`;
-      
-      item.addEventListener("click", (e) => {
-        if (e.target.closest(".remove-recent-btn")) {
-          e.preventDefault();
-          e.stopPropagation();
-          const tagToRemove = e.target.closest(".remove-recent-btn").dataset.tag;
-          let r = JSON.parse(localStorage.getItem('cytusGalleryRecentSearches') || '[]');
-          r = r.filter(t => t !== tagToRemove);
-          localStorage.setItem('cytusGalleryRecentSearches', JSON.stringify(r));
-          showRecentSearches();
-          return;
-        }
-        e.preventDefault();
-        saveRecentSearch(tag);
-        navigateWithFilters(tag, 1);
-      });
-      suggestionsBox.appendChild(item);
-    });
-    suggestionsBox.classList.remove("hidden");
-  };
-
   if (searchForm) {
     searchForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      syncHiddenInput();
-      const tags = hiddenSearchInput ? hiddenSearchInput.value : "";
-      if (tags) saveRecentSearch(tags);
+      
+      // Process any remaining text in visual input as a chip before submitting
+      if (searchInputVisual && searchInputVisual.value.trim()) {
+         addChip(searchInputVisual.value.trim().replace(/\s+/g, '_'));
+         searchInputVisual.value = "";
+      }
+      
+      const tags = searchInput.value.trim();
+      
+      // Save to recent searches
+      if (tags) {
+         let recentTags = JSON.parse(localStorage.getItem('recentSearchTags') || '[]');
+         const tagArray = tags.split(' ').filter(t => t);
+         tagArray.forEach(t => {
+            if (!recentTags.includes(t)) {
+               recentTags.unshift(t);
+            } else {
+               recentTags = recentTags.filter(rt => rt !== t);
+               recentTags.unshift(t);
+            }
+         });
+         recentTags = recentTags.slice(0, 10);
+         localStorage.setItem('recentSearchTags', JSON.stringify(recentTags));
+      }
+      
       showLoader("Searching...");
       navigateWithFilters(tags, 1);
     });
   }
 
-  if (searchInput) {
-    searchInput.addEventListener("focus", () => {
-      if (!searchInput.value.trim()) showRecentSearches();
+  const showRecentTags = () => {
+    let recentTags = JSON.parse(localStorage.getItem('recentSearchTags') || '[]');
+    if (recentTags.length > 0) {
+      suggestionsBox.innerHTML = '<div class="px-3 py-1 text-xs text-gray-500 font-bold uppercase tracking-wider">Recent Searches</div>';
+      recentTags.forEach(tag => {
+        const item = document.createElement('a');
+        item.href = "#";
+        item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2";
+        item.innerHTML = `<span class="truncate">${tag.replace(/_/g, ' ')}</span><span class="text-xs text-gray-500">Recent</span>`;
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          addChip(tag);
+          searchInputVisual.value = "";
+          suggestionsBox.classList.add("hidden");
+          suggestionsBox.innerHTML = "";
+          searchInputVisual.focus();
+        });
+        suggestionsBox.appendChild(item);
+      });
+      suggestionsBox.classList.remove("hidden");
+    } else {
+      suggestionsBox.classList.add("hidden");
+    }
+  };
+
+  if (searchInputVisual) {
+    searchInputVisual.addEventListener("focus", () => {
+       if (searchInputVisual.value.trim() === '') {
+          showRecentTags();
+       }
     });
-
-    searchInput.addEventListener("input", debounce(async () => {
-      const currentTerm = searchInput.value.trim();
-      
-      if (searchInput.value.endsWith(" ")) {
-        if (currentTerm) {
-           createChip(currentTerm);
-           searchInput.value = "";
-           syncHiddenInput();
-           suggestionsBox.classList.add("hidden");
-        }
-        return;
+    
+    searchInputVisual.addEventListener("input", async (e) => {
+      const val = searchInputVisual.value;
+      if (val.endsWith(" ")) {
+         const trimmed = val.trim();
+         if (trimmed) {
+            addChip(trimmed.replace(/\s+/g, '_'));
+         }
+         searchInputVisual.value = "";
+         suggestionsBox.classList.add("hidden");
+         return;
       }
-
+      
+      const currentTerm = val.trim();
       activeSuggestionIndex = -1;
 
       if (currentTerm.length < 2) {
-        if (currentTerm.length === 0) showRecentSearches();
+        if (currentTerm.length === 0) showRecentTags();
         else suggestionsBox.classList.add("hidden");
         return;
       }
@@ -594,17 +600,15 @@ document.addEventListener("DOMContentLoaded", () => {
               "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2";
 
             const postCount = tag.post_count.toLocaleString("en-US");
-            suggestionItem.innerHTML = `<span class="truncate">${tag.name}</span><span class="text-sm text-gray-400 whitespace-nowrap">${postCount}</span>`;
+            suggestionItem.innerHTML = `<span class="truncate">${tag.name.replace(/_/g, ' ')}</span><span class="text-sm text-gray-400 whitespace-nowrap">${postCount}</span>`;
 
             suggestionItem.addEventListener("click", (e) => {
               e.preventDefault();
-              createChip(tag.name);
-              searchInput.value = "";
-              syncHiddenInput();
-
+              addChip(tag.name);
+              searchInputVisual.value = "";
               suggestionsBox.classList.add("hidden");
               suggestionsBox.innerHTML = "";
-              searchInput.focus();
+              searchInputVisual.focus();
             });
 
             suggestionsBox.appendChild(suggestionItem);
@@ -616,38 +620,16 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (error) {
         console.error("Failed to fetch suggestions:", error);
       }
-    }, 300));
-
-    document.addEventListener("keyup", (e) => {
-      // Abaikan jika pengguna sedang mengetik di input
-      if (document.activeElement.tagName === "INPUT") return;
-      // Abaikan jika ada overlay yang aktif
-      if (
-        !customAlert.classList.contains("hidden") ||
-        !sidebar.classList.contains("translate-x-full")
-      )
-        return;
-
-      if (e.key === "ArrowLeft") {
-        const prevButton = document.querySelector('a[rel="prev"]');
-        if (prevButton) prevButton.click();
-      } else if (e.key === "ArrowRight") {
-        const nextButton = document.querySelector('a[rel="next"]');
-        if (nextButton) nextButton.click();
-      }
     });
 
-    searchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Backspace" && searchInput.value === "") {
-        if (tagsContainer) {
-          const chips = tagsContainer.querySelectorAll(".search-chip");
-          if (chips.length > 0) {
-            chips[chips.length - 1].remove();
-            syncHiddenInput();
-            showRecentSearches();
-          }
-        }
-        return;
+    searchInputVisual.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && searchInputVisual.value === "") {
+         let tags = searchInput.value.split(' ').filter(t => t.trim());
+         if (tags.length > 0) {
+            tags.pop();
+            searchInput.value = tags.join(' ');
+            renderChips();
+         }
       }
       
       const suggestions = suggestionsBox.querySelectorAll("a");
@@ -656,6 +638,7 @@ document.addEventListener("DOMContentLoaded", () => {
         suggestionsBox.classList.contains("hidden")
       )
         return;
+        
       if (e.key === "ArrowDown") {
         e.preventDefault();
         activeSuggestionIndex =
@@ -666,9 +649,18 @@ document.addEventListener("DOMContentLoaded", () => {
         activeSuggestionIndex =
           (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
         setActiveSuggestion();
-      } else if (e.key === "Enter" && activeSuggestionIndex > -1) {
-        e.preventDefault();
-        suggestions[activeSuggestionIndex].click();
+      } else if (e.key === "Enter") {
+        e.preventDefault(); // Prevent form submit on enter if autocomplete open
+        if (activeSuggestionIndex > -1) {
+           suggestions[activeSuggestionIndex].click();
+        } else {
+           // Default to first suggestion if none active, or just submit
+           if (suggestions.length > 0 && !suggestionsBox.innerHTML.includes('Recent Searches')) {
+              suggestions[0].click();
+           } else {
+              searchForm.requestSubmit();
+           }
+        }
       }
     });
   }
@@ -812,70 +804,61 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     });
   }
-  
+
   // Infinite Scroll Logic
   const initInfiniteScroll = () => {
-    const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters') || '{}');
-    if (!filters.infiniteScrollToggle) return;
-
-    const gallery = document.getElementById('main-gallery');
-    const paginationNav = document.getElementById('pagination-nav');
-    if (!gallery || !paginationNav) return;
-
-    paginationNav.style.display = 'none';
+    const paginationNav = document.getElementById("pagination-nav");
+    const mainGallery = document.getElementById("main-gallery");
+    const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters") || "{}");
     
-    let currentPage = parseInt(new URLSearchParams(window.location.search).get('page') || '1');
-    let isLoadingNextPage = false;
-    let hasMorePages = true;
-
-    const loaderEl = document.createElement('div');
-    loaderEl.id = 'infinite-loader';
-    loaderEl.className = 'w-full text-center py-4 text-gray-400 hidden col-span-2 md:col-span-5';
-    loaderEl.innerHTML = '<svg class="animate-spin h-6 w-6 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-    gallery.appendChild(loaderEl);
-
-    window.addEventListener('scroll', async () => {
-      if (isLoadingNextPage || !hasMorePages) return;
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
-        isLoadingNextPage = true;
-        currentPage++;
-        loaderEl.classList.remove('hidden');
-
-        try {
-          const url = new URL(window.location.href);
-          url.searchParams.set('page', currentPage);
-          const res = await fetch(url.toString());
-          const html = await res.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-
-          const newItems = doc.querySelectorAll('#main-gallery .gallery-item');
-          if (newItems.length === 0) {
-            hasMorePages = false;
-          } else {
-            newItems.forEach(item => {
-              gallery.insertBefore(item, loaderEl);
-              if (filters.autoplayToggle) {
-                const isVideo = item.getAttribute("data-is-video") === "true";
-                if (isVideo) {
-                  item.addEventListener("mouseenter", playVideo);
-                  item.addEventListener("mouseleave", stopVideo);
-                  item.addEventListener("touchstart", playVideo, { passive: true });
-                  item.addEventListener("touchend", stopVideo, { passive: true });
+    if (paginationNav && mainGallery && filters.scrollToggle) {
+       const currentPage = parseInt(paginationNav.getAttribute('data-current-page'), 10);
+       const totalPages = parseInt(paginationNav.getAttribute('data-total-pages'), 10);
+       const baseUrl = paginationNav.getAttribute('data-base-url');
+       
+       if (currentPage < totalPages) {
+          paginationNav.classList.add('hidden'); // hide traditional pagination
+          
+          const loaderDiv = document.createElement('div');
+          loaderDiv.className = 'w-full text-center py-8 text-cyan-400 font-bold col-span-full';
+          loaderDiv.innerHTML = 'Loading next page...';
+          mainGallery.appendChild(loaderDiv);
+          
+          let nextPage = currentPage + 1;
+          let isFetching = false;
+          
+          const observer = new IntersectionObserver(async (entries) => {
+             if (entries[0].isIntersecting && !isFetching && nextPage <= totalPages) {
+                isFetching = true;
+                try {
+                   const res = await fetch(baseUrl + nextPage);
+                   const text = await res.text();
+                   const parser = new DOMParser();
+                   const doc = parser.parseFromString(text, 'text/html');
+                   const newItems = doc.querySelectorAll('#main-gallery .gallery-item');
+                   
+                   newItems.forEach(item => {
+                      mainGallery.insertBefore(item, loaderDiv);
+                   });
+                   
+                   nextPage++;
+                   if (nextPage > totalPages) {
+                      loaderDiv.innerHTML = 'Semua konten dimuat.';
+                      observer.disconnect();
+                   }
+                } catch (e) {
+                   console.error('Infinite scroll fetch error:', e);
+                   loaderDiv.innerHTML = 'Gagal memuat konten selanjutnya.';
                 }
-              }
-            });
-          }
-        } catch (e) {
-          console.error("Infinite scroll error:", e);
-        } finally {
-          isLoadingNextPage = false;
-          loaderEl.classList.add('hidden');
-        }
-      }
-    });
+                isFetching = false;
+             }
+          }, { rootMargin: '400px' });
+          
+          observer.observe(loaderDiv);
+       }
+    }
   };
-
+  
   initInfiniteScroll();
 });
 
