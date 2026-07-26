@@ -25,10 +25,7 @@ const limiter = rateLimit({
     });
   },
   standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => {
-    return req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.ip;
-  },
+  legacyHeaders: false
 });
 
 //Setup Trust Proxy
