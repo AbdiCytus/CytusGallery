@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cytus_gallery_secret_key';
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'placeholder',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder',
-    callbackURL: "/auth/google/callback"
+    callbackURL: "http://localhost:3000/api/auth/callback/google"
   },
   async function(accessToken, refreshToken, profile, cb) {
     try {
@@ -117,7 +117,7 @@ router.get('/logout', (req, res) => {
 // Google OAuth Routes
 router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
 
-router.get('/auth/google/callback', 
+router.get('/api/auth/callback/google', 
   passport.authenticate('google', { failureRedirect: '/login', session: false }),
   function(req, res) {
     const token = jwt.sign({ id: req.user.id, email: req.user.email, name: req.user.name, avatarUrl: req.user.avatarUrl }, JWT_SECRET, { expiresIn: '7d' });
