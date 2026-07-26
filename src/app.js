@@ -98,32 +98,47 @@ const baseCountsPostsURL = "https://danbooru.donmai.us/counts/posts.json";
 
 // 1. Function Handler
 
-async function getTopPostsThisMonth(limit, filter) {
+async function getTopPostsThisMonth(limit, filter = "") {
   try {
     const today = new Date();
     const year = today.getFullYear();
     const month = (today.getMonth() + 1).toString().padStart(2, "0");
     const startOfMonth = `${year}-${month}-01`;
 
-    const query = `order:score date:>=${startOfMonth} ${filter}`;
+    const query = `order:score date:>=${startOfMonth} ${filter}`.trim();
     const params = { tags: query, limit: limit };
     const response = await axios.get(basePostsURL, { params: params });
 
     return response.data;
   } catch (error) {
-    console.error("Gagal mengambil data Danbooru:", error);
+    if (error.response && (error.response.status === 422 || error.response.status === 500)) {
+      try {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = (today.getMonth() + 1).toString().padStart(2, "0");
+        const startOfMonth = `${year}-${month}-01`;
+        
+        const fallbackQuery = `date:>=${startOfMonth} ${filter}`.trim();
+        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 } });
+        let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
+        return sorted.slice(0, limit);
+      } catch (fallbackErr) {
+        return [];
+      }
+    }
+    console.error("Gagal mengambil data Danbooru:", error.message);
     return [];
   }
 }
 
-async function getTopPosts(tags, filter, limit) {
+async function getTopPosts(tags, filter = "", limit) {
   try {
     const query = `${tags} ${filter} order:score`.trim();
     const params = { tags: query, limit: limit };
     const response = await axios.get(basePostsURL, { params: params });
     return response.data;
   } catch (err) {
-    if (err.response && err.response.status === 422) {
+    if (err.response && (err.response.status === 422 || err.response.status === 500)) {
       try {
         const fallbackQuery = `${tags} ${filter}`.trim();
         const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 } });

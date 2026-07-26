@@ -165,15 +165,22 @@ document.addEventListener("DOMContentLoaded", () => {
     let lazyload = false;
 
     if (filters) {
-      // Explicit is permanently locked
-      filterQueryParts.push("-rating:e");
+      let explicitLocked = true;
 
       if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
         if (filters.rating === "not_e") {
-          filterQueryParts.push("-rating:q");
+          // Moderate only shows Safe (g) and Sensitive (s)
+          filterQueryParts.push("rating:s,g");
+          explicitLocked = false;
         } else if (filters.rating === "g") {
           filterQueryParts.push("rating:g");
+          explicitLocked = false;
         }
+      }
+      
+      if (explicitLocked) {
+        // Locked explicit means showing everything except 'e'
+        filterQueryParts.push("-rating:e");
       }
       if (filters.typeToggle && filters.type) {
         let typeTag = "";
