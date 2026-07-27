@@ -152,11 +152,11 @@
     <% const isVideo = post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm'); %>
     <% const previewUrl = isVideo ? (post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
     <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden <%= isSaved ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
-      <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
+      <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
         <%= ((currentPage - 1) * limit) + validIndex + 1 %>
       </div>
 
-      <div class="absolute top-0 right-0 z-20 flex items-start pointer-events-none transition-opacity duration-300 group-hover:opacity-0 drop-shadow-md">
+      <div class="absolute top-0 right-0 z-20 flex items-start pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0 drop-shadow-md">
         <% if ((post.file_ext === 'mp4' || post.file_ext === 'webm') && post.media_asset && post.media_asset.duration) { %>
           <% 
             const durationSec = Math.floor(post.media_asset.duration);
