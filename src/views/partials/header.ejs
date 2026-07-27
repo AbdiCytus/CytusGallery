@@ -61,7 +61,7 @@
         let filterQueryParts = [];
 
         let explicitLocked = true;
-        const isBypassUser = <%= locals.isBypass ? 'true' : 'false' %>;
+        const isBypassUser = "<%= locals.isBypass ? 'true' : 'false' %>" === "true";
 
         if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
           if (filters.rating === "not_e") {
