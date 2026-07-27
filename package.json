@@ -8,7 +8,8 @@
     "build": "prisma generate && tailwindcss -i ./src/input.css -o ./src/public/css/style.css --minify",
     "dev:css": "tailwindcss -i ./src/input.css -o ./src/public/css/style.css --watch",
     "dev:server": "nodemon src/app.js",
-    "dev": "concurrently \"npm:dev:css\" \"npm:dev:server\""
+    "dev": "concurrently \"npm:dev:css\" \"npm:dev:server\"",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
