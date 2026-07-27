@@ -10,11 +10,13 @@ router.use(passport.initialize());
 
 const JWT_SECRET = process.env.JWT_SECRET || 'cytus_gallery_secret_key';
 
+const baseUrl = process.env.BASE_URL || process.env.URL || 'http://localhost:3000';
+
 // Google OAuth Strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID || 'placeholder',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder',
-    callbackURL: "http://localhost:3000/api/auth/callback/google"
+    callbackURL: `${baseUrl}/api/auth/callback/google`
   },
   async function(accessToken, refreshToken, profile, cb) {
     try {
