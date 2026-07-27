@@ -965,12 +965,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchForm && !searchForm.contains(e.target) && suggestionsBox)
       suggestionsBox.classList.add("hidden");
 
-    const link = e.target.closest("a");
-    const isDetailButton = link && link.classList.contains("detail-button");
-    
-    if (isDetailButton) {
-      showLoader("Getting Data Content...");
-      return;
+    // Tangani klik pada elemen interaktif terlebih dahulu
+    const interactiveEl = e.target.closest("a, button");
+    if (interactiveEl && interactiveEl.closest(".gallery-item")) {
+      if (interactiveEl.classList.contains("detail-button")) {
+        e.preventDefault();
+        showLoader("Getting Data Content...");
+        window.location.href = interactiveEl.href;
+      }
+      return; // Biarkan klik pada tombol 'Simpan' berjalan normal
     }
 
     if (isMobile()) {
