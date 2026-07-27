@@ -149,6 +149,12 @@
     <% validIndex++; %>
     <% } %>
     <% }); %>
+    
+    <% if (validIndex > 0 && validIndex < limit) { %>
+      <div class="col-span-2 md:col-span-5 bg-gray-800/80 border border-gray-700 text-gray-400 p-4 rounded-md text-center text-sm mt-4 shadow-sm">
+        <span class="text-yellow-500 font-semibold"><%= limit - validIndex %> konten disembunyikan</span> secara otomatis oleh sistem Danbooru (dihapus, di-banned, atau dibatasi untuk API publik). 
+      </div>
+    <% } %>
   </div>
 </main>
 <%- include('partials/pagination', { currentPage, totalPages, limit, tagsForPagination: tagsForPagination }) %>
