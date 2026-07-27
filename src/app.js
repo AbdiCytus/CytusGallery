@@ -69,9 +69,15 @@ app.get("/arona_doro.png", (req, res) => {
 });
 
 const multer = require('multer');
-const uploadDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const os = require('os');
+let uploadDir = path.join(__dirname, 'public', 'uploads');
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (e) {
+  // Fallback to /tmp jika filesystem read-only (seperti di Netlify Functions)
+  uploadDir = os.tmpdir();
 }
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
