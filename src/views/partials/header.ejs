@@ -343,14 +343,17 @@
         const notifDropdown = document.getElementById('notification-dropdown');
         const notifList = document.getElementById('notification-list');
         
-        notifBtn.addEventListener('click', async () => {
+        notifBtn.addEventListener('click', () => {
           notifDropdown.classList.toggle('hidden');
           if (!notifDropdown.classList.contains('hidden')) {
-             try {
-                await fetch('/api/notifications/read', { method: 'POST' });
-                notifBadge.classList.add('hidden');
-                notifBadge.textContent = '0';
-             } catch(e) {}
+             // Sembunyikan badge secara instan tanpa delay
+             notifBadge.classList.add('hidden');
+             notifBadge.textContent = '0';
+             const mobileBadge = document.getElementById('mobile-notification-badge');
+             if (mobileBadge) mobileBadge.classList.add('hidden');
+             
+             // Kirim request ke server di background
+             fetch('/api/notifications/read', { method: 'POST', keepalive: true }).catch(e => console.error(e));
           }
         });
 
@@ -364,7 +367,9 @@
           try {
             const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters') || '{}');
             let ratingParam = filters.rating || 'not_e'; // default
-            const res = await fetch(`/api/notifications/sync?rating=${ratingParam}`);
+            // Gunakan timestamp untuk memastikan tidak ada cache browser yang tersangkut
+            const ts = new Date().getTime();
+            const res = await fetch(`/api/notifications/sync?rating=${ratingParam}&_t=${ts}`, { cache: 'no-store' });
             if (res.ok) {
               const data = await res.json();
               const mobileBadge = document.getElementById('mobile-notification-badge');
