@@ -17,6 +17,7 @@ model User {
   name          String?
   passwordHash  String?
   googleId      String?        @unique
+  orbitId       String?
   avatarUrl     String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
