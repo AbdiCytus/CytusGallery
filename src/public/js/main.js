@@ -1277,3 +1277,69 @@ document.addEventListener('click', (e) => {
     } catch(err){}
   }
 });
+
+// --- CUSTOM GLOBAL TOOLTIP ---
+(function() {
+  const tooltipEl = document.createElement('div');
+  tooltipEl.className = 'fixed z-[99999] bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1.5 rounded shadow-xl pointer-events-none opacity-0 transition-opacity duration-200 whitespace-nowrap';
+  document.body.appendChild(tooltipEl);
+
+  let tooltipTarget = null;
+
+  document.addEventListener('mouseover', (e) => {
+    // Nonaktifkan di mobile agar tidak mengganggu interaksi sentuh
+    if(window.innerWidth < 768) return; 
+    let target = e.target;
+    
+    while (target && target !== document) {
+      if (target.hasAttribute('title') && target.getAttribute('title').trim() !== '') {
+        target.setAttribute('data-tooltip', target.getAttribute('title'));
+        target.removeAttribute('title');
+      }
+      if (target.hasAttribute('data-tooltip')) {
+        tooltipTarget = target;
+        tooltipEl.textContent = target.getAttribute('data-tooltip');
+        tooltipEl.style.opacity = '1';
+        positionTooltip(e);
+        break;
+      }
+      target = target.parentNode;
+    }
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (tooltipTarget) {
+      positionTooltip(e);
+    }
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (tooltipTarget && (!e.relatedTarget || !tooltipTarget.contains(e.relatedTarget))) {
+      tooltipEl.style.opacity = '0';
+      tooltipTarget = null;
+    }
+  });
+
+  const hideTooltip = () => {
+    tooltipEl.style.opacity = '0';
+    tooltipTarget = null;
+  };
+  document.addEventListener('mousedown', hideTooltip);
+  document.addEventListener('touchstart', hideTooltip, {passive: true});
+  window.addEventListener('scroll', hideTooltip, {passive: true});
+
+  function positionTooltip(e) {
+    let top = e.clientY + 15;
+    let left = e.clientX + 15;
+    
+    if (left + tooltipEl.offsetWidth > window.innerWidth - 10) {
+      left = e.clientX - tooltipEl.offsetWidth - 10;
+    }
+    if (top + tooltipEl.offsetHeight > window.innerHeight - 10) {
+      top = e.clientY - tooltipEl.offsetHeight - 10;
+    }
+    
+    tooltipEl.style.top = top + 'px';
+    tooltipEl.style.left = left + 'px';
+  }
+})();
