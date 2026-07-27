@@ -48,6 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const customAlertOverlay = document.getElementById("custom-alert-overlay");
   const customAlertConfirm = document.getElementById("custom-alert-confirm");
   const customAlertCancel = document.getElementById("custom-alert-cancel");
+  const customAlertOk = document.getElementById("custom-alert-ok");
 
   const scrollToTopBtn = document.getElementById("scroll-to-top-btn");
 
@@ -129,11 +130,13 @@ document.addEventListener("DOMContentLoaded", () => {
     onConfirmCallback = typeof onConfirm === "function" ? onConfirm : null;
 
     if (onConfirmCallback) {
-      customAlertConfirm.classList.remove("hidden");
-      customAlertCancel.classList.remove("hidden");
+      if (customAlertConfirm) customAlertConfirm.classList.remove("hidden");
+      if (customAlertCancel) customAlertCancel.classList.remove("hidden");
+      if (customAlertOk) customAlertOk.classList.add("hidden");
     } else {
-      customAlertConfirm.classList.add("hidden");
-      customAlertCancel.classList.add("hidden");
+      if (customAlertConfirm) customAlertConfirm.classList.add("hidden");
+      if (customAlertCancel) customAlertCancel.classList.add("hidden");
+      if (customAlertOk) customAlertOk.classList.remove("hidden");
     }
 
     customAlert.classList.remove("hidden", "opacity-0");
@@ -588,12 +591,14 @@ document.addEventListener("DOMContentLoaded", () => {
     customAlertClose ||
     customAlertOverlay ||
     customAlertCancel ||
-    customAlertConfirm
+    customAlertConfirm ||
+    customAlertOk
   ) {
-    customAlertClose.addEventListener("click", () => loadFilterHideAlert());
-    customAlertOverlay.addEventListener("click", () => loadFilterHideAlert());
-    customAlertCancel.addEventListener("click", () => loadFilterHideAlert());
-    customAlertConfirm.addEventListener("click", () => {
+    if (customAlertClose) customAlertClose.addEventListener("click", () => loadFilterHideAlert());
+    if (customAlertOverlay) customAlertOverlay.addEventListener("click", () => loadFilterHideAlert());
+    if (customAlertCancel) customAlertCancel.addEventListener("click", () => loadFilterHideAlert());
+    if (customAlertOk) customAlertOk.addEventListener("click", () => loadFilterHideAlert());
+    if (customAlertConfirm) customAlertConfirm.addEventListener("click", () => {
       if (onConfirmCallback) onConfirmCallback();
       hideAlert();
     });
@@ -810,7 +815,7 @@ document.addEventListener("DOMContentLoaded", () => {
             addChip(trimmed.replace(/\s+/g, '_'));
          }
          searchInputVisual.value = "";
-         suggestionsBox.classList.add("hidden");
+         showRecentTags();
          return;
       }
       
@@ -843,8 +848,7 @@ document.addEventListener("DOMContentLoaded", () => {
               e.preventDefault();
               addChip(tag.name);
               searchInputVisual.value = "";
-              suggestionsBox.classList.add("hidden");
-              suggestionsBox.innerHTML = "";
+              showRecentTags();
               searchInputVisual.focus();
             });
 
@@ -866,6 +870,7 @@ document.addEventListener("DOMContentLoaded", () => {
             tags.pop();
             searchInput.value = tags.join(' ');
             renderChips();
+            showRecentTags();
          }
       }
       
@@ -1095,8 +1100,8 @@ document.addEventListener("DOMContentLoaded", () => {
           paginationNav.classList.add('hidden'); // hide traditional pagination
           
           const loaderDiv = document.createElement('div');
-          loaderDiv.className = 'w-full text-center py-8 text-cyan-400 font-bold mt-4';
-          loaderDiv.innerHTML = 'Loading next page...';
+          loaderDiv.className = 'w-full flex justify-center py-8 mt-4';
+          loaderDiv.innerHTML = '<div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>';
           mainGallery.parentNode.insertBefore(loaderDiv, mainGallery.nextSibling);
           
           let nextPage = currentPage + 1;
@@ -1122,12 +1127,12 @@ document.addEventListener("DOMContentLoaded", () => {
                    
                    nextPage++;
                    if (nextPage > totalPages) {
-                      loaderDiv.innerHTML = 'Semua konten dimuat.';
+                      loaderDiv.innerHTML = '<span class="text-cyan-400 font-bold">Semua konten dimuat.</span>';
                       observer.disconnect();
                    }
                 } catch (e) {
                    console.error('Infinite scroll fetch error:', e);
-                   loaderDiv.innerHTML = 'Gagal memuat konten selanjutnya.';
+                   loaderDiv.innerHTML = '<span class="text-red-400 font-bold">Gagal memuat konten selanjutnya.</span>';
                 }
                 isFetching = false;
              }
