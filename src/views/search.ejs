@@ -24,14 +24,19 @@
           <h3 class="text-yellow-400 font-bold text-lg mb-1">Tag Tidak Ditemukan</h3>
           <p class="text-gray-300 text-sm mb-3">Tag <span class="font-mono text-cyan-400 bg-gray-900 px-1.5 py-0.5 rounded">"<%= locals.invalidTag %>"</span> tidak ada atau belum terdaftar. Saat ini sistem menampilkan hasil untuk tag terdekat: <span class="font-mono text-green-400 bg-gray-900 px-1.5 py-0.5 rounded">"<%= locals.userTags %>"</span>.</p>
           <% if (locals.smartSearchTags && locals.smartSearchTags.length > 1) { %>
-            <p class="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wider">Mungkin Maksud Anda:</p>
-            <div class="flex flex-wrap gap-2">
-              <% locals.smartSearchTags.slice(1).forEach(suggestedTag => { %>
-                <a href="/search?tags=<%= encodeURIComponent(suggestedTag.name) %>" class="bg-gray-900 hover:bg-gray-700 border border-gray-600 px-3 py-1.5 rounded-md text-xs text-gray-300 transition-colors flex items-center gap-2">
-                  <span><%= suggestedTag.name %></span>
-                  <span class="text-gray-500 text-[10px] bg-gray-800 px-1.5 py-0.5 rounded"><%= suggestedTag.post_count.toLocaleString('en-US') %></span>
-                </a>
-              <% }) %>
+            <div class="mt-2">
+              <button onclick="document.getElementById('suggested-tags-container').classList.toggle('hidden'); document.getElementById('suggested-tags-icon').classList.toggle('rotate-180')" class="flex items-center gap-1 text-xs text-cyan-400 mb-2 font-medium uppercase tracking-wider hover:text-cyan-300 transition-colors">
+                Mungkin Maksud Anda
+                <svg id="suggested-tags-icon" class="w-3.5 h-3.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+              <div id="suggested-tags-container" class="hidden flex flex-wrap gap-2 max-w-full">
+                <% locals.smartSearchTags.slice(1).forEach(suggestedTag => { %>
+                  <a href="/search?tags=<%= encodeURIComponent(suggestedTag.name) %>" class="bg-gray-900 hover:bg-gray-700 border border-gray-600 px-2.5 py-1.5 rounded text-[11px] text-gray-300 transition-colors inline-flex items-center gap-1.5 max-w-full overflow-hidden shadow-sm">
+                    <span class="truncate font-medium"><%= suggestedTag.name %></span>
+                    <span class="text-gray-500 text-[9px] bg-gray-800 px-1 py-0.5 rounded shrink-0 border border-gray-700"><%= suggestedTag.post_count.toLocaleString('en-US') %></span>
+                  </a>
+                <% }) %>
+              </div>
             </div>
           <% } %>
         </div>
@@ -88,7 +93,7 @@
           <div class="overlay-content">
             <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
             <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
-              <div class="flex gap-2 mt-2 pointer-events-auto">
+              <div class="flex gap-2 mt-2 pointer-events-none group-hover:pointer-events-auto">
                 <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors font-bold">Lihat Detail</a>
                 <% if (locals.user) { %>
                 <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">
@@ -165,7 +170,7 @@
           <h4 class="font-bold truncate text-sm md:text-base"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
           <p class="text-xs md:text-sm truncate text-gray-300"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
 
-          <div class="flex gap-2 mt-2 pointer-events-auto">
+          <div class="flex gap-2 mt-2 pointer-events-none group-hover:pointer-events-auto">
             <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors font-bold">Lihat Detail</a>
             <% if (locals.user) { %>
             <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">

@@ -19,26 +19,53 @@
         <p class="text-gray-400 mt-2"><%= userProfile.email %></p>
         <p class="text-xs text-gray-500 mt-1">Bergabung sejak: <%= new Date(userProfile.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
         
-        <div class="mt-6 flex flex-wrap gap-3 justify-center md:justify-start items-center">
-          <form id="avatar-form" action="/api/profil/upload" method="POST" enctype="multipart/form-data" class="flex items-center gap-2">
+        <div class="mt-6 flex flex-col md:flex-row gap-3 items-center w-full max-w-sm mx-auto md:mx-0 md:max-w-none">
+          <form id="avatar-form" action="/api/profil/upload" method="POST" enctype="multipart/form-data" class="w-full md:w-auto flex items-center gap-2">
             <input type="file" name="avatar" id="avatar-input" accept="image/*" class="hidden">
-            <button type="button" onclick="document.getElementById('avatar-input').click()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium transition-colors border border-gray-600 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <button type="button" onclick="document.getElementById('avatar-input').click()" class="w-full justify-center bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium transition-colors border border-gray-600 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               Ganti Foto
             </button>
           </form>
-          <a href="/logout" class="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2 rounded-md font-medium transition-colors border border-gray-600 shadow-sm">
-            Logout
-          </a>
-          <button onclick="deleteAccount()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-lg">
-            Hapus Akun
-          </button>
+          <div class="flex gap-3 w-full md:w-auto">
+            <a href="/logout" class="flex-1 md:flex-none text-center bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-5 py-2 rounded-md font-medium transition-colors border border-red-900/50 shadow-sm">
+              Logout
+            </a>
+            <button onclick="showDeleteModal()" class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-lg">
+              Hapus Akun
+            </button>
+          </div>
         </div>
         <p id="avatar-msg" class="text-xs mt-2 hidden text-center md:text-left"></p>
         
+        <div id="delete-account-modal" class="fixed inset-0 z-[60] hidden bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+          <div class="bg-gray-800 border border-red-900/50 rounded-xl p-6 max-w-sm w-full shadow-2xl text-left transform transition-transform scale-95 origin-center" id="delete-modal-content">
+            <div class="flex items-center gap-3 mb-4 text-red-500">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              <h3 class="text-xl font-bold text-white">Hapus Akun?</h3>
+            </div>
+            <p class="text-gray-300 mb-6 text-sm leading-relaxed">Apakah Anda yakin ingin menghapus akun Anda secara permanen? <strong class="text-red-400">Semua data koleksi dan notifikasi akan hilang dan tidak dapat dipulihkan!</strong></p>
+            <div class="flex gap-3">
+              <button onclick="hideDeleteModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2.5 rounded-md transition-colors font-semibold">Batal</button>
+              <button onclick="deleteAccount()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-md transition-colors font-bold shadow-lg shadow-red-600/30">Hapus Permanen</button>
+            </div>
+          </div>
+        </div>
+        
         <script>
+          function showDeleteModal() {
+            const modal = document.getElementById('delete-account-modal');
+            const content = document.getElementById('delete-modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => content.classList.replace('scale-95', 'scale-100'), 10);
+          }
+          function hideDeleteModal() {
+            const modal = document.getElementById('delete-account-modal');
+            const content = document.getElementById('delete-modal-content');
+            content.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+          }
           function deleteAccount() {
-            if (confirm("Apakah Anda yakin ingin menghapus akun Anda secara permanen? Semua data koleksi dan notifikasi akan hilang!")) {
               fetch('/api/profil/delete', { method: 'DELETE' })
                 .then(res => res.json())
                 .then(data => {
@@ -49,7 +76,6 @@
                   }
                 })
                 .catch(err => alert("Terjadi kesalahan saat menghapus akun."));
-            }
           }
           document.getElementById('avatar-input').addEventListener('change', async function() {
             if (!this.files || !this.files[0]) return;

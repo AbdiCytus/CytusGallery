@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
       loadingOverlay.classList.remove("opacity-0", "pointer-events-none");
     }
   };
+  window.showLoader = showLoader;
 
   const hideLoader = () => {
     if (loadingOverlay) {

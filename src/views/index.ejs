@@ -56,7 +56,7 @@
             <div class="overlay-content">
               <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
               <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
-              <div class="flex gap-2 mt-2 pointer-events-auto">
+              <div class="flex gap-2 mt-2 pointer-events-none group-hover:pointer-events-auto">
                 <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
                 <% if (locals.user) { %>
                 <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
@@ -132,7 +132,7 @@
         <div class="overlay-content">
           <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
           <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
-          <div class="flex gap-2 mt-2">
+          <div class="flex gap-2 mt-2 pointer-events-none group-hover:pointer-events-auto">
             <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
             <% if (locals.user) { %>
             <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
