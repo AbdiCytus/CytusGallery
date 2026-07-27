@@ -1281,7 +1281,8 @@ document.addEventListener('click', (e) => {
 // --- CUSTOM GLOBAL TOOLTIP ---
 (function() {
   const tooltipEl = document.createElement('div');
-  tooltipEl.className = 'fixed z-[99999] bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1.5 rounded shadow-xl pointer-events-none opacity-0 transition-opacity duration-200 whitespace-nowrap';
+  tooltipEl.className = 'fixed bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1.5 rounded shadow-xl pointer-events-none opacity-0 transition-opacity duration-200 whitespace-nowrap';
+  tooltipEl.style.zIndex = '999999';
   document.body.appendChild(tooltipEl);
 
   let tooltipTarget = null;
