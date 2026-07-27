@@ -404,7 +404,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const closeAllOverlays = () => {
-    galleryItems.forEach((item) => {
+    document.querySelectorAll(".gallery-item").forEach((item) => {
       item.classList.remove("mobile-active");
       playStopVideo(item, "stop");
     });
@@ -937,18 +937,20 @@ document.addEventListener("DOMContentLoaded", () => {
     homeLinkMobile.addEventListener("click", handleHomeLinkClick);
   if (brandLink) brandLink.addEventListener("click", handleHomeLinkClick);
 
-  galleryItems.forEach((item) => {
+  document.addEventListener("mouseover", (e) => {
+    if (isMobile()) return;
+    const item = e.target.closest(".gallery-item");
+    if (!item) return;
     const settings = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+    if (settings && settings.autoplayToggle) playStopVideo(item, "play");
+  });
 
-    item.addEventListener("mouseenter", () => {
-      if (isMobile()) return;
-      if (settings && settings.autoplayToggle) playStopVideo(item, "play");
-    });
-
-    item.addEventListener("mouseleave", () => {
-      if (isMobile()) return;
-      playStopVideo(item, "stop");
-    });
+  document.addEventListener("mouseout", (e) => {
+    if (isMobile()) return;
+    const item = e.target.closest(".gallery-item");
+    if (!item) return;
+    if (e.relatedTarget && item.contains(e.relatedTarget)) return;
+    playStopVideo(item, "stop");
   });
 
   // Listener untuk semua form submit
@@ -997,6 +999,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    const link = e.target.closest("a");
     if (!link) return;
 
     // Cek jika link adalah salah satu yang memicu loading
