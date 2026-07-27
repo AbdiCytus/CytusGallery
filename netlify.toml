@@ -4,7 +4,7 @@
 
 [functions]
   # Memaksa Netlify menyertakan semua file di dalam folder views dan public ke dalam serverless function
-  included_files = ["src/views/**", "src/public/**"]
+  included_files = ["src/views/**", "src/public/**", "node_modules/.prisma/client/**", "prisma/schema.prisma"]
 
 [[redirects]]
   # Mengarahkan semua traffic pengunjung ke function 'api' yang memuat Express
