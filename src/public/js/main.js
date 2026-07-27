@@ -437,12 +437,84 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  const initializeMasonry = () => {
+    const galleries = document.querySelectorAll('#main-gallery');
+    galleries.forEach(gallery => {
+      if (gallery.dataset.masonryInitialized) return;
+      gallery.dataset.masonryInitialized = 'true';
+
+      gallery.className = "flex gap-4 items-start w-full";
+      
+      const items = Array.from(gallery.querySelectorAll('.gallery-item'));
+      if (items.length === 0) return;
+
+      const getCols = () => {
+        if (window.innerWidth >= 1280) return 5;
+        if (window.innerWidth >= 1024) return 4;
+        if (window.innerWidth >= 768) return 3;
+        return 2;
+      };
+
+      let cols = getCols();
+      let colDivs = [];
+
+      const renderGrid = () => {
+        const newCols = getCols();
+        if (colDivs.length === newCols) return;
+        
+        cols = newCols;
+        gallery.innerHTML = '';
+        colDivs = [];
+        
+        for (let i = 0; i < cols; i++) {
+          const col = document.createElement('div');
+          col.className = "flex flex-col gap-4 flex-1 min-w-0";
+          gallery.appendChild(col);
+          colDivs.push(col);
+        }
+
+        const colHeights = new Array(cols).fill(0);
+        
+        items.forEach(item => {
+          let minCol = 0;
+          let minHeight = colHeights[0];
+          for (let i = 1; i < cols; i++) {
+            if (colHeights[i] < minHeight) {
+              minHeight = colHeights[i];
+              minCol = i;
+            }
+          }
+          
+          colDivs[minCol].appendChild(item);
+          
+          const mediaContainer = item.querySelector('.media-container');
+          let ratio = 1;
+          if (mediaContainer && mediaContainer.style.aspectRatio) {
+             const parts = mediaContainer.style.aspectRatio.split('/');
+             if (parts.length === 2) {
+               ratio = parseFloat(parts[1]) / parseFloat(parts[0]);
+             }
+          }
+          colHeights[minCol] += ratio; 
+        });
+      };
+
+      renderGrid();
+
+      window.addEventListener('resize', () => {
+        clearTimeout(gallery.resizeTimer);
+        gallery.resizeTimer = setTimeout(renderGrid, 200);
+      });
+    });
+  };
+
   if (sessionStorage.getItem("isLoading") === "true") {
     showLoader("Loading Contents...");
     sessionStorage.removeItem("isLoading");
   }
 
   if (filterForm) loadFiltersToUI();
+  initializeMasonry();
 
   // Sembunyikan loader HANYA setelah semua aset (gambar, dll) selesai dimuat
   window.addEventListener("load", hideLoader);

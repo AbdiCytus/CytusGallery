@@ -22,7 +22,9 @@
       <div class="swiper-wrapper">
         <% sliderPosts.forEach((post, index) => { %>
         <% if(post.large_file_url) { %>
-        <div class="swiper-slide group gallery-item relative z-0 bg-gray-800 rounded-lg overflow-hidden group-hover:z-10" data-post-url="/posts/<%= post.id %>" <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
+        <% const isVideo = post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm'); %>
+        <% const previewUrl = isVideo ? (post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
+        <div class="swiper-slide group gallery-item relative z-0 bg-gray-800 rounded-lg overflow-hidden group-hover:z-10" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
           
           <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
             <%= index + 1 %>
@@ -45,7 +47,7 @@
             <img src="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" alt="Video preview" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
             <video class="video-playback hidden absolute inset-0 w-full h-full object-cover" preload="none" loop muted playsinline></video>
             <% } else { %>
-            <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" <%= isLazyLoadEnabled ? 'loading="lazy"' : '' %>>
+            <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="<%= isLazyLoadEnabled ? 'lazy' : 'eager' %>">
             <% } %>
           </div>
 
@@ -81,7 +83,9 @@
   <div class="columns-2 md:columns-5 gap-4 space-y-4" id="main-gallery">
     <% posts.forEach((post, index) => { %>
     <% if (post.large_file_url) { %>
-    <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden" data-post-url="/posts/<%= post.id %>" <%# Perbaikan: Mengakses variants melalui post.media_asset %> <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
+    <% const isVideo = post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm'); %>
+    <% const previewUrl = isVideo ? (post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
+    <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
       <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
         <%= ((currentPage - 1) * limit) + index + 1 %>
       </div>
@@ -111,12 +115,13 @@
         <% } %>
       </div>
 
-      <div class="media-container w-full h-auto">
+      <% const styleAttr2 = `style="aspect-ratio: ${post.image_width || 1}/${post.image_height || 1};"`; %>
+      <div class="media-container w-full h-auto" <%- styleAttr2 %>>
         <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %>
         <img src="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" alt="Video preview" class="video-preview w-full h-auto transition-transform duration-300 group-hover:scale-105">
         <video class="video-playback hidden w-full h-auto" preload="none" loop muted playsinline></video>
         <% } else { %>
-        <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="w-full h-auto transition-transform duration-300 group-hover:scale-105" <%= isLazyLoadEnabled ? 'loading="lazy"' : '' %>>
+        <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="w-full h-auto transition-transform duration-300 group-hover:scale-105" loading="<%= isLazyLoadEnabled ? 'lazy' : 'eager' %>">
         <% } %>
       </div>
 
