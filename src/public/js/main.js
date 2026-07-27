@@ -978,13 +978,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Tangani klik pada elemen interaktif terlebih dahulu
     const interactiveEl = e.target.closest("a, button");
-    if (interactiveEl && interactiveEl.closest(".gallery-item")) {
-      if (interactiveEl.classList.contains("detail-button")) {
+    if (interactiveEl) {
+      const isDetailLink = interactiveEl.tagName === 'A' && interactiveEl.getAttribute('href') && interactiveEl.getAttribute('href').startsWith('/posts/');
+      if (interactiveEl.classList.contains("detail-button") || isDetailLink) {
         e.preventDefault();
         showLoader("Getting Data Content...");
         window.location.href = interactiveEl.href;
+        return;
       }
-      return; // Biarkan klik pada tombol 'Simpan' berjalan normal
+      
+      if (interactiveEl.closest(".gallery-item")) {
+        return; // Biarkan klik pada tombol 'Simpan' berjalan normal
+      }
     }
 
     if (isMobile()) {
