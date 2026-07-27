@@ -193,6 +193,7 @@
                     <div><span class="text-gray-500">Score:</span> <span class="font-semibold text-green-400"><%= save.score || 0 %></span></div>
                     <div><span class="text-gray-500">Size:</span> <span class="font-semibold text-white"><%= save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A' %></span></div>
                     <div><span class="text-gray-500">Uploaded:</span> <span class="font-semibold text-white"><%= save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A' %></span></div>
+                    <div><span class="text-gray-500">Disimpan:</span> <span class="font-semibold text-white"><%= save.savedAt ? new Date(save.savedAt).toLocaleDateString('id-ID') : 'N/A' %></span></div>
                   </div>
                 </div>
               </a>
@@ -452,6 +453,7 @@
                       <div><span class="text-gray-500">Score:</span> <span class="font-semibold text-green-400">${save.score || 0}</span></div>
                       <div><span class="text-gray-500">Size:</span> <span class="font-semibold text-white">${save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}</span></div>
                       <div><span class="text-gray-500">Uploaded:</span> <span class="font-semibold text-white">${save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A'}</span></div>
+                      <div><span class="text-gray-500">Disimpan:</span> <span class="font-semibold text-white">${save.savedAt ? new Date(save.savedAt).toLocaleDateString('id-ID') : 'N/A'}</span></div>
                     </div>
                   </div>
                 </a>
