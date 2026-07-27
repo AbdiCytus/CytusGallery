@@ -292,12 +292,7 @@ app.use((req, res, next) => {
 // Terapkan rate limiter ke semua route
 app.use(limiter);
 
-app.use((req, res, next) => {
-  res.locals.tags = req.query.tags || "";
-  if (req.method === "GET")
-    res.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=120");
-  next();
-});
+// Removed redundant middleware that caused caching bugs
 
 //Base API URL
 const baseTagURL = "https://danbooru.donmai.us/tags.json";
