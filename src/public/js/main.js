@@ -756,11 +756,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (recentTags.length > 0) {
       suggestionsBox.innerHTML = '<div class="px-3 py-1 text-xs text-gray-500 font-bold uppercase tracking-wider">Recent Searches</div>';
       recentTags.forEach(tag => {
-        const item = document.createElement('div');
-        item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2 suggestion-item";
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = "flex justify-between w-full items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2 suggestion-item focus:outline-none";
         
         const textSpan = document.createElement('span');
-        textSpan.className = "truncate flex-grow";
+        textSpan.className = "truncate flex-grow text-left";
         textSpan.textContent = tag.replace(/_/g, ' ');
         // For click on the item directly
         item.addEventListener("click", (e) => {
@@ -843,10 +844,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (tags.length > 0) {
           tags.forEach((tag) => {
-            const suggestionItem = document.createElement("a");
-            suggestionItem.href = "#";
+            const suggestionItem = document.createElement("button");
+            suggestionItem.type = "button";
             suggestionItem.className =
-              "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2 suggestion-item";
+              "flex justify-between w-full items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2 suggestion-item focus:outline-none";
 
             const postCount = tag.post_count.toLocaleString("en-US");
             suggestionItem.innerHTML = `<span class="truncate">${tag.name.replace(/_/g, ' ')}</span><span class="text-sm text-gray-400 whitespace-nowrap">${postCount}</span>`;
@@ -882,33 +883,31 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       const suggestions = suggestionsBox.querySelectorAll(".suggestion-item");
-      if (
-        suggestions.length === 0 ||
-        suggestionsBox.classList.contains("hidden")
-      )
-        return;
-        
+      const isSuggestionsVisible = suggestions.length > 0 && !suggestionsBox.classList.contains("hidden");
+
       if (e.key === "ArrowDown") {
+        if (!isSuggestionsVisible) return;
         e.preventDefault();
-        activeSuggestionIndex =
-          (activeSuggestionIndex + 1) % suggestions.length;
+        activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
         setActiveSuggestion();
       } else if (e.key === "ArrowUp") {
+        if (!isSuggestionsVisible) return;
         e.preventDefault();
-        activeSuggestionIndex =
-          (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+        activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
         setActiveSuggestion();
       } else if (e.key === "Enter") {
-        e.preventDefault(); // Prevent form submit on enter if autocomplete open
-        if (activeSuggestionIndex > -1) {
-           suggestions[activeSuggestionIndex].click();
+        e.preventDefault(); // Prevent native form submit to avoid race conditions
+        
+        if (isSuggestionsVisible) {
+          if (activeSuggestionIndex > -1) {
+             suggestions[activeSuggestionIndex].click();
+          } else if (!suggestionsBox.innerHTML.includes('Recent Searches')) {
+             suggestions[0].click();
+          } else {
+             searchForm.requestSubmit();
+          }
         } else {
-           // Default to first suggestion if none active, or just submit
-           if (suggestions.length > 0 && !suggestionsBox.innerHTML.includes('Recent Searches')) {
-              suggestions[0].click();
-           } else {
-              searchForm.requestSubmit();
-           }
+          searchForm.requestSubmit();
         }
       }
     });
