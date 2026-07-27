@@ -11,3 +11,11 @@
   from = "/*"
   to = "/.netlify/functions/api"
   status = 200
+
+[[headers]]
+  # Mencegah Netlify CDN melakukan caching pada HTML (menghindari bug login/simpan)
+  for = "/*"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+    Pragma = "no-cache"
+    Expires = "0"
