@@ -938,8 +938,8 @@ setInterval(async () => {
 }, 2 * 60 * 1000); // Berjalan setiap 2 menit
 
 //Run Server
-app.listen(PORT, () => {
-  console.log(`Server CytusGallery berjalan di http://[IP_ADDRESS]:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server CytusGallery berjalan di http://[0.0.0.0]:${PORT}`);
 });
 
 module.exports = app;
