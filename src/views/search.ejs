@@ -29,9 +29,9 @@
                 <svg class="w-4 h-4 mr-1 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 Lihat <%= locals.smartSearchTags.length - 1 %> Rekomendasi Tag Lainnya
               </summary>
-              <div class="mt-3 flex flex-wrap gap-2 pb-2">
+              <div class="mt-3 pb-2" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.5rem;">
                 <% locals.smartSearchTags.slice(1).forEach(suggestedTag => { %>
-                  <a href="/search?tags=<%= encodeURIComponent(suggestedTag.name) %>" class="bg-gray-900 hover:bg-gray-700 border border-gray-600 px-2.5 py-1.5 rounded-md text-xs text-gray-300 transition-colors flex items-center justify-between gap-2 overflow-hidden" style="max-width: 100%;">
+                  <a href="/search?tags=<%= encodeURIComponent(suggestedTag.name) %>" class="bg-gray-900 hover:bg-gray-700 border border-gray-600 px-2.5 py-1.5 rounded-md text-xs text-gray-300 transition-colors flex items-center justify-between gap-2 overflow-hidden w-full">
                     <span class="truncate min-w-0" title="<%= suggestedTag.name %>"><%= suggestedTag.name %></span>
                     <span class="text-gray-500 text-[10px] bg-gray-800 px-1.5 py-0.5 rounded shrink-0"><%= suggestedTag.post_count.toLocaleString('en-US') %></span>
                   </a>
