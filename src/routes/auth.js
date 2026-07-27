@@ -123,7 +123,10 @@ router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 
 router.get('/api/auth/callback/google', 
   passport.authenticate('google', { failureRedirect: '/login', session: false }),
   function(req, res) {
-    const token = jwt.sign({ id: req.user.id, email: req.user.email, name: req.user.name, avatarUrl: req.user.avatarUrl }, JWT_SECRET, { expiresIn: '7d' });
+    // Cegah cookie terlalu besar jika avatar di database adalah Base64 (efek dari Orbit Station)
+    const safeAvatar = req.user.avatarUrl && req.user.avatarUrl.startsWith('data:') ? null : req.user.avatarUrl;
+    
+    const token = jwt.sign({ id: req.user.id, email: req.user.email, name: req.user.name, avatarUrl: safeAvatar }, JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
     res.redirect('/');
   }
