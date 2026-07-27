@@ -756,12 +756,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (recentTags.length > 0) {
       suggestionsBox.innerHTML = '<div class="px-3 py-1 text-xs text-gray-500 font-bold uppercase tracking-wider">Recent Searches</div>';
       recentTags.forEach(tag => {
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = "flex justify-between w-full items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2 suggestion-item focus:outline-none";
+        const item = document.createElement('div');
+        item.className = "flex justify-between items-center px-4 py-2 hover:bg-gray-700 text-gray-300 rounded-md cursor-pointer gap-2 suggestion-item";
         
         const textSpan = document.createElement('span');
-        textSpan.className = "truncate flex-grow text-left";
+        textSpan.className = "truncate flex-grow";
         textSpan.textContent = tag.replace(/_/g, ' ');
         // For click on the item directly
         item.addEventListener("click", (e) => {
@@ -769,8 +768,7 @@ document.addEventListener("DOMContentLoaded", () => {
           e.preventDefault();
           addChip(tag);
           searchInputVisual.value = "";
-          suggestionsBox.classList.add("hidden");
-          suggestionsBox.innerHTML = "";
+          showRecentTags();
           searchInputVisual.focus();
         });
 
