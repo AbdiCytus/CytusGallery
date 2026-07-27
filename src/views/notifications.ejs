@@ -1,11 +1,11 @@
 <%- include('partials/header') %>
 
 <main class="container mx-auto p-4 max-w-4xl min-h-screen pb-20">
-  <div class="flex flex-row justify-between items-start md:items-center gap-4 mb-6">
-    <h1 class="text-2xl md:text-3xl font-bold text-white leading-tight">Daftar Notifikasi</h1>
+  <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+    <h1 class="text-2xl md:text-3xl font-bold text-white">Daftar Notifikasi</h1>
     <% if (notifications && notifications.length > 0) { %>
-      <button onclick="deleteNotification('all')" class="shrink-0 text-sm bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded transition-colors font-bold flex items-center gap-1 border border-red-900/50">
-        <svg class="w-4 h-4 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+      <button onclick="deleteNotification('all')" class="w-full md:w-auto text-sm bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded transition-colors font-bold flex justify-center items-center gap-1 border border-red-900/50">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
         Hapus Semua
       </button>
     <% } %>

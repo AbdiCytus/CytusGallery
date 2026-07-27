@@ -155,19 +155,18 @@
         <nav class="flex flex-col space-y-1 text-gray-300">
           <% if (locals.user) { %>
             <div class="flex items-center justify-between px-3 py-2 bg-gray-700/50 rounded-md mb-2">
-              <a href="/profil" onclick="if(window.showLoader) window.showLoader('Navigating...');" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-3 flex-grow min-w-0">
+              <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-3 flex-grow min-w-0">
                 <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
                 <span class="truncate"><%= user.name || user.email %></span>
               </a>
-              <a href="/notifikasi" onclick="if(window.showLoader) window.showLoader('Navigating...');" class="relative text-gray-300 hover:text-white transition-colors flex-shrink-0 p-1 block">
+              <a href="/notifikasi" class="relative text-gray-300 hover:text-white transition-colors flex-shrink-0 p-1 block">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                 <span id="mobile-notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
               </a>
             </div>
-          <% } %>
-          <% if (!locals.user) { %>
+          <% } else { %>
             <div class="mb-2">
-              <a href="/login" class="block w-full text-center bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-md transition-colors shadow-sm">Login / Daftar</a>
+              <a href="/login" class="block w-full text-center px-3 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white font-semibold transition-colors">Login / Daftar</a>
             </div>
           <% } %>
           <a id="home-link-mobile" href="/search" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Beranda</a>
@@ -292,12 +291,12 @@
                   <div class="p-4 text-sm text-gray-400 text-center">Memuat...</div>
                 </div>
                 <div class="p-2 bg-gray-900 border-t border-gray-700 text-center shrink-0">
-                  <a href="/notifikasi" onclick="if(window.showLoader) window.showLoader('Navigating...');" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a>
+                  <a href="/notifikasi" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a>
                 </div>
               </div>
 
               <div class="h-6 w-px bg-gray-600"></div>
-              <a href="/profil" onclick="if(window.showLoader) window.showLoader('Navigating...');" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-2">
+              <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-2">
                 <span class="truncate max-w-[150px]"><%= user.name || user.email %></span>
                 <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
               </a>
@@ -320,16 +319,13 @@
     <section class="container mx-auto px-4 py-2">
       <div class="relative">
         <form action="/search" method="GET" id="search-form">
-          <div class="relative flex items-center bg-gray-700 border border-gray-600 rounded-md pr-12 focus-within:ring-2 focus-within:ring-cyan-500 overflow-hidden h-[50px]">
-            <div class="flex-grow flex items-center overflow-x-auto whitespace-nowrap h-full" style="scrollbar-width: none; -ms-overflow-style: none;">
-              <style>
-                .flex-grow.flex.items-center.overflow-x-auto::-webkit-scrollbar { display: none; }
-              </style>
-              <div id="search-chips" class="flex gap-2 pl-3 py-1 items-center h-full"></div>
+          <div class="relative bg-gray-700 border border-gray-600 rounded-md pr-12 focus-within:ring-2 focus-within:ring-cyan-500 flex min-h-[50px]">
+            <div class="flex flex-1 items-center overflow-x-auto hide-scrollbar">
+              <div id="search-chips" class="flex flex-nowrap gap-2 pl-3 py-1 items-center shrink-0"></div>
               <input type="text" id="search-input-visual" class="flex-grow bg-transparent text-white placeholder-gray-400 focus:outline-none py-2 px-3 min-w-[150px]" placeholder="Cari berdasarkan tag..." autocomplete="off">
             </div>
             <input type="hidden" name="tags" id="search-input">
-            <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-4 pl-2 bg-gradient-to-l from-gray-700 via-gray-700 to-transparent text-gray-400 hover:text-cyan-400 h-full">
+            <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-400 hover:text-cyan-400 h-full">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
               </svg>

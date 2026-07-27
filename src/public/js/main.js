@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
       loadingOverlay.classList.remove("opacity-0", "pointer-events-none");
     }
   };
-  window.showLoader = showLoader;
 
   const hideLoader = () => {
     if (loadingOverlay) {
@@ -603,6 +602,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !customAlert.classList.contains("hidden"))
       loadFilterHideAlert();
+  });
+
+  // Profil & Notifikasi Loader
+  document.querySelectorAll('a[href="/profil"], a[href="/notifikasi"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      // Don't trigger if it opens in a new tab
+      if(e.ctrlKey || e.metaKey || link.target === '_blank') return;
+      showLoader("Memuat...");
+    });
   });
 
   if (filterForm) {
