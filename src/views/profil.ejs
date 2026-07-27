@@ -188,12 +188,31 @@
                 </div>
                 <div class="p-4 flex flex-col justify-center">
                   <div class="font-bold text-white mb-2">Post ID: <%= save.postId %></div>
-                  <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-300">
-                    <div><span class="text-gray-500">Rating:</span> <span class="font-semibold text-white"><%= save.rating ? save.rating.toUpperCase() : 'N/A' %></span></div>
-                    <div><span class="text-gray-500">Score:</span> <span class="font-semibold text-green-400"><%= save.score || 0 %></span></div>
-                    <div><span class="text-gray-500">Size:</span> <span class="font-semibold text-white"><%= save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A' %></span></div>
-                    <div><span class="text-gray-500">Uploaded:</span> <span class="font-semibold text-white"><%= save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A' %></span></div>
-                    <div><span class="text-gray-500">Disimpan:</span> <span class="font-semibold text-white"><%= save.savedAt ? new Date(save.savedAt).toLocaleDateString('id-ID') : 'N/A' %></span></div>
+                  <div class="flex flex-wrap gap-2 text-xs">
+                    <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                      <span class="text-gray-500 font-medium">Ext:</span>
+                      <span class="font-bold text-cyan-400"><%= (save.fileUrl || save.imageUrl || 'unk.unk').split('.').pop().toUpperCase() %></span>
+                    </div>
+                    <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                      <span class="text-gray-500 font-medium">Rating:</span>
+                      <span class="font-bold text-white"><%= save.rating ? save.rating.toUpperCase() : 'N/A' %></span>
+                    </div>
+                    <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                      <span class="text-gray-500 font-medium">Score:</span>
+                      <span class="font-bold text-green-400"><%= save.score || 0 %></span>
+                    </div>
+                    <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                      <span class="text-gray-500 font-medium">Size:</span>
+                      <span class="font-bold text-white"><%= save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A' %></span>
+                    </div>
+                    <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                      <span class="text-gray-500 font-medium">Up:</span>
+                      <span class="font-bold text-white"><%= save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A' %></span>
+                    </div>
+                    <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                      <span class="text-gray-500 font-medium">Save:</span>
+                      <span class="font-bold text-white"><%= save.savedAt ? new Date(save.savedAt).toLocaleDateString('id-ID') : 'N/A' %></span>
+                    </div>
                   </div>
                 </div>
               </a>
@@ -448,12 +467,31 @@
                   </div>
                   <div class="p-4 flex flex-col justify-center">
                     <div class="font-bold text-white mb-2">Post ID: ${save.postId}</div>
-                    <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-300">
-                      <div><span class="text-gray-500">Rating:</span> <span class="font-semibold text-white">${save.rating ? save.rating.toUpperCase() : 'N/A'}</span></div>
-                      <div><span class="text-gray-500">Score:</span> <span class="font-semibold text-green-400">${save.score || 0}</span></div>
-                      <div><span class="text-gray-500">Size:</span> <span class="font-semibold text-white">${save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}</span></div>
-                      <div><span class="text-gray-500">Uploaded:</span> <span class="font-semibold text-white">${save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A'}</span></div>
-                      <div><span class="text-gray-500">Disimpan:</span> <span class="font-semibold text-white">${save.savedAt ? new Date(save.savedAt).toLocaleDateString('id-ID') : 'N/A'}</span></div>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                      <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                        <span class="text-gray-500 font-medium">Ext:</span>
+                        <span class="font-bold text-cyan-400">${(save.fileUrl || save.imageUrl || 'unk.unk').split('.').pop().toUpperCase()}</span>
+                      </div>
+                      <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                        <span class="text-gray-500 font-medium">Rating:</span>
+                        <span class="font-bold text-white">${save.rating ? save.rating.toUpperCase() : 'N/A'}</span>
+                      </div>
+                      <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                        <span class="text-gray-500 font-medium">Score:</span>
+                        <span class="font-bold text-green-400">${save.score || 0}</span>
+                      </div>
+                      <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                        <span class="text-gray-500 font-medium">Size:</span>
+                        <span class="font-bold text-white">${save.size ? (save.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}</span>
+                      </div>
+                      <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                        <span class="text-gray-500 font-medium">Up:</span>
+                        <span class="font-bold text-white">${save.uploadedAt ? new Date(save.uploadedAt).toLocaleDateString('id-ID') : 'N/A'}</span>
+                      </div>
+                      <div class="bg-gray-800 border border-gray-700 px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm hover:bg-gray-750 transition-colors">
+                        <span class="text-gray-500 font-medium">Save:</span>
+                        <span class="font-bold text-white">${save.savedAt ? new Date(save.savedAt).toLocaleDateString('id-ID') : 'N/A'}</span>
+                      </div>
                     </div>
                   </div>
                 </a>
