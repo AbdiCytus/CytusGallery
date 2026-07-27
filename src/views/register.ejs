@@ -6,9 +6,10 @@
   <title>Daftar - CytusGallery</title>
   <link href="/css/style.css" rel="stylesheet">
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
-  <div class="bg-gray-800 p-8 rounded-lg shadow-xl shadow-cyan-900/20 max-w-md w-full border border-gray-700">
+<body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-gray-800 p-8 rounded-lg shadow-xl shadow-cyan-900/20 max-w-xl w-full border border-gray-700">
     <div class="text-center mb-8">
+      <img src="/arona_doro.png" alt="CytusGallery Logo" class="w-20 h-20 mx-auto mb-3 object-contain">
       <h1 class="text-3xl font-bold text-cyan-400">CytusGallery</h1>
       <p class="text-gray-400 mt-2">Buat akun baru</p>
     </div>
@@ -19,21 +20,31 @@
       </div>
     <% } %>
     
-    <form action="/register" method="POST" class="space-y-4">
-      <div>
-        <label for="name" class="block text-sm font-medium text-gray-300">Nama Lengkap</label>
-        <input type="text" name="name" id="name" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+    <form action="/register" method="POST" class="space-y-4" onsubmit="if(this.password.value !== this.passwordConfirm.value) { alert('Password dan konfirmasi password tidak cocok!'); return false; }">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-300">Nama Lengkap</label>
+          <input type="text" name="name" id="name" placeholder="Masukkan nama lengkap" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
+          <input type="email" name="email" id="email" placeholder="Masukkan email" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
       </div>
-      <div>
-        <label for="email" class="block text-sm font-medium text-gray-300">Email</label>
-        <input type="email" name="email" id="email" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
+          <input type="password" name="password" id="password" placeholder="Masukkan password" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
+        <div>
+          <label for="passwordConfirm" class="block text-sm font-medium text-gray-300">Konfirmasi Password</label>
+          <input type="password" name="passwordConfirm" id="passwordConfirm" placeholder="Konfirmasi password" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+        </div>
       </div>
-      <div>
-        <label for="password" class="block text-sm font-medium text-gray-300">Password</label>
-        <input type="password" name="password" id="password" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500">
-      </div>
-      <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-4">
-        Daftar
+      
+      <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition-colors mt-6">
+        Daftar & Masuk
       </button>
     </form>
     
@@ -56,8 +67,8 @@
     <div class="mt-6 text-center text-sm text-gray-400">
       Sudah punya akun? <a href="/login" class="text-cyan-400 hover:underline">Masuk di sini</a>
     </div>
-    <div class="mt-4 text-center text-sm text-gray-400">
-      <a href="/" class="hover:text-white transition-colors">← Kembali ke Beranda</a>
+    <div class="mt-4 p-3 bg-gray-800 border border-gray-700 rounded-md text-center shadow-sm">
+      <a href="/" class="text-sm text-gray-300 hover:text-white transition-colors block w-full">Kembali ke Beranda</a>
     </div>
   </div>
 </body>
