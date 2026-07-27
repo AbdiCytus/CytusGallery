@@ -198,6 +198,25 @@ app.get("/api/profil/saves", requireAuth, async (req, res) => {
   }
 });
 
+app.delete("/api/profil/delete", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const userId = req.user.id;
+    // Hapus relasi
+    await prisma.savedContent.deleteMany({ where: { userId } });
+    await prisma.followedTag.deleteMany({ where: { userId } });
+    await prisma.notification.deleteMany({ where: { userId } });
+    // Hapus user
+    await prisma.user.delete({ where: { id: userId } });
+    
+    res.clearCookie('token');
+    res.json({ success: true, message: "Akun berhasil dihapus" });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ error: "Gagal menghapus akun." });
+  }
+});
+
 app.post("/api/save/:id", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
   try {
@@ -386,7 +405,11 @@ const root = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const contentsParams = { page: page, limit: limit };
+    let baseTags = "";
+    if (!res.locals.isBypass) {
+      baseTags = "-rating:e -rating:q";
+    }
+    const contentsParams = { tags: baseTags, page: page, limit: limit };
     const contents = await axios.get(basePostsURL, { params: contentsParams });
     const posts = contents.data;
 
@@ -507,7 +530,7 @@ const detail = async (req, res) => {
     const post = response.data;
     
     // Check if the post is Explicit or Questionable
-    if (post.rating === 'e' || post.rating === 'q') {
+    if ((post.rating === 'e' || post.rating === 'q') && !res.locals.isBypass) {
       return res.status(404).render("error", {
         message: "Konten tidak ditemukan. Konten mungkin dihapus atau disembunyikan karena rating."
       });
@@ -588,14 +611,17 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
     const tagsToCheck = follows.sort((a, b) => a.updatedAt - b.updatedAt).slice(0, 5);
     
     let ratingFilter = '';
-    if (ratingParam === 'g') {
-       ratingFilter = '+rating:g';
-    } else if (ratingParam === 'not_e') {
-       ratingFilter = '+rating:s,g';
+    if (process.env.BYPASSEXPLICITCONTENTACCOUNT && req.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) {
+      ratingFilter = '';
     } else {
-       ratingFilter = '+-rating:e+-rating:q';
+      if (ratingParam === 'g') {
+         ratingFilter = '+rating:g';
+      } else if (ratingParam === 'not_e') {
+         ratingFilter = '+rating:s';
+      } else {
+         ratingFilter = '+-rating:e+-rating:q';
+      }
     }
-
     for (const tag of tagsToCheck) {
       try {
         const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=1`;
@@ -788,17 +814,23 @@ setInterval(async () => {
   const prisma = require('./lib/prisma');
   const axios = require('axios');
   try {
-    // Process 10 oldest checked tags across ALL users
     const tagsToCheck = await prisma.followedTag.findMany({
       orderBy: { updatedAt: 'asc' },
-      take: 10
+      take: 10,
+      include: { user: true }
     });
     if (!tagsToCheck || tagsToCheck.length === 0) return;
 
     for (const tag of tagsToCheck) {
       try {
         // Gunakan rating Safe & Sensitive (not_e) sebagai standar untuk pengecekan background
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}+rating:s,g&limit=1`;
+        let ratingFilter = '+rating:s,g';
+        // Bypass untuk user dengan akses explicit
+        if (process.env.BYPASSEXPLICITCONTENTACCOUNT && tag.user && tag.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) {
+          ratingFilter = '';
+        }
+        
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=1`;
         const dRes = await axios.get(query);
         const posts = dRes.data;
         

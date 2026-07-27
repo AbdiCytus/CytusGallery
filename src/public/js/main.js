@@ -200,21 +200,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (filters) {
       let explicitLocked = true;
+      const isBypassUser = document.getElementById("rating-e") !== null;
 
       if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
         if (filters.rating === "not_e") {
-          // Moderate only shows Safe (g) and Sensitive (s)
-          filterQueryParts.push("rating:s,g");
+          // Moderate only shows Sensitive (s)
+          filterQueryParts.push("rating:s");
           explicitLocked = false;
         } else if (filters.rating === "g") {
           filterQueryParts.push("rating:g");
           explicitLocked = false;
+        } else if (filters.rating === "e") {
+          if (isBypassUser) {
+            filterQueryParts.push("rating:e,q");
+            explicitLocked = false;
+          } else {
+            // Force fallback if user logged out but still has 'e' in local storage
+            filterQueryParts.push("rating:g");
+            explicitLocked = false;
+          }
         }
+      } else if (!filters.ratingToggle && isBypassUser) {
+        // Toggle is off and user has bypass: don't lock explicit
+        explicitLocked = false;
       }
       
       if (explicitLocked) {
-        // Locked explicit means showing everything except 'e'
+        // Locked explicit means showing everything except 'e' and 'q'
         filterQueryParts.push("-rating:e");
+        filterQueryParts.push("-rating:q");
       }
       if (filters.typeToggle && filters.type) {
         let typeTag = "";
@@ -256,8 +270,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const loadFiltersToUI = () => {
     if (!filterForm) return;
-    const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
-    if (!filters) return;
+    let filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+    let wasMissing = false;
+    if (!filters) {
+      filters = {
+        ratingToggle: true,
+        rating: "g",
+        typeToggle: false,
+        type: "image",
+        limit: "25",
+        autoplayToggle: false,
+        lazyloadToggle: true,
+      };
+      localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+      wasMissing = true;
+    }
     const {
       ratingToggle,
       rating,
@@ -276,8 +303,15 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("rating-options")
         .classList.toggle("hidden", !ratingToggle);
       if (rating) {
+        let actualRating = rating;
+        if (actualRating === "e" && document.getElementById("rating-e") === null) {
+            actualRating = "g";
+            filters.rating = "g";
+            localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+            wasMissing = true;
+        }
         const ratingInput = document.querySelector(
-          `input[name="rating"][value="${rating}"]`
+          `input[name="rating"][value="${actualRating}"]`
         );
         if (ratingInput) ratingInput.checked = true;
       }
@@ -302,9 +336,10 @@ document.addEventListener("DOMContentLoaded", () => {
       /\btheme-\S+/g,
       ""
     );
-    if (ratingToggle && rating) {
-      if (rating === "g") document.body.classList.add("theme-safe");
-      if (rating === "not_e") document.body.classList.add("theme-moderate");
+    if (filters.ratingToggle && filters.rating) {
+      if (filters.rating === "g") document.body.classList.add("theme-safe");
+      if (filters.rating === "not_e") document.body.classList.add("theme-moderate");
+      if (filters.rating === "e") document.body.classList.add("theme-explicit");
     }
     
     const scrollToggleEl = document.getElementById("scroll-toggle");
@@ -321,6 +356,13 @@ document.addEventListener("DOMContentLoaded", () => {
       themeToggleEl.checked = themeToggle || false;
       if (themeToggleEl.checked) document.body.classList.add("light-mode");
       else document.body.classList.remove("light-mode");
+    }
+
+    if (wasMissing && window.location.pathname === '/search') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const tags = searchParams.get("tags") || "";
+      const page = searchParams.get("page") || 1;
+      navigateWithFilters(tags, parseInt(page));
     }
   };
 

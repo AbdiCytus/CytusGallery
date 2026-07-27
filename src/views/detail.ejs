@@ -36,7 +36,7 @@
           </div>
         </div>
 
-        <%const renderTags = (title, tagString, colorClass, tagType, collapsible = false) => {
+        <% const renderTags = (title, tagString, colorClass, tagType, collapsible = false) => {
             if (tagString && tagString.trim() !== '') {
                   const tags = tagString.split(' ');%>
         <div class="<%= collapsible ? 'mt-4' : '' %>">
@@ -76,22 +76,29 @@
         <% renderTags('Meta Tags', post.tag_string_meta, 'text-yellow-400', null); %>
         <% renderTags('General Tags', post.tag_string_general, 'text-blue-400', null, true); %>
 
-        <div class="pt-4 space-y-3">
-          <% if (locals.user) { %>
-            <button id="save-button" class="w-full bg-<%= isSaved ? 'green' : 'yellow' %>-600 hover:bg-<%= isSaved ? 'green' : 'yellow' %>-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors">
-              <svg class="w-5 h-5" fill="<%= isSaved ? 'currentColor' : 'none' %>" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-              <span id="save-button-text"><%= isSaved ? 'Tersimpan' : 'Simpan Konten' %></span>
+        <div class="pt-4 flex flex-col gap-3">
+          <div class="flex gap-3">
+            <% if (locals.user) { %>
+              <button id="save-button" class="flex-1 <%= isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700' %> text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors" title="Simpan Konten">
+                <svg class="w-5 h-5 flex-shrink-0" fill="<%= isSaved ? 'currentColor' : 'none' %>" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                <span id="save-button-text" class="truncate text-base"><%= isSaved ? 'Tersimpan' : 'Simpan' %></span>
+              </button>
+            <% } %>
+            <button id="download-button" class="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors" title="Download Original">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span class="truncate text-base">Download</span>
             </button>
-          <% } %>
-          <button id="download-button" class="w-full block text-center bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md">
-            Download Original
-          </button>
-          <a href="<%= post.large_file_url %>" target="_blank" rel="noopener noreferrer" class="w-full block text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
-            Lihat Gambar Penuh
-          </a>
-          <button id="share-button" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md">
-            Salin Link
-          </button>
+          </div>
+          <div class="flex gap-3">
+            <a href="<%= post.large_file_url %>" target="_blank" rel="noopener noreferrer" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors" title="Lihat Gambar Penuh">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+              <span class="truncate text-base">Lihat Penuh</span>
+            </a>
+            <button id="share-button" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md flex items-center justify-center gap-2 transition-colors" title="Salin Link">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+              <span class="truncate text-base">Salin Link</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -137,6 +144,7 @@
   // Validasi rating di sisi klien (agar tidak tembus via link langsung)
   (function() {
     const postRating = '<%= post.rating %>';
+    const isBypass = "<%= locals.isBypass ? 'true' : 'false' %>" === "true";
     const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters')) || {};
     const mainContent = document.getElementById('main-content');
     const errorContent = document.getElementById('error-content');
@@ -148,15 +156,15 @@
       if(errorMessage) errorMessage.textContent = msg;
     };
     
-    if (postRating === 'e') {
-      showError('Konten explicit telah dikunci dan tidak dapat diakses.');
+    if ((postRating === 'e' || postRating === 'q') && !isBypass) {
+      showError('Konten tidak ditemukan.');
       return;
     }
     
     if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
       if (filters.rating === 'g' && postRating !== 'g') {
         showError('Konten ini tidak sesuai dengan filter Safe Anda.');
-      } else if (filters.rating === 'not_e' && postRating === 'q') {
+      } else if (filters.rating === 'not_e' && (postRating === 'q' || postRating === 'e')) {
         showError('Konten ini tidak sesuai dengan filter Moderate Anda.');
       }
     }

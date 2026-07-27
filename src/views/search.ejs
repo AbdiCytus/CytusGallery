@@ -22,13 +22,22 @@
     <div class="swiper-wrapper">
       <% sliderPosts.forEach((post, index) => { %>
       <% if(post.large_file_url) { %>
-      <div class="swiper-slide group gallery-item relative z-0 bg-gray-800 rounded-lg overflow-hidden group-hover:z-10" data-post-url="/posts/<%= post.id %>" <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
+      <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
+      <div class="swiper-slide group gallery-item relative z-0 bg-gray-800 rounded-lg overflow-hidden group-hover:z-10 <%= isSaved ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
         
         <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
           <%= index + 1 %>
         </div>
 
         <div class="absolute top-0 right-0 z-20 flex pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
+          <% if ((post.file_ext === 'mp4' || post.file_ext === 'webm') && post.media_asset && post.media_asset.duration) { %>
+            <% 
+              const durationSec = Math.floor(post.media_asset.duration);
+              const m = Math.floor(durationSec / 60).toString().padStart(2, '0');
+              const s = (durationSec % 60).toString().padStart(2, '0');
+            %>
+            <span class="bg-gray-800/80 text-white text-[10px] font-bold px-2 py-1 shadow-sm"><%= m %>:<%= s %></span>
+          <% } %>
           <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-md shadow-sm"><%= post.file_ext.toUpperCase() %></span><% if (post.rating) { %><% 
             let ratingColor = '';
             switch (post.rating) {
@@ -56,7 +65,6 @@
               <div class="flex gap-2 mt-2 pointer-events-auto">
                 <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors font-bold">Lihat Detail</a>
                 <% if (locals.user) { %>
-                <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
                 <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">
                   <% if (isSaved) { %>
                     <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
@@ -83,12 +91,21 @@
     <% if (posts && posts.length > 0) { %>
     <% posts.forEach((post, index) => { %>
     <% if (post.large_file_url) { %>
-    <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden" data-post-url="/posts/<%= post.id %>" <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
+    <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
+    <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden <%= isSaved ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %> data-is-video="true" data-video-url="<%= post.large_file_url %>" data-preview-url="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" <% } else { %> data-is-video="false" <% } %>>
       <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
         <%= ((currentPage - 1) * limit) + index + 1 %>
       </div>
 
       <div class="absolute top-0 right-0 z-20 flex items-start pointer-events-none transition-opacity duration-300 group-hover:opacity-0 drop-shadow-md">
+        <% if ((post.file_ext === 'mp4' || post.file_ext === 'webm') && post.media_asset && post.media_asset.duration) { %>
+          <% 
+            const durationSec = Math.floor(post.media_asset.duration);
+            const m = Math.floor(durationSec / 60).toString().padStart(2, '0');
+            const s = (durationSec % 60).toString().padStart(2, '0');
+          %>
+          <span class="bg-gray-800/80 text-white text-[10px] font-bold px-2 py-1 shadow-sm"><%= m %>:<%= s %></span>
+        <% } %>
         <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-md"><%= post.file_ext.toUpperCase() %></span>
         <% let rc; if(post.rating==='g')rc='bg-green-600'; if(post.rating==='s')rc='bg-yellow-600'; if(post.rating==='q')rc='bg-purple-600'; if(post.rating==='e')rc='bg-red-600'; %>
         <% if (post.rating) { %>
@@ -113,7 +130,6 @@
           <div class="flex gap-2 mt-2 pointer-events-auto">
             <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors font-bold">Lihat Detail</a>
             <% if (locals.user) { %>
-            <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
             <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">
               <% if (isSaved) { %>
                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>

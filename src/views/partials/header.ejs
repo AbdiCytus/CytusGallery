@@ -60,17 +60,34 @@
         const params = new URLSearchParams();
         let filterQueryParts = [];
 
-        // Rating toggle is implicitly always active in Milestone 2.
-        // rating: 'g' means safe. 'not_e' means safe + moderate.
-        if (filters.rating) {
-          if (filters.rating === "g") {
+        let explicitLocked = true;
+        const isBypassUser = <%= locals.isBypass ? 'true' : 'false' %>;
+
+        if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
+          if (filters.rating === "not_e") {
+             filterQueryParts.push("rating:s");
+             explicitLocked = false;
+          } else if (filters.rating === "g") {
              filterQueryParts.push("rating:g");
-          } else if (filters.rating === "not_e") {
-             filterQueryParts.push("rating:s,g");
+             explicitLocked = false;
+          } else if (filters.rating === "e") {
+             if (isBypassUser) {
+                filterQueryParts.push("rating:e,q");
+                explicitLocked = false;
+             } else {
+                filterQueryParts.push("rating:g");
+                explicitLocked = false;
+                filters.rating = "g";
+                localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+             }
           }
-          // Always exclude explicit and questionable
-          filterQueryParts.push("-rating:e");
-          filterQueryParts.push("-rating:q");
+        } else if (!filters.ratingToggle && isBypassUser) {
+          explicitLocked = false;
+        }
+
+        if (explicitLocked) {
+           filterQueryParts.push("-rating:e");
+           filterQueryParts.push("-rating:q");
         }
         if (filters.typeToggle && filters.type) {
           let typeTag = '';
@@ -162,19 +179,22 @@
       <form action="/search" method="GET" id="filter-form">
         <div class="space-y-6 text-gray-300">
           <div>
-            <div class="flex justify-between items-center hidden">
-              <h3 class="font-semibold text-white">Filter Rating Toggle</h3>
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="font-semibold text-white">Filter Rating</h3>
               <label for="rating-toggle" class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="rating-toggle" class="sr-only peer" checked>
                 <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
               </label>
             </div>
-            <h3 class="font-semibold text-white mb-3">Filter Rating</h3>
             <div id="rating-options" class="space-y-2">
               <input type="radio" name="rating" value="g" id="rating-g" class="hidden peer/safe">
               <label for="rating-g" class="w-full block text-start px-3 py-2 border-2 border-transparent rounded-md text-sm cursor-pointer hover:bg-gray-700 peer-checked/safe:border-green-500 peer-checked/safe:bg-green-900/50">Safe</label>
               <input type="radio" name="rating" value="not_e" id="rating-not_e" class="hidden peer/moderate">
               <label for="rating-not_e" class="w-full block text-start px-3 py-2 border-2 border-transparent rounded-md text-sm cursor-pointer hover:bg-gray-700 peer-checked/moderate:border-yellow-500 peer-checked/moderate:bg-yellow-900/50">Moderate</label>
+              <% if (locals.isBypass) { %>
+              <input type="radio" name="rating" value="e" id="rating-e" class="hidden peer/explicit">
+              <label for="rating-e" class="w-full block text-start px-3 py-2 border-2 border-transparent rounded-md text-sm cursor-pointer hover:bg-gray-700 peer-checked/explicit:border-red-500 peer-checked/explicit:bg-red-900/50">Explicit</label>
+              <% } %>
             </div>
           </div>
 

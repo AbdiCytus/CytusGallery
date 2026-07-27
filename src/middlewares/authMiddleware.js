@@ -26,6 +26,7 @@ const checkUser = async (req, res, next) => {
       if (user) {
         req.user = user;
         res.locals.user = user;
+        res.locals.isBypass = (process.env.BYPASSEXPLICITCONTENTACCOUNT && user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) || false;
       } else {
         req.user = null;
         res.locals.user = null;

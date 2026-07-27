@@ -27,13 +27,30 @@
               Ganti Foto
             </button>
           </form>
-          <a href="/logout" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-lg">
+          <a href="/logout" class="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2 rounded-md font-medium transition-colors border border-gray-600 shadow-sm">
             Logout
           </a>
+          <button onclick="deleteAccount()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-lg">
+            Hapus Akun
+          </button>
         </div>
         <p id="avatar-msg" class="text-xs mt-2 hidden text-center md:text-left"></p>
         
         <script>
+          function deleteAccount() {
+            if (confirm("Apakah Anda yakin ingin menghapus akun Anda secara permanen? Semua data koleksi dan notifikasi akan hilang!")) {
+              fetch('/api/profil/delete', { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success) {
+                    window.location.href = '/';
+                  } else {
+                    alert(data.error || "Gagal menghapus akun.");
+                  }
+                })
+                .catch(err => alert("Terjadi kesalahan saat menghapus akun."));
+            }
+          }
           document.getElementById('avatar-input').addEventListener('change', async function() {
             if (!this.files || !this.files[0]) return;
             const formData = new FormData(document.getElementById('avatar-form'));
@@ -81,6 +98,9 @@
               <option value="" <%= typeof currentRating !== 'undefined' && currentRating === '' ? 'selected' : '' %>>Semua Rating</option>
               <option value="g" <%= typeof currentRating !== 'undefined' && currentRating === 'g' ? 'selected' : '' %>>Safe</option>
               <option value="s" <%= typeof currentRating !== 'undefined' && currentRating === 's' ? 'selected' : '' %>>Sensitive</option>
+              <% if (locals.isBypass) { %>
+              <option value="e" <%= typeof currentRating !== 'undefined' && currentRating === 'e' ? 'selected' : '' %>>Explicit</option>
+              <% } %>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
