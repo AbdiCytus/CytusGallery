@@ -748,6 +748,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const showRecentTags = () => {
+    if (searchInput && searchInput.value.trim() !== '') {
+       suggestionsBox.classList.add("hidden");
+       return;
+    }
     let recentTags = JSON.parse(localStorage.getItem('recentSearchTags') || '[]');
     if (recentTags.length > 0) {
       suggestionsBox.innerHTML = '<div class="px-3 py-1 text-xs text-gray-500 font-bold uppercase tracking-wider">Recent Searches</div>';
@@ -831,6 +835,9 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const response = await fetch(`/api/tagsuggest?term=${currentTerm}`);
         const tags = await response.json();
+        
+        // Prevent race conditions when user types space and clears input before fetch completes
+        if (searchInputVisual.value.trim() !== currentTerm) return;
 
         suggestionsBox.innerHTML = "";
 
