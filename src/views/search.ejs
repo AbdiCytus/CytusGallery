@@ -86,7 +86,12 @@
     <div class="swiper-button-prev text-white"></div>
   </div>
   <% } %>
-  <h2 class="text-2xl font-bold mb-4 text-white text-start">Contents</h2>
+  <h2 class="text-2xl font-bold mb-4 text-white text-start flex items-center gap-2">
+    Contents 
+    <% if (locals.totalPosts && locals.totalPosts > 0) { %>
+      <span class="text-gray-400 text-lg font-normal">(<%= Number(locals.totalPosts).toLocaleString('en-US') %>)</span>
+    <% } %>
+  </h2>
   <div id="main-gallery" class="columns-2 md:columns-5 gap-4 space-y-4">
 
     <%# Cek apakah ada postingan untuk ditampilkan %>

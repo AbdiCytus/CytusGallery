@@ -394,7 +394,10 @@ async function getTotalPostsWithParams(tags, query, limit) {
     totalPosts = getCounts.data.counts.posts;
   }
 
-  return Math.ceil(totalPosts / limit);
+  return {
+    totalPosts,
+    totalPages: Math.ceil(totalPosts / limit)
+  };
 }
 
 //2. Functional Routes
@@ -443,6 +446,7 @@ const root = async (req, res) => {
       currentPage: page,
       tagsForPagination: "",
       totalPages: totalPages,
+      totalPosts: totalPosts,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
     });
@@ -476,7 +480,9 @@ const search = async (req, res) => {
     const contents = await axios.get(basePostsURL, { params: contentsParams });
 
     posts = contents.data;
-    totalPages = await getTotalPostsWithParams(userTags, filterQuery, limit);
+    const stats = await getTotalPostsWithParams(userTags, filterQuery, limit);
+    totalPages = stats.totalPages;
+    let totalPosts = stats.totalPosts;
 
     if (page === 1) {
       userTags
@@ -507,6 +513,7 @@ const search = async (req, res) => {
       popularCharacters: popularCharacters,
       currentPage: page,
       totalPages: totalPages,
+      totalPosts: totalPosts,
       tagsForPagination: allTags,
       userTags: userTags,
       limit: limit,

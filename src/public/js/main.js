@@ -251,6 +251,25 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = queryString ? `/search?${queryString}` : "/";
   };
 
+  // Intercept raw tag links (e.g. from profile or other pages) to apply local filters
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a');
+    if (a && a.href && a.href.includes('/search?tags=')) {
+      try {
+        const url = new URL(a.href);
+        if (url.origin === window.location.origin) {
+          const tags = url.searchParams.get('tags');
+          // If there is no 'query' parameter, it means filters aren't applied yet
+          if (tags && !url.searchParams.has('query')) {
+            e.preventDefault();
+            showLoader("Applying filters...");
+            navigateWithFilters(tags, 1);
+          }
+        }
+      } catch (err) {}
+    }
+  });
+
   const saveFilters = () => {
     if (!filterForm) return;
     const formData = new FormData(filterForm);
@@ -445,8 +464,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       gallery.className = "flex gap-4 items-start w-full";
       
-      const items = Array.from(gallery.querySelectorAll('.gallery-item'));
-      if (items.length === 0) return;
+      gallery._masonryItems = Array.from(gallery.querySelectorAll('.gallery-item'));
+      if (gallery._masonryItems.length === 0) return;
 
       const getCols = () => {
         if (window.innerWidth >= 1280) return 5;
@@ -475,7 +494,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const colHeights = new Array(cols).fill(0);
         
-        items.forEach(item => {
+        gallery._masonryItems.forEach(item => {
           let minCol = 0;
           let minHeight = colHeights[0];
           for (let i = 1; i < cols; i++) {
@@ -497,6 +516,12 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           colHeights[minCol] += ratio; 
         });
+      };
+
+      gallery.appendMasonryItems = (newItemsList) => {
+         newItemsList.forEach(el => gallery._masonryItems.push(el));
+         colDivs = []; // force re-render
+         renderGrid();
       };
 
       renderGrid();
@@ -1012,6 +1037,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (e) => {
     // Ignore if user is typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Check if infinite scroll is active; if so, disable arrow navigation
+    const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters") || "{}");
+    if (filters.scrollToggle) return;
+
     
     // Also ignore if the search bar dropdown is open, maybe? Not strictly necessary.
     if (e.key === "ArrowRight") {
@@ -1067,9 +1097,13 @@ document.addEventListener("DOMContentLoaded", () => {
                    const doc = parser.parseFromString(text, 'text/html');
                    const newItems = doc.querySelectorAll('#main-gallery .gallery-item');
                    
-                   newItems.forEach(item => {
-                      mainGallery.appendChild(item);
-                   });
+                   if (mainGallery.appendMasonryItems) {
+                      mainGallery.appendMasonryItems(Array.from(newItems));
+                   } else {
+                      newItems.forEach(item => {
+                         mainGallery.appendChild(item);
+                      });
+                   }
                    
                    nextPage++;
                    if (nextPage > totalPages) {
