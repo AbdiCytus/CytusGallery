@@ -20,6 +20,7 @@
     <h2 class="text-2xl font-bold mb-4 text-white text-start">Contents of the Month</h2>
     <div class="swiper mb-12">
       <div class="swiper-wrapper">
+        <% let validSliderIndex = 0; %>
         <% sliderPosts.forEach((post, index) => { %>
         <% if(post.large_file_url) { %>
         <% const isVideo = post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm'); %>
@@ -27,7 +28,7 @@
         <div class="swiper-slide group gallery-item relative z-0 bg-gray-800 rounded-lg overflow-hidden group-hover:z-10" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
           
           <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
-            <%= index + 1 %>
+            <%= validSliderIndex + 1 %>
           </div>
 
           <div class="absolute top-0 right-0 z-20 flex pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
@@ -71,6 +72,7 @@
             </div>
           </div>
         </div>
+        <% validSliderIndex++; %>
         <% } %>
         <% }); %>
       </div>
