@@ -484,9 +484,45 @@ const search = async (req, res) => {
     totalPages = stats.totalPages;
     let totalPosts = stats.totalPosts;
 
+    let smartSearchTags = [];
+    let invalidTag = null;
+    let actualUserTags = userTags;
+    let allTagsFinal = allTags;
+
+    if (posts.length === 0 && userTags) {
+      try {
+        const tagSuggestRes = await axios.get("https://danbooru.donmai.us/tags.json", {
+          params: {
+            "search[name_matches]": `*${userTags}*`,
+            "search[order]": "count",
+            "limit": 6
+          }
+        });
+        
+        const suggestions = tagSuggestRes.data;
+        // Danbooru sometimes returns empty or unrelated tags, filter by count > 0 if needed
+        if (suggestions && suggestions.length > 0) {
+          invalidTag = userTags;
+          smartSearchTags = suggestions;
+          actualUserTags = suggestions[0].name;
+          allTagsFinal = `${actualUserTags} ${filterQuery}`;
+          
+          const newParams = { tags: allTagsFinal, page: page, limit: limit };
+          const newContents = await axios.get(basePostsURL, { params: newParams });
+          posts = newContents.data;
+          
+          const newStats = await getTotalPostsWithParams(actualUserTags, filterQuery, limit);
+          totalPages = newStats.totalPages;
+          totalPosts = newStats.totalPosts;
+        }
+      } catch (err) {
+         console.error("Smart Search Error:", err.message);
+      }
+    }
+
     if (page === 1) {
-      userTags
-        ? (sliderPosts = await getTopPosts(userTags, filterQuery, 15))
+      actualUserTags
+        ? (sliderPosts = await getTopPosts(actualUserTags, filterQuery, 15))
         : (sliderPosts = await getTopPostsThisMonth(15, filterQuery));
     }
 
@@ -514,8 +550,11 @@ const search = async (req, res) => {
       currentPage: page,
       totalPages: totalPages,
       totalPosts: totalPosts,
-      tagsForPagination: allTags,
-      userTags: userTags,
+      tagsForPagination: allTagsFinal,
+      userTags: actualUserTags,
+      originalUserTags: userTags,
+      invalidTag: invalidTag,
+      smartSearchTags: smartSearchTags,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
     });
