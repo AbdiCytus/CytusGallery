@@ -1155,14 +1155,17 @@ window.savePostOverlay = async function(event, postId, btnEl) {
     const data = await res.json();
     
     if (data.saved !== undefined) {
+      const galleryItem = btnEl.closest('.gallery-item');
       if (data.saved) {
         btnEl.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'bg-yellow-600', 'hover:bg-yellow-700');
         btnEl.classList.add('bg-green-600', 'hover:bg-green-700');
-        btnEl.innerHTML = `<svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>`;
+        btnEl.innerHTML = `<svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>`;
+        if(galleryItem) galleryItem.classList.add('border-4', 'border-yellow-500');
       } else {
-        btnEl.classList.remove('bg-gray-700', 'hover:bg-gray-600', 'bg-green-600', 'hover:bg-green-700');
-        btnEl.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
-        btnEl.innerHTML = `<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>`;
+        btnEl.classList.remove('bg-green-600', 'hover:bg-green-700', 'bg-yellow-600', 'hover:bg-yellow-700');
+        btnEl.classList.add('bg-gray-700', 'hover:bg-gray-600');
+        btnEl.innerHTML = `<svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>`;
+        if(galleryItem) galleryItem.classList.remove('border-4', 'border-yellow-500');
       }
       if (typeof window.showAlert === 'function') {
         window.showAlert('Berhasil', data.message, null);
@@ -1237,3 +1240,25 @@ window.forceDownload = async function(url, filename, btnEl) {
     }
   }
 };
+
+// Tambahkan animasi loading saat navigasi halaman antar menu
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('a');
+  if (link && link.href) {
+    try {
+      const url = new URL(link.href);
+      const isInternal = url.origin === window.location.origin;
+      const isAnchor = url.hash && url.pathname === window.location.pathname;
+      const isSpecial = link.target === '_blank' || link.hasAttribute('download');
+      
+      if (isInternal && !isAnchor && !isSpecial) {
+        // Jangan tampilkan loader jika ini adalah request pagination masonry atau action button
+        if (!link.classList.contains('follow-btn') && !link.classList.contains('action-btn') && !link.classList.contains('tag-link')) {
+          if (typeof window.showLoader === 'function') {
+             window.showLoader("Memuat Halaman...");
+          }
+        }
+      }
+    } catch(err){}
+  }
+});

@@ -264,8 +264,13 @@
   followBtns.forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
+      if (btn.disabled) return;
       const tagName = btn.dataset.tag;
       const tagType = btn.dataset.type;
+      
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = `<svg class="w-4 h-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+      btn.disabled = true;
       
       try {
         const res = await fetch('/api/follow', {
@@ -273,6 +278,9 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tagName, tagType })
         });
+        
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
         
         if (!res.ok) {
            if (res.status === 401) window.location.href = '/login';
@@ -291,18 +299,20 @@
           btn.classList.replace('hover:bg-gray-500', 'bg-cyan-600');
           btn.classList.add('hover:bg-cyan-700');
           btn.title = 'Unfollow';
-          followIcon.classList.replace('block', 'hidden');
-          followedIcon.classList.replace('hidden', 'block');
+          if(followIcon) followIcon.classList.replace('block', 'hidden');
+          if(followedIcon) followedIcon.classList.replace('hidden', 'block');
         } else {
           btn.classList.replace('text-white', 'text-gray-400');
           btn.classList.replace('bg-cyan-600', 'hover:bg-gray-500');
           btn.classList.remove('hover:bg-cyan-700');
           btn.title = 'Follow';
-          followedIcon.classList.replace('block', 'hidden');
-          followIcon.classList.replace('hidden', 'block');
+          if(followedIcon) followedIcon.classList.replace('block', 'hidden');
+          if(followIcon) followIcon.classList.replace('hidden', 'block');
         }
       } catch (err) {
         console.error(err);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
       }
     });
   });

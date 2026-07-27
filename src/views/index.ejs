@@ -125,7 +125,7 @@
         <% } %>
       </div>
 
-      <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
         <div class="overlay-content">
           <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
           <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>

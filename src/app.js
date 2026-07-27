@@ -46,6 +46,8 @@ app.use(checkUser);
 
 app.use((req, res, next) => {
   res.locals.tags = req.query.tags || "";
+  // Fix Netlify Cache Issue for Auth & dynamic content
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   next();
 });
 
