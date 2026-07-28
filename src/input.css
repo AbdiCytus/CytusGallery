@@ -166,5 +166,13 @@ body.light-mode header {
 
 /* Fix bug masonry di halaman profil sudah di-handle oleh rule di atas */
 
+@keyframes slideRight {
+  0% { transform: translateX(-100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-slide-right {
+  animation: slideRight 0.3s ease-out forwards;
+}
 
 }

@@ -179,7 +179,7 @@ router.get('/api/auth/callback/orbit', async (req, res) => {
       if (user) {
         user = await prisma.user.update({
           where: { id: user.id },
-          data: { orbitId: profile.sub, avatarUrl: profile.picture }
+          data: { orbitId: profile.sub, ...(user.avatarUrl ? {} : { avatarUrl: profile.picture }) }
         });
       } else {
         user = await prisma.user.create({

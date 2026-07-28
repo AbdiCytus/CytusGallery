@@ -107,7 +107,7 @@
     <div id="tab-koleksi-content" class="pt-6 block">
       <% if (userProfile.saves.length > 0 || (typeof currentSearch !== 'undefined' && currentSearch !== '') || (typeof currentRating !== 'undefined' && currentRating !== '')) { %>
         <!-- Filter, Search, and View Toggle -->
-        <form id="profil-form" action="/profil" method="GET" class="grid grid-cols-2 sm:flex sm:flex-row items-center gap-4 mb-4 w-full relative z-20">
+        <form id="profil-form" action="/profil" method="GET" class="grid grid-cols-2 sm:flex sm:flex-row items-center gap-4 mb-4 w-full relative z-40">
           
           <!-- Rating Filter: Mobile Row 2 Left, Desktop Left -->
           <div class="relative order-2 sm:order-1 col-span-1">
@@ -146,28 +146,45 @@
         
       <% if (userProfile.saves.length > 0) { %>
         <!-- Masonry View -->
-        <div id="koleksi-masonry" class="columns-2 sm:columns-3 md:columns-4 lg:columns-5 gap-4 space-y-4" style="column-fill: balance;">
-          <% userProfile.saves.forEach(save => { 
+        <div id="koleksi-masonry" class="columns-2 md:columns-5 gap-4 space-y-4">
+          <% userProfile.saves.forEach((save, index) => { 
              const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
           %>
-            <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item" <%= isVideo ? 'data-is-video="true"' : '' %>>
-              <a href="/posts/<%= save.postId %>" class="block relative w-full h-full">
+            <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer" data-post-url="/posts/<%= save.postId %>" <%= isVideo ? 'data-is-video="true"' : '' %> data-video-url="<%= isVideo ? save.fileUrl : '' %>">
+                <div class="absolute top-0 left-0 z-30 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
+                  <%= index + 1 %>
+                </div>
                 <% if (isVideo && save.fileUrl) { %>
-                  <div class="relative w-full pb-[100%]">
-                    <img src="<%= save.imageUrl %>" class="absolute inset-0 w-full h-full object-cover video-preview" alt="Saved Post <%= save.postId %>" loading="lazy">
+                  <div class="media-container relative w-full pb-[100%] bg-black">
+                    <img src="<%= save.imageUrl %>" class="absolute inset-0 w-full h-full object-cover video-preview transition-transform duration-300 group-hover:scale-105" alt="Saved Post <%= save.postId %>" loading="lazy">
                     <video src="<%= save.fileUrl %>" class="absolute inset-0 w-full h-full object-cover video-playback hidden" muted loop playsinline></video>
-                    <div class="absolute top-2 left-2 bg-black/60 rounded-full p-1 video-indicator">
+                    <div class="absolute top-2 left-2 bg-black/60 rounded-full p-1 video-indicator z-20">
                       <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
                     </div>
                   </div>
                 <% } else if (save.imageUrl) { %>
-                  <img src="<%= save.imageUrl %>" class="w-full h-auto object-cover" alt="Saved Post <%= save.postId %>" loading="lazy">
+                  <div class="media-container relative w-full h-auto bg-black">
+                     <img src="<%= save.imageUrl %>" class="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105" alt="Saved Post <%= save.postId %>" loading="lazy">
+                  </div>
                 <% } else { %>
-                  <div class="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center p-4 text-center">
+                  <div class="media-container w-full aspect-[3/4] bg-gray-800 flex items-center justify-center p-4 text-center">
                     <span class="text-sm font-medium text-cyan-400 break-all">ID: <%= save.postId %></span>
                   </div>
                 <% } %>
-              </a>
+                <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+                  <div class="overlay-content">
+                    <h4 class="font-bold truncate text-sm">Post ID: <%= save.postId %></h4>
+                    <p class="text-xs text-gray-400">Score: <%= save.score || 0 %></p>
+                    <div class="flex gap-2 mt-2">
+                      <a href="/posts/<%= save.postId %>" class="detail-button flex-grow bg-cyan-600 hover:bg-cyan-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Lihat Detail">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                      </a>
+                      <button onclick="removeSave('<%= save.postId %>', this, false)" class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Hapus dari Koleksi">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
             </div>
           <% }); %>
         </div>
@@ -419,30 +436,55 @@
             return;
           }
 
-          saves.forEach(save => {
+          let newMasonryElements = [];
+          saves.forEach((save, index) => {
             const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
+            let currentItemCount = masonryContainer._masonryItems ? masonryContainer._masonryItems.length : masonryContainer.querySelectorAll('.gallery-item').length;
             let masonryItem = `
-              <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item" ${isVideo ? 'data-is-video="true"' : ''}>
-                <a href="/posts/${save.postId}" class="block relative w-full h-full">
+              <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer" data-post-url="/posts/${save.postId}" ${isVideo ? 'data-is-video="true"' : ''} data-video-url="${isVideo ? save.fileUrl : ''}">
+                  <div class="absolute top-0 left-0 z-30 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
+                    ${currentItemCount + index + 1}
+                  </div>
                   ${isVideo && save.fileUrl ? `
-                    <div class="relative w-full pb-[100%]">
-                      <img src="${save.imageUrl}" class="absolute inset-0 w-full h-full object-cover video-preview" alt="Saved Post ${save.postId}" loading="lazy">
+                    <div class="media-container relative w-full pb-[100%] bg-black">
+                      <img src="${save.imageUrl}" class="absolute inset-0 w-full h-full object-cover video-preview transition-transform duration-300 group-hover:scale-105" alt="Saved Post ${save.postId}" loading="lazy">
                       <video src="${save.fileUrl}" class="absolute inset-0 w-full h-full object-cover video-playback hidden" muted loop playsinline></video>
-                      <div class="absolute top-2 left-2 bg-black/60 rounded-full p-1 video-indicator">
+                      <div class="absolute top-2 left-2 bg-black/60 rounded-full p-1 video-indicator z-20">
                         <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
                       </div>
                     </div>
                   ` : save.imageUrl ? `
-                    <img src="${save.imageUrl}" class="w-full h-auto object-cover" alt="Saved Post ${save.postId}" loading="lazy">
+                    <div class="media-container relative w-full h-auto bg-black">
+                       <img src="${save.imageUrl}" class="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105" alt="Saved Post ${save.postId}" loading="lazy">
+                    </div>
                   ` : `
-                    <div class="w-full aspect-[3/4] bg-gray-800 flex items-center justify-center p-4 text-center">
+                    <div class="media-container w-full aspect-[3/4] bg-gray-800 flex items-center justify-center p-4 text-center">
                       <span class="text-sm font-medium text-cyan-400 break-all">ID: ${save.postId}</span>
                     </div>
                   `}
-                </a>
+                  <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+                    <div class="overlay-content">
+                      <h4 class="font-bold truncate text-sm">Post ID: ${save.postId}</h4>
+                      <p class="text-xs text-gray-400">Score: ${save.score || 0}</p>
+                      <div class="flex gap-2 mt-2">
+                        <a href="/posts/${save.postId}" class="detail-button flex-grow bg-cyan-600 hover:bg-cyan-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Lihat Detail">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        </a>
+                        <button onclick="removeSave('${save.postId}', this, false)" class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Hapus dari Koleksi">
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
               </div>
             `;
-            if(masonryContainer) masonryContainer.insertAdjacentHTML('beforeend', masonryItem);
+            if (masonryContainer && masonryContainer.appendMasonryItems) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = masonryItem.trim();
+                newMasonryElements.push(tempDiv.firstElementChild);
+            } else if (masonryContainer) {
+                masonryContainer.insertAdjacentHTML('beforeend', masonryItem);
+            }
 
             let sourceName = 'Source';
             if(save.source) {
@@ -519,6 +561,10 @@
             `;
             if(dataContainer) dataContainer.insertAdjacentHTML('beforeend', dataItem);
           });
+          
+          if (newMasonryElements.length > 0 && masonryContainer && masonryContainer.appendMasonryItems) {
+              masonryContainer.appendMasonryItems(newMasonryElements);
+          }
           
           if (saves.length < 25) {
             hasMore = false;

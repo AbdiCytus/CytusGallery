@@ -149,6 +149,43 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   window.showAlert = showAlert;
 
+  window.showToast = function(message, type = 'success') {
+    let toasterContainer = document.getElementById('toaster-container');
+    if (!toasterContainer) {
+      toasterContainer = document.createElement('div');
+      toasterContainer.id = 'toaster-container';
+      toasterContainer.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-[9999] flex flex-col gap-2 pointer-events-none items-center w-full px-4 sm:w-auto sm:px-0';
+      document.body.appendChild(toasterContainer);
+    }
+    
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-cyan-600');
+    toast.className = `${bgColor} text-white px-4 py-2 rounded-full shadow-lg transition-all duration-300 transform -translate-y-10 opacity-0 flex items-center gap-2 pointer-events-auto border border-white/20 text-center`;
+    
+    const iconHtml = type === 'success' 
+      ? `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`
+      : `<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      
+    toast.innerHTML = `${iconHtml}<span class="text-sm font-medium w-full">${message}</span>`;
+    
+    toasterContainer.appendChild(toast);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        toast.classList.remove('-translate-y-10', 'opacity-0');
+      });
+    });
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      toast.classList.add('-translate-y-10', 'opacity-0');
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, 3000);
+  };
+
   const scrollToBottomBtn = document.getElementById("scroll-to-bottom-btn");
 
   if (scrollToTopBtn) {
@@ -460,7 +497,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const initializeMasonry = () => {
-    const galleries = document.querySelectorAll('#main-gallery');
+    const galleries = document.querySelectorAll('#main-gallery, #koleksi-masonry');
     galleries.forEach(gallery => {
       if (gallery.dataset.masonryInitialized) return;
       gallery.dataset.masonryInitialized = 'true';
@@ -1196,8 +1233,8 @@ window.savePostOverlay = async function(event, postId, btnEl) {
         btnEl.innerHTML = `<svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>`;
         if(galleryItem) galleryItem.classList.remove('border-4', 'border-yellow-500');
       }
-      if (typeof window.showAlert === 'function') {
-        window.showAlert('Berhasil', data.message, null);
+      if (typeof window.showToast === 'function') {
+        window.showToast(data.message, data.saved ? 'success' : 'info');
       } else {
         alert(data.message);
       }
@@ -1207,8 +1244,8 @@ window.savePostOverlay = async function(event, postId, btnEl) {
   } catch (err) {
     console.error(err);
     btnEl.innerHTML = originalHtml;
-    if (typeof window.showAlert === 'function') {
-      window.showAlert('Error', 'Terjadi kesalahan saat menyimpan konten.');
+    if (typeof window.showToast === 'function') {
+      window.showToast('Gagal menyimpan konten.', 'error');
     } else {
       alert('Terjadi kesalahan saat menyimpan konten.');
     }

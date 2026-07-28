@@ -72,38 +72,21 @@ app.get("/arona_doro.png", (req, res) => {
 
 const multer = require('multer');
 const os = require('os');
-let uploadDir = path.join(__dirname, 'public', 'uploads');
-try {
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-} catch (e) {
-  // Fallback to /tmp jika filesystem read-only (seperti di Netlify Functions)
-  uploadDir = os.tmpdir();
-}
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    cb(null, `avatar-${req.user.id}-${Date.now()}${ext}`);
-  }
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 app.post("/api/profil/upload", requireAuth, upload.single('avatar'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "Tidak ada file yang diunggah" });
   
-  const avatarUrl = `/uploads/${req.file.filename}`;
+  const base64Str = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
   const prisma = require('./lib/prisma');
   
   try {
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { avatarUrl: avatarUrl }
+      data: { avatarUrl: base64Str }
     });
-    res.json({ message: "Berhasil memperbarui foto profil", avatarUrl });
+    res.json({ message: "Berhasil memperbarui foto profil", avatarUrl: base64Str });
   } catch(e) {
     console.error("Avatar upload error:", e);
     res.status(500).json({ error: "Gagal menyimpan foto profil" });
@@ -912,7 +895,7 @@ setInterval(async () => {
                 await prisma.notification.create({
                   data: {
                     userId: tag.userId,
-                    title: "Konten Baru",
+                    title: `Update Tag: ${tag.tagName}`,
                     message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
                     link: `/posts/${post.id}`,
                     imageUrl: previewUrl,

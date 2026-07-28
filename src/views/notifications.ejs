@@ -33,16 +33,17 @@
           <div class="space-y-3 notif-list">
             <% group.items.forEach(n => { %>
               <div class="relative group notif-item" id="notif-<%= n.id %>">
-                <a href="<%= n.link %>" class="flex p-4 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors shadow-sm">
+                <div class="flex p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-sm">
                   <% if (n.imageUrl) { %>
-                    <img src="<%= n.imageUrl %>" class="w-20 h-20 object-cover rounded-md mr-4 flex-shrink-0" alt="Thumbnail">
+                    <a href="<%= n.link %>" class="block flex-shrink-0">
+                      <img src="<%= n.imageUrl %>" class="w-24 h-24 object-cover rounded-md mr-4 hover:opacity-80 transition-opacity" alt="Thumbnail">
+                    </a>
                   <% } %>
                   <div class="flex-grow flex flex-col justify-center pr-8">
-                    <div class="font-semibold text-white text-lg mb-1"><%= n.title %></div>
-                    <div class="text-sm text-gray-300 mb-2"><%- n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') %></div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center flex-wrap gap-2 mb-1 pr-16">
+                      <div class="font-semibold text-white text-lg"><%= n.title %></div>
                       <% if (n.extension) { %>
-                        <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded"><%= n.extension.toUpperCase() %></span>
+                        <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5"><%= n.extension.toUpperCase() %></span>
                       <% } %>
                       <% if (n.rating) { %>
                         <% 
@@ -52,12 +53,28 @@
                           if (n.rating === 'q') rBg = 'bg-purple-600';
                           if (n.rating === 'e') rBg = 'bg-red-600';
                         %>
-                        <span class="<%= rBg %> text-white text-[10px] font-bold px-2 py-0.5 rounded"><%= n.rating.toUpperCase() %></span>
+                        <span class="<%= rBg %> text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5"><%= n.rating.toUpperCase() %></span>
                       <% } %>
-                      <span class="text-xs text-gray-500 local-time" data-time="<%= n.createdAt %>"></span>
+                    </div>
+                    <div class="text-sm text-gray-300 mb-3"><%- n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') %></div>
+                    <span class="text-xs text-gray-500 local-time absolute top-4 right-4 group-hover:opacity-0 transition-opacity" data-time="<%= n.createdAt %>"></span>
+                    <% 
+                      let tagName = '';
+                      if (n.title.startsWith('Post Baru: ')) tagName = n.title.substring(11);
+                      else if (n.title.startsWith('Update Tag: ')) tagName = n.title.substring(12);
+      else if (n.title === 'Konten Baru') {
+        const m = n.message.match(/dari \*\*(.*?)\*\*/);
+        if (m) tagName = m[1].toLowerCase().replace(/ /g, '_');
+      }
+                    %>
+                    <div class="flex gap-2">
+                      <a href="<%= n.link %>" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Lihat Detail</a>
+                      <% if (tagName) { %>
+                        <a href="/search?tags=<%= encodeURIComponent(tagName) %>" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Kunjungi Tag</a>
+                      <% } %>
                     </div>
                   </div>
-                </a>
+                </div>
                 <button onclick="deleteNotification('single', '<%= n.id %>')" class="absolute top-4 right-4 p-1.5 text-gray-500 hover:text-white hover:bg-red-600 rounded-md transition-colors opacity-0 group-hover:opacity-100 shadow-sm" title="Hapus Notifikasi">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
@@ -178,23 +195,37 @@
         if (n.rating === 's') rBg = 'bg-yellow-600';
         if (n.rating === 'q') rBg = 'bg-purple-600';
         if (n.rating === 'e') rBg = 'bg-red-600';
-
-        const boldMessage = n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        
+        let tagName = '';
+        if (n.title.startsWith('Post Baru: ')) tagName = n.title.substring(11);
+        else if (n.title.startsWith('Update Tag: ')) tagName = n.title.substring(12);
+      else if (n.title === 'Konten Baru') {
+        const m = n.message.match(/dari \*\*(.*?)\*\*/);
+        if (m) tagName = m[1].toLowerCase().replace(/ /g, '_');
+      }
 
         const itemHtml = `
           <div class="relative group notif-item" id="notif-${n.id}">
-            <a href="${n.link}" class="flex p-4 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors shadow-sm">
-              ${n.imageUrl ? `<img src="${n.imageUrl}" class="w-20 h-20 object-cover rounded-md mr-4 flex-shrink-0" alt="Thumbnail">` : ''}
+            <div class="flex p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-sm">
+              ${n.imageUrl ? `
+                <a href="${n.link}" class="block flex-shrink-0">
+                  <img src="${n.imageUrl}" class="w-24 h-24 object-cover rounded-md mr-4 hover:opacity-80 transition-opacity" alt="Thumbnail">
+                </a>
+              ` : ''}
               <div class="flex-grow flex flex-col justify-center pr-8">
-                <div class="font-semibold text-white text-lg mb-1">${n.title}</div>
-                <div class="text-sm text-gray-300 mb-2">${boldMessage}</div>
-                <div class="flex items-center gap-2">
-                  ${n.extension ? `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">${n.extension.toUpperCase()}</span>` : ''}
-                  ${n.rating ? `<span class="${rBg} text-white text-[10px] font-bold px-2 py-0.5 rounded">${n.rating.toUpperCase()}</span>` : ''}
-                  <span class="text-xs text-gray-500 local-time" data-time="${n.createdAt}"></span>
+                <div class="flex items-center flex-wrap gap-2 mb-1 pr-16">
+                  <div class="font-semibold text-white text-lg">${n.title}</div>
+                  ${n.extension ? `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5">${n.extension.toUpperCase()}</span>` : ''}
+                  ${n.rating ? `<span class="${rBg} text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5">${n.rating.toUpperCase()}</span>` : ''}
+                </div>
+                <div class="text-sm text-gray-300 mb-3">${n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div>
+                <span class="text-xs text-gray-500 local-time absolute top-4 right-4 group-hover:opacity-0 transition-opacity" data-time="${n.createdAt}"></span>
+                <div class="flex gap-2">
+                  <a href="${n.link}" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Lihat Detail</a>
+                  ${tagName ? `<a href="/search?tags=${encodeURIComponent(tagName)}" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Kunjungi Tag</a>` : ''}
                 </div>
               </div>
-            </a>
+            </div>
             <button onclick="deleteNotification('single', '${n.id}')" class="absolute top-4 right-4 p-1.5 text-gray-500 hover:text-white hover:bg-red-600 rounded-md transition-colors opacity-0 group-hover:opacity-100 shadow-sm" title="Hapus Notifikasi">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
@@ -239,6 +270,94 @@
       loadMoreNotifications();
     }
   });
+
+  // Listener untuk real-time update dari header.ejs
+  window.addEventListener('notifications-updated', (e) => {
+    const { notifications } = e.detail;
+    if (!notifications || notifications.length === 0) return;
+    
+    // Reverse array to append oldest-first, so newest ends up at the top
+    const newNotifs = [...notifications].reverse();
+    
+    newNotifs.forEach(n => {
+      // Check if it already exists
+      if (document.getElementById(`notif-${n.id}`)) return;
+      
+      const dateObj = new Date(n.createdAt);
+      const dateStr = dateObj.toLocaleDateString('en-CA');
+      const dateLocalStr = dateObj.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
+      const timeLocalStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      let rBg = 'bg-gray-600';
+      if (n.rating === 'g') rBg = 'bg-green-600';
+      if (n.rating === 's') rBg = 'bg-yellow-600';
+      if (n.rating === 'q') rBg = 'bg-purple-600';
+      if (n.rating === 'e') rBg = 'bg-red-600';
+      
+      let tagName = '';
+      if (n.title.startsWith('Post Baru: ')) tagName = n.title.substring(11);
+      else if (n.title.startsWith('Update Tag: ')) tagName = n.title.substring(12);
+      else if (n.title === 'Konten Baru') {
+        const m = n.message.match(/dari \*\*(.*?)\*\*/);
+        if (m) tagName = m[1].toLowerCase().replace(/ /g, '_');
+      }
+
+      const itemHtml = `
+        <div class="relative group notif-item animate-slide-right" id="notif-${n.id}">
+          <div class="flex p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-sm">
+            ${n.imageUrl ? `
+              <a href="${n.link}" class="block flex-shrink-0">
+                <img src="${n.imageUrl}" class="w-24 h-24 object-cover rounded-md mr-4 hover:opacity-80 transition-opacity" alt="Thumbnail">
+              </a>
+            ` : ''}
+            <div class="flex-grow flex flex-col justify-center pr-8">
+              <div class="flex items-center flex-wrap gap-2 mb-1 pr-16">
+                <div class="font-semibold text-white text-lg">${n.title}</div>
+                ${n.extension ? `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5">${n.extension.toUpperCase()}</span>` : ''}
+                ${n.rating ? `<span class="${rBg} text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5">${n.rating.toUpperCase()}</span>` : ''}
+              </div>
+              <div class="text-sm text-gray-300 mb-3">${n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div>
+              <span class="text-xs text-gray-500 local-time absolute top-4 right-4 group-hover:opacity-0 transition-opacity" data-time="${n.createdAt}">${timeLocalStr}</span>
+              <div class="flex gap-2">
+                <a href="${n.link}" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Lihat Detail</a>
+                ${tagName ? `<a href="/search?tags=${encodeURIComponent(tagName)}" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Kunjungi Tag</a>` : ''}
+              </div>
+            </div>
+          </div>
+          <button onclick="deleteNotification('single', '${n.id}')" class="absolute top-4 right-4 p-1.5 text-gray-500 hover:text-white hover:bg-red-600 rounded-md transition-colors opacity-0 group-hover:opacity-100 shadow-sm" title="Hapus Notifikasi">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+      `;
+      
+      // Find or create group
+      let groupDiv = document.querySelector(`.notif-group[data-date="${dateStr}"]`);
+      if (!groupDiv) {
+        groupDiv = document.createElement('div');
+        groupDiv.className = 'mb-8 notif-group';
+        groupDiv.setAttribute('data-date', dateStr);
+        groupDiv.innerHTML = `
+          <div class="flex justify-between items-end border-b border-gray-700 pb-2 mb-4">
+            <h2 class="text-xl font-bold text-gray-300 local-date" data-time="${n.createdAt}">${dateLocalStr}</h2>
+            <button onclick="deleteNotification('day', null, '${n.createdAt}')" class="text-xs text-gray-400 hover:text-red-400 transition-colors flex items-center gap-1">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              Hapus Hari Ini
+            </button>
+          </div>
+          <div class="space-y-3 notif-list"></div>
+        `;
+        if (notifContainer.firstChild) {
+          notifContainer.insertBefore(groupDiv, notifContainer.firstChild);
+        } else {
+          notifContainer.appendChild(groupDiv);
+        }
+      }
+      
+      const listDiv = groupDiv.querySelector('.notif-list');
+      listDiv.insertAdjacentHTML('afterbegin', itemHtml);
+    });
+  });
+
 </script>
 
 <%- include('partials/footer') %>
