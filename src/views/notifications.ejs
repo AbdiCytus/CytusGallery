@@ -15,7 +15,7 @@
     <% if (notifications && notifications.length > 0) { 
         const grouped = {};
         notifications.forEach(n => {
-           const date = new Date(n.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+           const date = new Date(n.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' });
            if (!grouped[date]) grouped[date] = { dateStr: n.createdAt, items: [] };
            grouped[date].items.push(n);
         });
@@ -54,7 +54,7 @@
                         %>
                         <span class="<%= rBg %> text-white text-[10px] font-bold px-2 py-0.5 rounded"><%= n.rating.toUpperCase() %></span>
                       <% } %>
-                      <span class="text-xs text-gray-500"><%= new Date(n.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) %></span>
+                      <span class="text-xs text-gray-500"><%= new Date(n.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) %></span>
                     </div>
                   </div>
                 </a>
@@ -140,7 +140,7 @@
       }
 
       notifs.forEach(n => {
-        const dateStr = new Date(n.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+        const dateStr = new Date(n.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' });
         let groupDiv = notifContainer.querySelector(`.notif-group[data-date="${dateStr}"]`);
         
         if (!groupDiv) {
@@ -169,7 +169,7 @@
         if (n.rating === 'q') rBg = 'bg-purple-600';
         if (n.rating === 'e') rBg = 'bg-red-600';
 
-        const timeStr = new Date(n.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        const timeStr = new Date(n.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
         const boldMessage = n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
         const itemHtml = `

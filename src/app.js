@@ -659,54 +659,60 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
     // Process top 5 oldest checked tags to avoid rate limits
     const tagsToCheck = follows.sort((a, b) => a.updatedAt - b.updatedAt).slice(0, 5);
     
-    let ratingFilter = '';
+    let ratingFilter = '+rating:s,g';
     if (process.env.BYPASSEXPLICITCONTENTACCOUNT && req.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) {
       ratingFilter = '';
-    } else {
-      if (ratingParam === 'g') {
-         ratingFilter = '+rating:g';
-      } else if (ratingParam === 'not_e') {
-         ratingFilter = '+rating:s';
-      } else {
-         ratingFilter = '+-rating:e+-rating:q';
-      }
     }
+    
     for (const tag of tagsToCheck) {
       try {
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=1`;
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=10`;
         const dRes = await axios.get(query);
         const posts = dRes.data;
         
         if (posts && posts.length > 0) {
-          const latestPost = posts[0];
-          if (tag.lastPostId && latestPost.id > tag.lastPostId) {
-            const previewUrl = latestPost.media_asset?.variants?.find(v => v.type === '360x360')?.url || latestPost.preview_file_url || null;
-            let tagTypeName = "General";
-            if (tag.tagType === 1) tagTypeName = "Artist";
-            if (tag.tagType === 3) tagTypeName = "Copyright";
-            if (tag.tagType === 4) tagTypeName = "Character";
-            
-            const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
-            const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
+          let maxPostId = tag.lastPostId || 0;
+          
+          for (const post of posts) {
+            if (tag.lastPostId && post.id > tag.lastPostId) {
+              const previewUrl = post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url || null;
+              let tagTypeName = "General";
+              if (tag.tagType === 1) tagTypeName = "Artist";
+              if (tag.tagType === 3) tagTypeName = "Copyright";
+              if (tag.tagType === 4) tagTypeName = "Character";
+              
+              const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+              const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
+              
+              // Check duplicate
+              const existingNotif = await prisma.notification.findFirst({
+                where: { userId: tag.userId, link: `/posts/${post.id}` }
+              });
 
-            // New post found!
-            await prisma.notification.create({
-              data: {
-                userId,
-                title: "Konten Baru",
-                message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
-                link: `/posts/${latestPost.id}`,
-                imageUrl: previewUrl,
-                extension: latestPost.file_ext,
-                rating: latestPost.rating
+              if (!existingNotif) {
+                await prisma.notification.create({
+                  data: {
+                    userId: tag.userId,
+                    title: "Konten Baru",
+                    message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
+                    link: `/posts/${post.id}`,
+                    imageUrl: previewUrl,
+                    extension: post.file_ext,
+                    rating: post.rating
+                  }
+                });
+                newNotificationsCount++;
               }
-            });
-            newNotificationsCount++;
+            }
+            if (post.id > maxPostId) {
+              maxPostId = post.id;
+            }
           }
+          
           // Update lastPostId and updatedAt
           await prisma.followedTag.update({
             where: { id: tag.id },
-            data: { lastPostId: latestPost.id, updatedAt: new Date() }
+            data: { lastPostId: maxPostId, updatedAt: new Date() }
           });
         }
       } catch (err) {
@@ -879,46 +885,52 @@ setInterval(async () => {
           ratingFilter = '';
         }
         
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=1`;
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=10`;
         const dRes = await axios.get(query);
         const posts = dRes.data;
         
         if (posts && posts.length > 0) {
-          const latestPost = posts[0];
-          if (tag.lastPostId && latestPost.id > tag.lastPostId) {
-            const previewUrl = latestPost.media_asset?.variants?.find(v => v.type === '360x360')?.url || latestPost.preview_file_url || null;
-            let tagTypeName = "General";
-            if (tag.tagType === 1) tagTypeName = "Artist";
-            if (tag.tagType === 3) tagTypeName = "Copyright";
-            if (tag.tagType === 4) tagTypeName = "Character";
-            
-            const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
-            const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
+          let maxPostId = tag.lastPostId || 0;
+          
+          for (const post of posts) {
+            if (tag.lastPostId && post.id > tag.lastPostId) {
+              const previewUrl = post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url || null;
+              let tagTypeName = "General";
+              if (tag.tagType === 1) tagTypeName = "Artist";
+              if (tag.tagType === 3) tagTypeName = "Copyright";
+              if (tag.tagType === 4) tagTypeName = "Character";
+              
+              const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+              const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
 
-            // Check duplicate
-            const existingNotif = await prisma.notification.findFirst({
-              where: { userId: tag.userId, link: `/posts/${latestPost.id}` }
-            });
-
-            if (!existingNotif) {
-              await prisma.notification.create({
-                data: {
-                  userId: tag.userId,
-                  title: "Konten Baru",
-                  message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
-                  link: `/posts/${latestPost.id}`,
-                  imageUrl: previewUrl,
-                  extension: latestPost.file_ext,
-                  rating: latestPost.rating
-                }
+              // Check duplicate
+              const existingNotif = await prisma.notification.findFirst({
+                where: { userId: tag.userId, link: `/posts/${post.id}` }
               });
+
+              if (!existingNotif) {
+                await prisma.notification.create({
+                  data: {
+                    userId: tag.userId,
+                    title: "Konten Baru",
+                    message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
+                    link: `/posts/${post.id}`,
+                    imageUrl: previewUrl,
+                    extension: post.file_ext,
+                    rating: post.rating
+                  }
+                });
+              }
+            }
+            if (post.id > maxPostId) {
+              maxPostId = post.id;
             }
           }
           
           // Update timestamp agar berotasi di antrean
           await prisma.followedTag.update({
             where: { id: tag.id },
-            data: { lastPostId: latestPost.id, updatedAt: new Date() }
+            data: { lastPostId: maxPostId, updatedAt: new Date() }
           });
         } else {
           // Rotasi jika tidak ada post

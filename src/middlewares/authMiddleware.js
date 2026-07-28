@@ -27,6 +27,11 @@ const checkUser = async (req, res, next) => {
         req.user = user;
         res.locals.user = user;
         res.locals.isBypass = (process.env.BYPASSEXPLICITCONTENTACCOUNT && user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) || false;
+        try {
+          res.locals.unreadCount = await prisma.notification.count({ where: { userId: user.id, isRead: false } });
+        } catch (e) {
+          res.locals.unreadCount = 0;
+        }
       } else {
         req.user = null;
         res.locals.user = null;
