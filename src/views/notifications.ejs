@@ -15,7 +15,8 @@
     <% if (notifications && notifications.length > 0) { 
         const grouped = {};
         notifications.forEach(n => {
-           const date = new Date(n.createdAt).toLocaleDateString('en-CA'); // Use YYYY-MM-DD for stable grouping
+           // Gunakan zona waktu Indonesia agar server production (UTC) tidak salah mengelompokkan hari
+           const date = new Date(n.createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); 
            if (!grouped[date]) grouped[date] = { dateStr: n.createdAt, items: [] };
            grouped[date].items.push(n);
         });
