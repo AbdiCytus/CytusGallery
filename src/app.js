@@ -666,7 +666,7 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
     
     for (const tag of tagsToCheck) {
       try {
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=50`;
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=100`;
         const dRes = await axios.get(query);
         const posts = dRes.data;
         
@@ -885,7 +885,7 @@ setInterval(async () => {
           ratingFilter = '';
         }
         
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=50`;
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=100`;
         const dRes = await axios.get(query);
         const posts = dRes.data;
         
