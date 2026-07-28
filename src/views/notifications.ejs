@@ -15,7 +15,7 @@
     <% if (notifications && notifications.length > 0) { 
         const grouped = {};
         notifications.forEach(n => {
-           const date = new Date(n.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' });
+           const date = new Date(n.createdAt).toLocaleDateString('en-CA'); // Use YYYY-MM-DD for stable grouping
            if (!grouped[date]) grouped[date] = { dateStr: n.createdAt, items: [] };
            grouped[date].items.push(n);
         });
@@ -24,7 +24,7 @@
       <% for (const [date, group] of Object.entries(grouped)) { %>
         <div class="mb-8 notif-group" data-date="<%= date %>">
           <div class="flex justify-between items-end border-b border-gray-700 pb-2 mb-4">
-            <h2 class="text-xl font-bold text-gray-300"><%= date %></h2>
+            <h2 class="text-xl font-bold text-gray-300 local-date" data-time="<%= group.dateStr %>"><%= date %></h2>
             <button onclick="deleteNotification('day', null, '<%= group.dateStr %>')" class="text-xs text-gray-400 hover:text-red-400 transition-colors flex items-center gap-1">
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
               Hapus Hari Ini
@@ -54,7 +54,7 @@
                         %>
                         <span class="<%= rBg %> text-white text-[10px] font-bold px-2 py-0.5 rounded"><%= n.rating.toUpperCase() %></span>
                       <% } %>
-                      <span class="text-xs text-gray-500"><%= new Date(n.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) %></span>
+                      <span class="text-xs text-gray-500 local-time" data-time="<%= n.createdAt %>"></span>
                     </div>
                   </div>
                 </a>
@@ -83,6 +83,16 @@
 </main>
 
 <script>
+  // Ubah semua format tanggal/waktu ke zona waktu lokal pengguna
+  document.querySelectorAll('.local-time').forEach(el => {
+    const d = new Date(el.getAttribute('data-time'));
+    el.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  });
+  document.querySelectorAll('.local-date').forEach(el => {
+    const d = new Date(el.getAttribute('data-time'));
+    el.textContent = d.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
+  });
+
   let notifAction = null;
   
   function deleteNotification(action, id = null, date = null) {
@@ -140,7 +150,7 @@
       }
 
       notifs.forEach(n => {
-        const dateStr = new Date(n.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' });
+        const dateStr = new Date(n.createdAt).toLocaleDateString('en-CA');
         let groupDiv = notifContainer.querySelector(`.notif-group[data-date="${dateStr}"]`);
         
         if (!groupDiv) {
@@ -150,7 +160,7 @@
           groupDiv.setAttribute('data-date', dateStr);
           groupDiv.innerHTML = `
             <div class="flex justify-between items-end border-b border-gray-700 pb-2 mb-4">
-              <h2 class="text-xl font-bold text-gray-300">${dateStr}</h2>
+              <h2 class="text-xl font-bold text-gray-300 local-date" data-time="${n.createdAt}"></h2>
               <button onclick="deleteNotification('day', null, '${n.createdAt}')" class="text-xs text-gray-400 hover:text-red-400 transition-colors flex items-center gap-1">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 Hapus Hari Ini
@@ -169,7 +179,6 @@
         if (n.rating === 'q') rBg = 'bg-purple-600';
         if (n.rating === 'e') rBg = 'bg-red-600';
 
-        const timeStr = new Date(n.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
         const boldMessage = n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
         const itemHtml = `
@@ -182,7 +191,7 @@
                 <div class="flex items-center gap-2">
                   ${n.extension ? `<span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">${n.extension.toUpperCase()}</span>` : ''}
                   ${n.rating ? `<span class="${rBg} text-white text-[10px] font-bold px-2 py-0.5 rounded">${n.rating.toUpperCase()}</span>` : ''}
-                  <span class="text-xs text-gray-500">${timeStr}</span>
+                  <span class="text-xs text-gray-500 local-time" data-time="${n.createdAt}"></span>
                 </div>
               </div>
             </a>
@@ -197,6 +206,20 @@
       if (notifs.length < 50) {
         hasMoreNotifs = false;
       }
+      
+      // Terapkan kembali lokalisasi waktu untuk elemen yang baru dirender
+      document.querySelectorAll('.local-time').forEach(el => {
+        if (!el.textContent) {
+          const d = new Date(el.getAttribute('data-time'));
+          el.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+      });
+      document.querySelectorAll('.local-date').forEach(el => {
+        if (!el.textContent) {
+          const d = new Date(el.getAttribute('data-time'));
+          el.textContent = d.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+      });
     } catch (err) {
       console.error(err);
     } finally {
