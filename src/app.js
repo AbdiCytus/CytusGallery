@@ -635,74 +635,8 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const ratingParam = req.query.rating || 'not_e';
-    const follows = await prisma.followedTag.findMany({ where: { userId } });
     
-    let newNotificationsCount = 0;
-    
-    // Process top 5 oldest checked tags to avoid rate limits
-    const tagsToCheck = follows.sort((a, b) => a.updatedAt - b.updatedAt).slice(0, 5);
-    
-    let ratingFilter = '+rating:s,g';
-    if (process.env.BYPASSEXPLICITCONTENTACCOUNT && req.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) {
-      ratingFilter = '';
-    }
-    
-    for (const tag of tagsToCheck) {
-      try {
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=100`;
-        const dRes = await axios.get(query);
-        const posts = dRes.data;
-        
-        if (posts && posts.length > 0) {
-          let maxPostId = tag.lastPostId || 0;
-          
-          for (const post of posts) {
-            if (tag.lastPostId && post.id > tag.lastPostId) {
-              const previewUrl = post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url || null;
-              let tagTypeName = "General";
-              if (tag.tagType === 1) tagTypeName = "Artist";
-              if (tag.tagType === 3) tagTypeName = "Copyright";
-              if (tag.tagType === 4) tagTypeName = "Character";
-              
-              const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
-              const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
-              
-              // Check duplicate
-              const existingNotif = await prisma.notification.findFirst({
-                where: { userId: tag.userId, link: `/posts/${post.id}` }
-              });
-
-              if (!existingNotif) {
-                await prisma.notification.create({
-                  data: {
-                    userId: tag.userId,
-                    title: "Konten Baru",
-                    message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
-                    link: `/posts/${post.id}`,
-                    imageUrl: previewUrl,
-                    extension: post.file_ext,
-                    rating: post.rating
-                  }
-                });
-                newNotificationsCount++;
-              }
-            }
-            if (post.id > maxPostId) {
-              maxPostId = post.id;
-            }
-          }
-          
-          // Update lastPostId and updatedAt
-          await prisma.followedTag.update({
-            where: { id: tag.id },
-            data: { lastPostId: maxPostId, updatedAt: new Date() }
-          });
-        }
-      } catch (err) {
-        console.error("Sync error for tag", tag.tagName, err.message);
-      }
-    }
-    
+    // Ambil data notifikasi terkini dari database secepat mungkin
     const unread = await prisma.notification.count({ where: { userId, isRead: false } });
     const latestNotifications = await prisma.notification.findMany({
       where: { userId },
@@ -710,10 +644,86 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
       take: 5
     });
     
-    res.json({ unreadCount: unread, notifications: latestNotifications, synced: newNotificationsCount });
+    // Langsung kembalikan response agar UI memuat dengan cepat
+    res.json({ unreadCount: unread, notifications: latestNotifications, synced: 0 });
+
+    // Jalankan proses sinkronisasi dengan Danbooru API di background
+    (async () => {
+      try {
+        const follows = await prisma.followedTag.findMany({ where: { userId } });
+        // Process top 5 oldest checked tags to avoid rate limits
+        const tagsToCheck = follows.sort((a, b) => a.updatedAt - b.updatedAt).slice(0, 5);
+        
+        let ratingFilter = '+rating:s,g';
+        if (process.env.BYPASSEXPLICITCONTENTACCOUNT && req.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) {
+          ratingFilter = '';
+        }
+        
+        for (const tag of tagsToCheck) {
+          try {
+            const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=100`;
+            const dRes = await axios.get(query);
+            const posts = dRes.data;
+            
+            if (posts && posts.length > 0) {
+              let maxPostId = tag.lastPostId || 0;
+              let newNotificationsCount = 0;
+              
+              for (const post of posts) {
+                if (tag.lastPostId && post.id > tag.lastPostId) {
+                  const previewUrl = post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url || null;
+                  let tagTypeName = "General";
+                  if (tag.tagType === 1) tagTypeName = "Artist";
+                  if (tag.tagType === 3) tagTypeName = "Copyright";
+                  if (tag.tagType === 4) tagTypeName = "Character";
+                  
+                  const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+                  const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
+                  
+                  // Check duplicate
+                  const existingNotif = await prisma.notification.findFirst({
+                    where: { userId: tag.userId, link: `/posts/${post.id}` }
+                  });
+
+                  if (!existingNotif) {
+                    await prisma.notification.create({
+                      data: {
+                        userId: tag.userId,
+                        title: "Konten Baru",
+                        message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
+                        link: `/posts/${post.id}`,
+                        imageUrl: previewUrl,
+                        extension: post.file_ext,
+                        rating: post.rating
+                      }
+                    });
+                    newNotificationsCount++;
+                  }
+                }
+                if (post.id > maxPostId) {
+                  maxPostId = post.id;
+                }
+              }
+              
+              // Update lastPostId and updatedAt
+              await prisma.followedTag.update({
+                where: { id: tag.id },
+                data: { lastPostId: maxPostId, updatedAt: new Date() }
+              });
+            }
+          } catch (err) {
+            console.error("Sync error for tag", tag.tagName, err.message);
+          }
+        }
+      } catch (bgError) {
+        console.error("Background sync error:", bgError);
+      }
+    })();
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Gagal sinkronisasi notifikasi." });
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Gagal memuat notifikasi." });
+    }
   }
 });
 
@@ -805,7 +815,7 @@ app.post("/api/notifications/delete", requireAuth, async (req, res) => {
       });
     } else if (action === 'single' && id) {
       await prisma.notification.delete({
-        where: { id: parseInt(id) }
+        where: { id: id }
       });
     }
     
@@ -895,7 +905,7 @@ setInterval(async () => {
                 await prisma.notification.create({
                   data: {
                     userId: tag.userId,
-                    title: `Update Tag: ${tag.tagName}`,
+                    title: 'Konten Baru',
                     message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
                     link: `/posts/${post.id}`,
                     imageUrl: previewUrl,

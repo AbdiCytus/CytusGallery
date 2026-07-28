@@ -6,16 +6,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CytusGallery</title>
   <link rel="icon" type="image/png" href="/arona_doro.png">
-  <link href="/css/style.css" rel="stylesheet" />
+  <link href="/css/style.css?v=3" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css" />
 </head>
 
 <body class="bg-gray-900 text-white min-h-screen overflow-x-hidden flex flex-col">
 
-  <div id="loading-overlay" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+  <div id="loading-overlay" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-all duration-700 ease-out">
     <div class="w-16 h-16 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>
-    <p id="loading-text" class="text-lg text-white mt-4 animate-pulse">Loading Contents...</p>
+    <p id="loading-text" class="text-lg text-white mt-4 animate-pulse">Memuat Konten...</p>
   </div>
+  <script>
+    if (!sessionStorage.getItem('cytus_first_visit')) {
+      document.getElementById('loading-overlay').classList.remove('opacity-0', 'pointer-events-none');
+      document.addEventListener('DOMContentLoaded', () => {
+        sessionStorage.setItem('cytus_first_visit', 'true');
+        setTimeout(() => {
+          document.getElementById('loading-overlay').classList.add('opacity-0', 'pointer-events-none');
+        }, 1200); // 1.2s delay for a nice first-time splash screen effect
+      });
+    }
+  </script>
   <div id="custom-alert" class="fixed flex inset-0 z-50 items-center justify-center p-4 transition-opacity duration-300 ease-in-out hidden opacity-0">
     <div id="custom-alert-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
 
@@ -162,10 +173,6 @@
                 <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
                 <span class="truncate"><%= user.name || user.email %></span>
               </a>
-              <a href="/notifikasi" class="relative text-gray-300 hover:text-white transition-colors flex-shrink-0 p-1 block">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                <span id="mobile-notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full <%= locals.unreadCount > 0 ? '' : 'hidden' %>"><%= locals.unreadCount > 99 ? '99+' : (locals.unreadCount || 0) %></span>
-              </a>
             </div>
           <% } else { %>
             <div class="mb-2">
@@ -269,7 +276,7 @@
   </aside>
 
   <header class="bg-gray-800/50 backdrop-blur-sm sticky top-0 z-30">
-    <nav class="container mx-auto p-4 flex justify-between items-center">
+    <nav class="container mx-auto p-4 flex justify-between items-center relative">
       <div class="flex justify-center items-center gap-3">
         <img src="/arona_doro.png" alt="CytusGallery Logo" width="30" height="30" class="mr-3 flex-shrink-0">
         <a id="brand-link" href="/search" class="text-2xl font-bold text-cyan-400 flex-shrink-0">CytusGallery</a>
@@ -289,11 +296,11 @@
                 </button>
               </div>
               
-              <div id="notification-dropdown" class="absolute right-0 top-full mt-4 w-80 bg-gray-800 rounded-md shadow-2xl overflow-hidden z-50 hidden border border-gray-700 flex flex-col">
+              <div id="desktop-notification-dropdown" class="absolute right-0 top-full mt-4 w-80 bg-gray-800 rounded-md shadow-2xl overflow-hidden z-50 hidden border border-gray-700 flex flex-col cursor-default">
                 <div class="p-3 border-b border-gray-700 font-bold text-white flex justify-between items-center shrink-0">
                   Notifikasi
                 </div>
-                <div id="notification-list" class="max-h-64 overflow-y-auto flex-grow">
+                <div class="notification-list max-h-64 overflow-y-auto flex-grow">
                   <div class="p-4 text-sm text-gray-400 text-center">Memuat...</div>
                 </div>
                 <div class="p-2 bg-gray-900 border-t border-gray-700 text-center shrink-0">
@@ -312,11 +319,31 @@
           <% } %>
         </div>
 
-        <button id="open-sidebar-button" class="space-y-2 cursor-pointer">
-          <span class="block w-8 h-0.5 bg-gray-100"></span>
-          <span class="block w-8 h-0.5 bg-gray-100"></span>
-          <span class="block w-8 h-0.5 bg-gray-100"></span>
-        </button>
+        <div class="flex items-center gap-5">
+          <% if (locals.user) { %>
+            <button id="mobile-notification-btn" class="md:hidden relative text-gray-300 hover:text-white transition-colors block mr-4 focus:outline-none">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span id="mobile-notification-badge" class="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full <%= locals.unreadCount > 0 ? '' : 'hidden' %>"><%= locals.unreadCount > 99 ? '99+' : (locals.unreadCount || 0) %></span>
+            </button>
+          <% } %>
+          <button id="open-sidebar-button" class="space-y-2 cursor-pointer">
+            <span class="block w-8 h-0.5 bg-gray-100"></span>
+            <span class="block w-8 h-0.5 bg-gray-100"></span>
+            <span class="block w-8 h-0.5 bg-gray-100"></span>
+          </button>
+        </div>
+      </div>
+
+      <div id="mobile-notification-dropdown" class="absolute right-4 top-full mt-2 w-[90vw] sm:w-80 max-w-sm bg-gray-800 rounded-md shadow-2xl overflow-hidden z-50 hidden border border-gray-700 flex flex-col cursor-default">
+        <div class="p-3 border-b border-gray-700 font-bold text-white flex justify-between items-center shrink-0">
+          Notifikasi
+        </div>
+        <div class="notification-list max-h-64 overflow-y-auto flex-grow">
+          <div class="p-4 text-sm text-gray-400 text-center">Memuat...</div>
+        </div>
+        <div class="p-2 bg-gray-900 border-t border-gray-700 text-center shrink-0">
+          <a href="/notifikasi" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a>
+        </div>
       </div>
     </nav>
   </header>
@@ -347,32 +374,54 @@
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       const notifBtn = document.getElementById('notification-btn');
-      if (notifBtn) {
+      const mobileNotifBtn = document.getElementById('mobile-notification-btn');
+      if (notifBtn || mobileNotifBtn) {
         const notifBadge = document.getElementById('notification-badge');
-        const notifDropdown = document.getElementById('notification-dropdown');
-        const notifList = document.getElementById('notification-list');
+        const mobileBadge = document.getElementById('mobile-notification-badge');
+        const desktopDropdown = document.getElementById('desktop-notification-dropdown');
+        const mobileDropdown = document.getElementById('mobile-notification-dropdown');
+        const notifLists = document.querySelectorAll('.notification-list');
         
-        notifBtn.addEventListener('click', () => {
-          notifDropdown.classList.toggle('hidden');
-          if (!notifDropdown.classList.contains('hidden')) {
+        const toggleDropdown = (isMobile) => {
+          const targetDropdown = isMobile ? mobileDropdown : desktopDropdown;
+          if (!targetDropdown) return;
+          
+          targetDropdown.classList.toggle('hidden');
+          
+          // Pastikan dropdown lain tertutup
+          const otherDropdown = isMobile ? desktopDropdown : mobileDropdown;
+          if (otherDropdown) otherDropdown.classList.add('hidden');
+
+          if (!targetDropdown.classList.contains('hidden')) {
              // Sembunyikan badge secara instan tanpa delay
-             notifBadge.classList.add('hidden', 'scale-100');
-             notifBadge.classList.remove('scale-150');
-             notifBadge.textContent = '0';
-             const mobileBadge = document.getElementById('mobile-notification-badge');
+             if (notifBadge) {
+               notifBadge.classList.add('hidden', 'scale-100');
+               notifBadge.classList.remove('scale-150');
+               notifBadge.textContent = '0';
+             }
              if (mobileBadge) {
                mobileBadge.classList.add('hidden', 'scale-100');
                mobileBadge.classList.remove('scale-150');
+               mobileBadge.textContent = '0';
              }
              
              // Kirim request ke server di background
              fetch('/api/notifications/read', { method: 'POST', keepalive: true }).catch(e => console.error(e));
           }
-        });
+        };
+
+        if (notifBtn) notifBtn.addEventListener('click', (e) => toggleDropdown(false));
+        if (mobileNotifBtn) {
+          mobileNotifBtn.addEventListener('click', (e) => toggleDropdown(true));
+        }
 
         document.addEventListener('click', (e) => {
-          if (!notifBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
-            notifDropdown.classList.add('hidden');
+          const clickedNotifBtn = (notifBtn && notifBtn.contains(e.target)) || (mobileNotifBtn && mobileNotifBtn.contains(e.target));
+          const clickedDropdown = (desktopDropdown && desktopDropdown.contains(e.target)) || (mobileDropdown && mobileDropdown.contains(e.target));
+          
+          if (!clickedNotifBtn && !clickedDropdown) {
+            if (desktopDropdown) desktopDropdown.classList.add('hidden');
+            if (mobileDropdown) mobileDropdown.classList.add('hidden');
           }
         });
 
@@ -385,34 +434,40 @@
             const res = await fetch(`/api/notifications/sync?rating=${ratingParam}&_t=${ts}`, { cache: 'no-store' });
             if (res.ok) {
               const data = await res.json();
-              const mobileBadge = document.getElementById('mobile-notification-badge');
-              if (data.unreadCount > 0) {
+              if (data.unreadCount !== undefined) {
                 const countText = data.unreadCount > 99 ? '99+' : data.unreadCount;
-                if (notifBadge.textContent !== countText) {
-                   notifBadge.classList.add('scale-150', 'transition-transform', 'duration-300');
-                   setTimeout(() => notifBadge.classList.remove('scale-150'), 300);
+                if (data.unreadCount > 0) {
+                  if (notifBadge) {
+                    if (notifBadge.textContent !== countText) {
+                       notifBadge.classList.add('scale-150', 'transition-transform', 'duration-300');
+                       setTimeout(() => notifBadge.classList.remove('scale-150'), 300);
+                    }
+                    notifBadge.textContent = countText;
+                    notifBadge.classList.remove('hidden');
+                  }
+                  if (mobileBadge) {
+                     if (mobileBadge.textContent !== countText) {
+                        mobileBadge.classList.add('scale-150', 'transition-transform', 'duration-300');
+                        setTimeout(() => mobileBadge.classList.remove('scale-150'), 300);
+                     }
+                     mobileBadge.textContent = countText;
+                     mobileBadge.classList.remove('hidden');
+                  }
+                } else {
+                  if (notifBadge) notifBadge.classList.add('hidden');
+                  if (mobileBadge) mobileBadge.classList.add('hidden');
                 }
-                notifBadge.textContent = countText;
-                notifBadge.classList.remove('hidden');
-                
-                if (mobileBadge) {
-                   if (mobileBadge.textContent !== countText) {
-                      mobileBadge.classList.add('scale-150', 'transition-transform', 'duration-300');
-                      setTimeout(() => mobileBadge.classList.remove('scale-150'), 300);
-                   }
-                   mobileBadge.textContent = countText;
-                   mobileBadge.classList.remove('hidden');
-                }
-              } else {
-                notifBadge.classList.add('hidden');
-                if (mobileBadge) mobileBadge.classList.add('hidden');
               }
               
               if (data.notifications && data.notifications.length > 0) {
-                // Check for new notifications to animate them
-                const existingIds = Array.from(notifList.querySelectorAll('a')).map(a => a.getAttribute('data-id'));
+                // Check for new notifications to animate them (using the first list as reference)
+                const referenceList = notifLists.length > 0 ? notifLists[0] : null;
+                let existingIds = [];
+                if (referenceList) {
+                   existingIds = Array.from(referenceList.querySelectorAll('a')).map(a => a.getAttribute('data-id'));
+                }
                 
-                notifList.innerHTML = data.notifications.map(n => {
+                const htmlStr = data.notifications.map(n => {
                   const isNew = !existingIds.includes(n.id) && existingIds.length > 0;
                   return `
                   <a href="${n.link}" data-id="${n.id}" class="flex p-3 border-b border-gray-700 hover:bg-gray-700 transition-colors ${n.isRead ? 'opacity-75' : 'bg-gray-700/50'} ${isNew ? 'animate-slide-right' : ''}">
@@ -428,8 +483,9 @@
                     </div>
                   </a>
                 `}).join('');
+                notifLists.forEach(list => list.innerHTML = htmlStr);
               } else {
-                notifList.innerHTML = '<div class="p-4 text-sm text-gray-400 text-center">Belum ada notifikasi</div>';
+                notifLists.forEach(list => list.innerHTML = '<div class="p-4 text-sm text-gray-400 text-center">Belum ada notifikasi</div>');
               }
               
               // Dispatch event for other scripts (e.g., notifications page)
@@ -437,6 +493,7 @@
             }
           } catch (e) {
             console.error("Failed to fetch notifications");
+            notifLists.forEach(list => list.innerHTML = '<div class="p-4 text-sm text-red-400 text-center">Gagal memuat notifikasi.</div>');
           }
         }
         

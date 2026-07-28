@@ -2,6 +2,9 @@
 <html lang="id">
 <%- include('partials/header.ejs') %>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
 <main class="container mx-auto px-4 py-8 flex-grow">
   <div class="max-w-3xl mx-auto bg-gray-800 rounded-lg shadow-xl shadow-cyan-900/10 p-6 md:p-8 border border-gray-700">
     <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -68,25 +71,91 @@
                 }
               });
           }
-          document.getElementById('avatar-input').addEventListener('change', async function() {
+          let cropper = null;
+          document.getElementById('avatar-input').addEventListener('change', function(e) {
             if (!this.files || !this.files[0]) return;
-            const formData = new FormData(document.getElementById('avatar-form'));
-            const msgEl = document.getElementById('avatar-msg');
-            msgEl.textContent = "Mengunggah...";
-            msgEl.className = "text-xs mt-2 text-yellow-400 text-center md:text-left block";
-            try {
-              const res = await fetch('/api/profil/upload', { method: 'POST', body: formData });
-              const data = await res.json();
-              if (res.ok) {
-                msgEl.textContent = data.message;
-                msgEl.className = "text-xs mt-2 text-green-400 text-center md:text-left block";
-                setTimeout(() => window.location.reload(), 1000);
-              } else {
-                throw new Error(data.error);
-              }
-            } catch (err) {
-              msgEl.textContent = err.message || "Gagal mengunggah.";
-              msgEl.className = "text-xs mt-2 text-red-400 text-center md:text-left block";
+            const file = this.files[0];
+            const reader = new FileReader();
+            reader.onload = function(event) {
+              const image = document.getElementById('crop-image');
+              image.src = event.target.result;
+              const cropModal = document.getElementById('crop-modal');
+              cropModal.classList.remove('hidden');
+              cropModal.classList.add('flex');
+              if (cropper) cropper.destroy();
+              cropper = new Cropper(image, {
+                aspectRatio: 1,
+                viewMode: 1,
+                autoCropArea: 1,
+              });
+            };
+            reader.readAsDataURL(file);
+            this.value = ''; // reset input
+          });
+
+          const closeCropModal = () => {
+            const cropModal = document.getElementById('crop-modal');
+            if (cropModal) {
+              cropModal.classList.add('hidden');
+              cropModal.classList.remove('flex');
+            }
+            if (cropper) cropper.destroy();
+            cropper = null;
+          };
+
+          document.addEventListener('DOMContentLoaded', () => {
+            const cancelBtn = document.getElementById('crop-cancel-btn');
+            const closeBtn = document.getElementById('crop-close-btn');
+            const saveBtn = document.getElementById('crop-save-btn');
+
+            if (cancelBtn) cancelBtn.addEventListener('click', closeCropModal);
+            if (closeBtn) closeBtn.addEventListener('click', closeCropModal);
+
+            if (saveBtn) {
+              saveBtn.addEventListener('click', async function() {
+                if (!cropper) return;
+                const msgEl = document.getElementById('avatar-msg');
+                msgEl.textContent = "Mengunggah...";
+                msgEl.className = "text-xs mt-2 text-yellow-400 text-center md:text-left block";
+                
+                const canvas = cropper.getCroppedCanvas({
+                  width: 256,
+                  height: 256,
+                  fillColor: '#fff',
+                  imageSmoothingEnabled: false,
+                  imageSmoothingQuality: 'high',
+                });
+
+                closeCropModal();
+                
+                if (!canvas) {
+                  msgEl.textContent = "Gagal memproses gambar.";
+                  msgEl.className = "text-xs mt-2 text-red-400 text-center md:text-left block";
+                  return;
+                }
+
+                canvas.toBlob(async (blob) => {
+                  const formData = new FormData();
+                  formData.append('avatar', blob, 'avatar.png');
+                  
+                  if(typeof window.showLoader === 'function') window.showLoader("Mengunggah foto...");
+                  try {
+                    const res = await fetch('/api/profil/upload', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    if (res.ok) {
+                      msgEl.textContent = data.message;
+                      msgEl.className = "text-xs mt-2 text-green-400 text-center md:text-left block";
+                      setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                      throw new Error(data.error);
+                    }
+                  } catch (err) {
+                    if(typeof window.hideLoader === 'function') window.hideLoader();
+                    msgEl.textContent = err.message || "Gagal mengunggah.";
+                    msgEl.className = "text-xs mt-2 text-red-400 text-center md:text-left block";
+                  }
+                }, 'image/png');
+              });
             }
           });
         </script>
@@ -107,7 +176,7 @@
     <div id="tab-koleksi-content" class="pt-6 block">
       <% if (userProfile.saves.length > 0 || (typeof currentSearch !== 'undefined' && currentSearch !== '') || (typeof currentRating !== 'undefined' && currentRating !== '')) { %>
         <!-- Filter, Search, and View Toggle -->
-        <form id="profil-form" action="/profil" method="GET" class="grid grid-cols-2 sm:flex sm:flex-row items-center gap-4 mb-4 w-full relative z-40">
+        <form id="profil-form" action="/profil" method="GET" class="grid grid-cols-2 sm:flex sm:flex-row items-center gap-4 mb-4 w-full relative z-20">
           
           <!-- Rating Filter: Mobile Row 2 Left, Desktop Left -->
           <div class="relative order-2 sm:order-1 col-span-1">
@@ -150,7 +219,7 @@
           <% userProfile.saves.forEach((save, index) => { 
              const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
           %>
-            <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer" data-post-url="/posts/<%= save.postId %>" <%= isVideo ? 'data-is-video="true"' : '' %> data-video-url="<%= isVideo ? save.fileUrl : '' %>">
+            <div class="relative z-0 group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer group-hover:z-10" data-post-url="/posts/<%= save.postId %>" <%= isVideo ? 'data-is-video="true"' : '' %> data-video-url="<%= isVideo ? save.fileUrl : '' %>">
                 <div class="absolute top-0 left-0 z-30 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
                   <%= index + 1 %>
                 </div>
@@ -385,7 +454,18 @@
           const res = await fetch('/api/save/' + postId, { method: 'POST' });
           const data = await res.json();
           if (data.saved === false) {
-             window.location.reload();
+             const card = btnEl.closest('.group');
+             if (card) {
+               card.style.transition = 'all 0.3s ease';
+               card.style.opacity = '0';
+               card.style.transform = 'scale(0.9)';
+               setTimeout(() => card.remove(), 300);
+             }
+             if (typeof window.showToast === 'function') {
+               window.showToast("Koleksi berhasil dihapus", "success");
+             } else {
+               alert("Koleksi berhasil dihapus");
+             }
           }
         } catch (err) {
           console.error(err);
@@ -441,7 +521,7 @@
             const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
             let currentItemCount = masonryContainer._masonryItems ? masonryContainer._masonryItems.length : masonryContainer.querySelectorAll('.gallery-item').length;
             let masonryItem = `
-              <div class="relative group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer" data-post-url="/posts/${save.postId}" ${isVideo ? 'data-is-video="true"' : ''} data-video-url="${isVideo ? save.fileUrl : ''}">
+              <div class="relative z-0 group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer group-hover:z-10" data-post-url="/posts/${save.postId}" ${isVideo ? 'data-is-video="true"' : ''} data-video-url="${isVideo ? save.fileUrl : ''}">
                   <div class="absolute top-0 left-0 z-30 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
                     ${currentItemCount + index + 1}
                   </div>
@@ -645,5 +725,26 @@
     </script>
   </div>
 </main>
+
+<!-- Crop Modal -->
+<div id="crop-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="z-index: 9999;">
+  <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+      <h3 class="text-lg font-bold text-white">Sesuaikan Foto Profil</h3>
+      <button type="button" id="crop-cancel-btn" class="text-gray-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    <div class="p-4 flex justify-center bg-black">
+      <div style="max-height: 400px; width: 100%;">
+        <img id="crop-image" src="" class="max-w-full block">
+      </div>
+    </div>
+    <div class="p-4 border-t border-gray-700 flex justify-end gap-2">
+      <button type="button" id="crop-close-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm transition-colors">Batal</button>
+      <button type="button" id="crop-save-btn" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-bold transition-colors">Simpan</button>
+    </div>
+  </div>
+</div>
 
 <%- include('partials/footer.ejs') %>

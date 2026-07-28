@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const savedTags = sessionStorage.getItem("lastSearchTags");
   const navigationEntries = performance.getEntriesByType("navigation");
 
-  const showLoader = (message = "Loading Contents...") => {
+  const showLoader = (message = "Memuat Konten...") => {
     if (loadingOverlay && loadingText) {
       loadingText.textContent = message;
       loadingOverlay.classList.remove("opacity-0", "pointer-events-none");
@@ -22,8 +22,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (savedTags && searchInputOnLoad) searchInputOnLoad.value = savedTags;
 
-  if (navigationEntries.length > 0 && navigationEntries[0].type === "reload")
-    showLoader("Reloading...");
+  if (navigationEntries.length > 0 && navigationEntries[0].type === "back_forward") {
+    showLoader("Memuat Konten...");
+    setTimeout(hideLoader, 600);
+  }
+
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) {
+      showLoader("Memuat Konten...");
+      setTimeout(hideLoader, 600);
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    showLoader("Memuat...");
+  });
 
   // === BAGIAN 1: PENGUMPULAN ELEMEN DOM ===
   const searchForm = document.getElementById("search-form");
@@ -574,7 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   if (sessionStorage.getItem("isLoading") === "true") {
-    showLoader("Loading Contents...");
+    showLoader("Memuat Konten...");
     sessionStorage.removeItem("isLoading");
   }
 
@@ -587,7 +600,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Ganti event listener 'pageshow' yang lama dengan yang ini:
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {
-      showLoader("Reloading Contents...");
+      showLoader("Memuat Ulang Konten...");
 
       const checkIntervalTime = 100;
       const maxWaitTime = 3000;
@@ -972,7 +985,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isMobile()) closeSidebar();
     } else {
       sessionStorage.setItem("isLoading", "true");
-      showLoader("Navigating...");
+      showLoader("Memuat...");
       navigateWithFilters("", 1);
     }
   };
@@ -1019,7 +1032,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const isDetailLink = interactiveEl.tagName === 'A' && interactiveEl.getAttribute('href') && interactiveEl.getAttribute('href').startsWith('/posts/');
       if (interactiveEl.classList.contains("detail-button") || isDetailLink) {
         e.preventDefault();
-        showLoader("Getting Data Content...");
+        showLoader("Memuat Konten...");
         window.location.href = interactiveEl.href;
         return;
       }
@@ -1060,7 +1073,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isPaginationLink || isSuggestionLink || isTagLink) {
       e.preventDefault();
-      showLoader("Navigating...");
+      showLoader("Memuat...");
       sessionStorage.setItem("isLoading", "true");
       const url = new URL(link.href);
       const tags = url.searchParams.get("tags") || "";
@@ -1114,7 +1127,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const nextBtn = document.querySelector('nav#pagination-nav a[rel="next"]');
       if (nextBtn) {
         e.preventDefault();
-        showLoader("Navigating...");
+        showLoader("Memuat...");
         setTimeout(() => {
           window.location.href = nextBtn.href;
         }, 50);
@@ -1123,7 +1136,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const prevBtn = document.querySelector('nav#pagination-nav a[rel="prev"]');
       if (prevBtn) {
         e.preventDefault();
-        showLoader("Navigating...");
+        showLoader("Memuat...");
         setTimeout(() => {
           window.location.href = prevBtn.href;
         }, 50);
