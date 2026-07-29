@@ -344,6 +344,31 @@ async function getTopPosts(tags, filter = "", limit) {
 
 const apiCache = {};
 const CACHE_TTL = 10 * 60 * 1000; // 10 menit
+const USER_APP_DATA_TTL = 30 * 1000; // 30 seconds
+
+async function getUserAppData(userId) {
+  const cacheKey = `userAppData_${userId}`;
+  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < USER_APP_DATA_TTL) {
+    return apiCache[cacheKey].data;
+  }
+  let hasFollowedTags = false;
+  let savedPostIds = new Set();
+  const prisma = require('./lib/prisma');
+  try {
+    const followedCount = await prisma.followedTag.count({ where: { userId } });
+    hasFollowedTags = followedCount > 0;
+    const saves = await prisma.savedContent.findMany({
+      where: { userId },
+      select: { postId: true }
+    });
+    savedPostIds = new Set(saves.map(s => s.postId));
+  } catch(e) {
+    console.error("getUserAppData Prisma error:", e.message);
+  }
+  const result = { hasFollowedTags, savedPostIds };
+  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
+  return result;
+}
 
 async function getSliderTags(category) {
   const cacheKey = `sliderTags_${category}`;
@@ -518,15 +543,12 @@ const root = async (req, res) => {
     let totalPosts = 0;
     let totalPages = 0;
     let hasFollowedTags = false;
+    let savedPostIds = new Set();
 
     if (res.locals.user) {
-      try {
-        const prisma = require('./lib/prisma');
-        const followedCount = await prisma.followedTag.count({ where: { userId: res.locals.user.id } });
-        hasFollowedTags = followedCount > 0;
-      } catch (e) {
-        hasFollowedTags = false;
-      }
+      const appData = await getUserAppData(res.locals.user.id);
+      hasFollowedTags = appData.hasFollowedTags;
+      savedPostIds = appData.savedPostIds;
     }
 
     if (tab === "followed" && res.locals.user) {
@@ -541,8 +563,8 @@ const root = async (req, res) => {
         baseTags = "-rating:e -rating:q";
       }
       const contentsParams = { tags: baseTags, page: page, limit: limit };
-      const contents = await axios.get(basePostsURL, { params: contentsParams });
-      posts = contents.data;
+      const contents = await axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] }));
+      posts = contents.data || [];
       const stats = await getTotalPosts(limit);
       totalPosts = stats.totalPosts;
       totalPages = stats.totalPages;
@@ -554,16 +576,6 @@ const root = async (req, res) => {
 
     popularTags = await getSliderTags(3);
     popularCharacters = await getSliderTags(4);
-
-    let savedPostIds = new Set();
-    if (res.locals.user) {
-      const prisma = require('./lib/prisma');
-      const saves = await prisma.savedContent.findMany({
-        where: { userId: res.locals.user.id },
-        select: { postId: true }
-      });
-      savedPostIds = new Set(saves.map(s => s.postId));
-    }
 
     res.render("index", {
       posts: posts,
@@ -621,18 +633,15 @@ const search = async (req, res) => {
     let totalPages = 0;
     let totalPosts = 0;
     let hasFollowedTags = false;
+    let savedPostIds = new Set();
     let sliderPosts = [];
     let popularTags = [];
     let popularCharacters = [];
 
     if (res.locals.user) {
-      try {
-        const prisma = require('./lib/prisma');
-        const followedCount = await prisma.followedTag.count({ where: { userId: res.locals.user.id } });
-        hasFollowedTags = followedCount > 0;
-      } catch (e) {
-        hasFollowedTags = false;
-      }
+      const appData = await getUserAppData(res.locals.user.id);
+      hasFollowedTags = appData.hasFollowedTags;
+      savedPostIds = appData.savedPostIds;
     }
 
     if (!userTags && tab === "followed" && res.locals.user) {
@@ -643,8 +652,8 @@ const search = async (req, res) => {
       hasFollowedTags = result.hasFollowedTags;
     } else {
       const contentsParams = { tags: allTags, page: page, limit: limit };
-      const contents = await axios.get(basePostsURL, { params: contentsParams });
-      posts = contents.data;
+      const contents = await axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] }));
+      posts = contents.data || [];
       const stats = await getTotalPostsWithParams(userTags, filterQuery, limit);
       totalPages = stats.totalPages;
       totalPosts = stats.totalPosts;
@@ -674,8 +683,8 @@ const search = async (req, res) => {
           allTagsFinal = `${actualUserTags} ${filterQuery}`;
           
           const newParams = { tags: allTagsFinal, page: page, limit: limit };
-          const newContents = await axios.get(basePostsURL, { params: newParams });
-          posts = newContents.data;
+          const newContents = await axios.get(basePostsURL, { params: newParams, timeout: 8000 }).catch(e => ({ data: [] }));
+          posts = newContents.data || [];
           
           const newStats = await getTotalPostsWithParams(actualUserTags, filterQuery, limit);
           totalPages = newStats.totalPages;
@@ -695,16 +704,6 @@ const search = async (req, res) => {
     if (!userTags) {
       popularTags = await getSliderTags(3);
       popularCharacters = await getSliderTags(4);
-    }
-
-    let savedPostIds = new Set();
-    if (res.locals.user) {
-      const prisma = require('./lib/prisma');
-      const saves = await prisma.savedContent.findMany({
-        where: { userId: res.locals.user.id },
-        select: { postId: true }
-      });
-      savedPostIds = new Set(saves.map(s => s.postId));
     }
 
     res.render("search", {
