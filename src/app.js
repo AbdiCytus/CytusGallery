@@ -950,7 +950,7 @@ app.get("/bantuan", (req, res) => {
 });
 
 // Background Worker for Notifications
-setInterval(async () => {
+const runNotificationWorker = async () => {
   const prisma = require('./lib/prisma');
   const axios = require('axios');
   try {
@@ -1047,7 +1047,10 @@ setInterval(async () => {
   } catch (error) {
     console.error("Background sync error:", error.message);
   }
-}, 5 * 60 * 1000); // Berjalan setiap 5 menit
+};
+
+runNotificationWorker();
+setInterval(runNotificationWorker, 5 * 60 * 1000); // Berjalan setiap 5 menit
 
 //Run Server
 app.listen(PORT, "0.0.0.0", () => {
