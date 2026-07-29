@@ -153,6 +153,9 @@ app.get("/profil", requireAuth, async (req, res) => {
     res.render("profil", { hideSearchbar: true, userProfile: user, totalSaves, currentSearch: search, currentRating: rating });
   } catch (error) {
     console.error(error);
+    if (error && error.message && error.message.includes('planLimitReached')) {
+      return res.status(503).render("error", { message: "Batas Limit Server (Database) telah tercapai. Layanan profil sementara tidak tersedia." });
+    }
     res.status(500).render("error", { message: "Gagal memuat profil." });
   }
 });
@@ -543,6 +546,9 @@ const root = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching homepage data:", error);
+    if (error && error.message && error.message.includes('planLimitReached')) {
+      return res.status(503).render("error", { message: "Batas Limit Server (Database) telah tercapai. Layanan ini sementara tidak tersedia." });
+    }
     res.status(500).render("error", {
       message: "Gagal mengambil data dari Danbooru API",
     });
@@ -677,6 +683,9 @@ const search = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching search data:", error);
+    if (error && error.message && error.message.includes('planLimitReached')) {
+      return res.status(503).render("error", { message: "Batas Limit Server (Database) telah tercapai. Layanan ini sementara tidak tersedia." });
+    }
     res.status(500).render("error", {
       message:
         "Gagal mengambil data. Kemungkinan server sedang sibuk, atau menggunakan lebih dari 2 tag sekaligus, atau telah mencapai batas halaman (>1000).",
@@ -717,6 +726,9 @@ const detail = async (req, res) => {
     res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags });
   } catch (error) {
     console.error("Error fetching post details:", error);
+    if (error && error.message && error.message.includes('planLimitReached')) {
+      return res.status(503).render("error", { message: "Batas Limit Server (Database) telah tercapai. Layanan ini sementara tidak tersedia." });
+    }
     res.status(404).render("error", {
         message: "Konten tidak ditemukan."
     });
@@ -779,77 +791,7 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
     res.json({ unreadCount: unread, notifications: latestNotifications, synced: 0 });
 
     // Jalankan proses sinkronisasi dengan Danbooru API di background
-    (async () => {
-      try {
-        const follows = await prisma.followedTag.findMany({ where: { userId } });
-        // Process top 5 oldest checked tags to avoid rate limits
-        const tagsToCheck = follows.sort((a, b) => a.updatedAt - b.updatedAt).slice(0, 5);
-        
-        let ratingFilter = '+rating:s,g';
-        if (process.env.BYPASSEXPLICITCONTENTACCOUNT && req.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) {
-          ratingFilter = '';
-        }
-        
-        for (const tag of tagsToCheck) {
-          try {
-            const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=100`;
-            const dRes = await axios.get(query);
-            const posts = dRes.data;
-            
-            if (posts && posts.length > 0) {
-              let maxPostId = tag.lastPostId || 0;
-              let newNotificationsCount = 0;
-              
-              for (const post of posts) {
-                if (tag.lastPostId && post.id > tag.lastPostId) {
-                  const previewUrl = post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url || null;
-                  let tagTypeName = "General";
-                  if (tag.tagType === 1) tagTypeName = "Artist";
-                  if (tag.tagType === 3) tagTypeName = "Copyright";
-                  if (tag.tagType === 4) tagTypeName = "Character";
-                  
-                  const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
-                  const tagNameFormatted = toTitleCase(tag.tagName.replace(/_/g, ' '));
-                  
-                  // Check duplicate
-                  const existingNotif = await prisma.notification.findFirst({
-                    where: { userId: tag.userId, link: `/posts/${post.id}` }
-                  });
-
-                  if (!existingNotif) {
-                    await prisma.notification.create({
-                      data: {
-                        userId: tag.userId,
-                        title: "Konten Baru",
-                        message: `**${tagNameFormatted}** baru dari **${tagTypeName}** yang Anda ikuti`,
-                        link: `/posts/${post.id}`,
-                        imageUrl: previewUrl,
-                        extension: post.file_ext,
-                        rating: post.rating
-                      }
-                    });
-                    newNotificationsCount++;
-                  }
-                }
-                if (post.id > maxPostId) {
-                  maxPostId = post.id;
-                }
-              }
-              
-              // Update lastPostId and updatedAt
-              await prisma.followedTag.update({
-                where: { id: tag.id },
-                data: { lastPostId: maxPostId, updatedAt: new Date() }
-              });
-            }
-          } catch (err) {
-            console.error("Sync error for tag", tag.tagName, err.message);
-          }
-        }
-      } catch (bgError) {
-        console.error("Background sync error:", bgError);
-      }
-    })();
+    // Telah dipindahkan seutuhnya ke Global Background Worker untuk menghindari lonjakan operasi Database.
   } catch (error) {
     console.error(error);
     if (!res.headersSent) {
@@ -893,6 +835,9 @@ app.get("/notifikasi", requireAuth, async (req, res) => {
     res.render("notifications", { notifications: notifications, hideSearchbar: true });
   } catch (error) {
     console.error(error);
+    if (error && error.message && error.message.includes('planLimitReached')) {
+      return res.status(503).render("error", { message: "Batas Limit Server (Database) telah tercapai. Halaman notifikasi sementara tidak tersedia." });
+    }
     res.status(500).render("error", { message: "Gagal memuat notifikasi." });
   }
 });
@@ -1065,7 +1010,7 @@ setInterval(async () => {
   } catch (error) {
     console.error("Background sync error:", error.message);
   }
-}, 1 * 60 * 1000); // Berjalan setiap 1 menit
+}, 5 * 60 * 1000); // Berjalan setiap 5 menit
 
 //Run Server
 app.listen(PORT, "0.0.0.0", () => {

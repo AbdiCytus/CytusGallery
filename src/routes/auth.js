@@ -77,6 +77,9 @@ router.post('/register', async (req, res) => {
     res.redirect('/');
   } catch (error) {
     console.error('Register error:', error);
+    if (error && error.message && error.message.includes('planLimitReached')) {
+      return res.status(503).render('error', { message: 'Batas Limit Server (Database) telah tercapai. Pendaftaran pengguna baru sementara dinonaktifkan.' });
+    }
     res.render('register', { error: 'Terjadi kesalahan pada server.' });
   }
 });
@@ -107,6 +110,9 @@ router.post('/login', async (req, res) => {
     res.redirect('/');
   } catch (error) {
     console.error('Login error:', error);
+    if (error && error.message && error.message.includes('planLimitReached')) {
+      return res.status(503).render('error', { message: 'Batas Limit Server (Database) telah tercapai. Layanan login sementara dinonaktifkan.' });
+    }
     res.render('login', { error: 'Terjadi kesalahan pada server.' });
   }
 });
