@@ -494,6 +494,16 @@ const root = async (req, res) => {
     let totalPages = 0;
     let hasFollowedTags = false;
 
+    if (res.locals.user) {
+      try {
+        const prisma = require('./lib/prisma');
+        const followedCount = await prisma.followedTag.count({ where: { userId: res.locals.user.id } });
+        hasFollowedTags = followedCount > 0;
+      } catch (e) {
+        hasFollowedTags = false;
+      }
+    }
+
     if (tab === "followed" && res.locals.user) {
       const result = await getFollowedContents(res.locals.user.id, "", page, limit, res.locals.isBypass);
       posts = result.posts;
@@ -588,6 +598,16 @@ const search = async (req, res) => {
     let sliderPosts = [];
     let popularTags = [];
     let popularCharacters = [];
+
+    if (res.locals.user) {
+      try {
+        const prisma = require('./lib/prisma');
+        const followedCount = await prisma.followedTag.count({ where: { userId: res.locals.user.id } });
+        hasFollowedTags = followedCount > 0;
+      } catch (e) {
+        hasFollowedTags = false;
+      }
+    }
 
     if (!userTags && tab === "followed" && res.locals.user) {
       const result = await getFollowedContents(res.locals.user.id, filterQuery, page, limit, res.locals.isBypass);

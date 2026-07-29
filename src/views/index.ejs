@@ -84,7 +84,7 @@
   <div class="relative mb-6">
     <div class="flex items-center gap-4 border-b border-gray-700 pb-2 relative">
       <a href="#" class="main-tab-link text-2xl font-bold <%= locals.currentTab === 'contents' || !locals.currentTab ? 'text-white pb-2' : 'text-gray-500 hover:text-white pb-2' %> transition-colors" data-tab="contents">Contents</a>
-      <% if (locals.user) { %>
+      <% if (locals.user && locals.hasFollowedTags) { %>
         <a href="#" class="main-tab-link text-2xl font-bold <%= locals.currentTab === 'followed' ? 'text-white pb-2' : 'text-gray-500 hover:text-white pb-2' %> transition-colors" data-tab="followed">Followed Contents</a>
       <% } %>
     </div>
@@ -99,18 +99,6 @@
     </div>
   <% } %>
 
-  <% if (locals.currentTab === 'followed' && !locals.hasFollowedTags) { %>
-    <div class="w-full flex flex-col items-center justify-center py-20 text-center bg-gray-800/50 rounded-lg border border-gray-700 mb-8">
-      <svg class="w-16 h-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-      <h3 class="text-2xl font-semibold text-white">Belum Ada Tag yang Diikuti</h3>
-      <p class="text-gray-400 mt-2 max-w-sm mx-auto">
-        Anda belum mengikuti (follow) satupun tag. Cari karakter atau series kesukaan Anda, lalu klik ikon hati di halaman detail gambar untuk mulai mengikutinya!
-      </p>
-      <a href="/" class="mt-6 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-md transition-colors">
-        Jelajahi Konten
-      </a>
-    </div>
-  <% } %>
 
   <div class="columns-2 md:columns-5 gap-4 space-y-4" id="main-gallery">
     <% let validIndex = 0; %>
