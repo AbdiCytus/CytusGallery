@@ -342,7 +342,15 @@ async function getTopPosts(tags, filter = "", limit) {
   }
 }
 
+const apiCache = {};
+const CACHE_TTL = 10 * 60 * 1000; // 10 menit
+
 async function getSliderTags(category) {
+  const cacheKey = `sliderTags_${category}`;
+  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
+    return apiCache[cacheKey].data;
+  }
+
   const tagsResponse = await axios.get(baseTagURL, {
     params: {
       "search[category]": category,
@@ -355,17 +363,31 @@ async function getSliderTags(category) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return pool.slice(0, 15);
+  const result = pool.slice(0, 15);
+  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
+  return result;
 }
 
 async function getTotalPosts(limit) {
+  const cacheKey = `totalPosts_${limit}`;
+  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
+    return apiCache[cacheKey].data;
+  }
+  
   const getCounts = await axios.get(baseCountsPostsURL);
   const totalPosts = getCounts.data.counts.posts;
   const totalPages = Math.ceil(totalPosts / limit);
-  return { totalPosts, totalPages };
+  const result = { totalPosts, totalPages };
+  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
+  return result;
 }
 
 async function getTotalPostsWithParams(tags, query, limit) {
+  const cacheKey = `totalPostsParams_${tags}_${query}_${limit}`;
+  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
+    return apiCache[cacheKey].data;
+  }
+
   let totalPosts;
   let fallbackResponse;
   const getCounts = await axios.get(baseCountsPostsURL, {
@@ -384,10 +406,12 @@ async function getTotalPostsWithParams(tags, query, limit) {
     totalPosts = getCounts.data.counts.posts;
   }
 
-  return {
+  const result = {
     totalPosts,
     totalPages: Math.ceil(totalPosts / limit)
   };
+  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
+  return result;
 }
 
 async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
@@ -519,8 +543,9 @@ const root = async (req, res) => {
       const contentsParams = { tags: baseTags, page: page, limit: limit };
       const contents = await axios.get(basePostsURL, { params: contentsParams });
       posts = contents.data;
-      totalPosts = (await getTotalPosts(limit)).totalPosts;
-      totalPages = (await getTotalPosts(limit)).totalPages;
+      const stats = await getTotalPosts(limit);
+      totalPosts = stats.totalPosts;
+      totalPages = stats.totalPages;
     }
 
     let sliderPosts = [];

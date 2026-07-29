@@ -16,11 +16,24 @@ const requireAuth = (req, res, next) => {
   }
 };
 
+const userCache = new Map();
+const USER_CACHE_TTL = 30 * 1000; // 30 detik
+
 const checkUser = async (req, res, next) => {
   const token = req.cookies.token;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'cytus_gallery_secret_key');
+      
+      const cached = userCache.get(decoded.id);
+      if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL) {
+        req.user = cached.user;
+        res.locals.user = cached.user;
+        res.locals.isBypass = cached.isBypass;
+        res.locals.unreadCount = cached.unreadCount;
+        return next();
+      }
+
       const prisma = require('../lib/prisma');
       const user = await prisma.user.findUnique({ where: { id: decoded.id } });
       if (user) {
@@ -32,6 +45,13 @@ const checkUser = async (req, res, next) => {
         } catch (e) {
           res.locals.unreadCount = 0;
         }
+        
+        userCache.set(decoded.id, {
+          timestamp: Date.now(),
+          user: user,
+          isBypass: res.locals.isBypass,
+          unreadCount: res.locals.unreadCount
+        });
       } else {
         req.user = null;
         res.locals.user = null;
