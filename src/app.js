@@ -950,7 +950,10 @@ app.get("/bantuan", (req, res) => {
 });
 
 // Background Worker for Notifications
+let isWorkerRunning = false;
 const runNotificationWorker = async () => {
+  if (isWorkerRunning) return;
+  isWorkerRunning = true;
   const prisma = require('./lib/prisma');
   const axios = require('axios');
   try {
@@ -973,7 +976,7 @@ const runNotificationWorker = async () => {
         }
         
         const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=100`;
-        const dRes = await axios.get(query);
+        const dRes = await axios.get(query, { timeout: 10000 });
         const posts = dRes.data;
         
         let foundNewPosts = false;
@@ -1046,6 +1049,8 @@ const runNotificationWorker = async () => {
     }
   } catch (error) {
     console.error("Background sync error:", error.message);
+  } finally {
+    isWorkerRunning = false;
   }
 };
 
