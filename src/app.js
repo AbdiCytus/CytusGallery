@@ -950,10 +950,12 @@ setInterval(async () => {
   try {
     const tagsToCheck = await prisma.followedTag.findMany({
       orderBy: { updatedAt: 'asc' },
-      take: 50,
+      take: 100,
       include: { user: true }
     });
     if (!tagsToCheck || tagsToCheck.length === 0) return;
+
+    const tagsToRotate = [];
 
     for (const tag of tagsToCheck) {
       try {
@@ -968,11 +970,14 @@ setInterval(async () => {
         const dRes = await axios.get(query);
         const posts = dRes.data;
         
+        let foundNewPosts = false;
+        
         if (posts && posts.length > 0) {
           let maxPostId = tag.lastPostId || 0;
           
           for (const post of posts) {
             if (tag.lastPostId && post.id > tag.lastPostId) {
+              foundNewPosts = true;
               const previewUrl = post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url || null;
               let tagTypeName = "General";
               if (tag.tagType === 1) tagTypeName = "Artist";
@@ -1007,25 +1012,31 @@ setInterval(async () => {
             }
           }
           
-          // Update timestamp agar berotasi di antrean
-          await prisma.followedTag.update({
-            where: { id: tag.id },
-            data: { lastPostId: maxPostId, updatedAt: new Date() }
-          });
+          if (foundNewPosts) {
+            // Update timestamp & lastPostId for tags with new posts
+            await prisma.followedTag.update({
+              where: { id: tag.id },
+              data: { lastPostId: maxPostId, updatedAt: new Date() }
+            });
+          } else {
+            tagsToRotate.push(tag.id);
+          }
         } else {
-          // Rotasi jika tidak ada post
-          await prisma.followedTag.update({
-            where: { id: tag.id },
-            data: { updatedAt: new Date() }
-          });
+          // Rotasi jika tidak ada post sama sekali
+          tagsToRotate.push(tag.id);
         }
       } catch (err) {
         // Rotasi jika error
-        await prisma.followedTag.update({
-          where: { id: tag.id },
-          data: { updatedAt: new Date() }
-        });
+        tagsToRotate.push(tag.id);
       }
+    }
+    
+    // Lakukan batch update untuk semua tag yang tidak memiliki post baru (menghemat kuota DB)
+    if (tagsToRotate.length > 0) {
+      await prisma.followedTag.updateMany({
+        where: { id: { in: tagsToRotate } },
+        data: { updatedAt: new Date() }
+      });
     }
   } catch (error) {
     console.error("Background sync error:", error.message);
