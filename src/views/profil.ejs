@@ -360,9 +360,12 @@
           if (items.length === 0) return '';
           let html = `<div class="mb-6"><h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">${title} <span class="text-gray-500 text-sm font-normal">(${items.length})</span></h3><div class="flex flex-wrap gap-2">`;
           items.forEach(item => {
-            html += `<a href="/search?tags=${encodeURIComponent(item.tagName)}" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 ${colorClass} px-3 py-1.5 rounded-full text-sm transition-colors flex items-center gap-2 shadow-sm">
-              <span class="font-medium">${item.tagName.replace(/_/g, ' ')}</span>
-            </a>`;
+            html += `<div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 ${colorClass} pl-3 pr-2 py-1.5 rounded-full text-sm transition-colors flex items-center gap-2 shadow-sm">
+              <a href="/search?tags=${encodeURIComponent(item.tagName)}" class="font-medium hover:underline">${item.tagName.replace(/_/g, ' ')}</a>
+              <button onclick="unfollowTag('${item.tagName}', ${item.tagType}, this)" class="text-gray-500 hover:text-red-400 focus:outline-none transition-colors p-1" title="Unfollow">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>`;
           });
           html += `</div></div>`;
           return html;
@@ -487,6 +490,50 @@
       window.removeSave = function(postId, btnEl, skipConfirm = false) {
           removeSaveConfirm(postId, btnEl);
       };
+
+      async function unfollowTag(tagName, tagType, btnEl) {
+         if (!confirm(`Apakah Anda yakin ingin berhenti mengikuti tag "${tagName}"?`)) return;
+         btnEl.disabled = true;
+         try {
+            const res = await fetch('/api/follow', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ tagName, tagType })
+            });
+            const data = await res.json();
+            if (res.ok) {
+               const tagContainer = btnEl.closest('div.bg-gray-800');
+               if (tagContainer) {
+                  tagContainer.style.transition = 'all 0.3s ease';
+                  tagContainer.style.opacity = '0';
+                  tagContainer.style.transform = 'scale(0.9)';
+                  setTimeout(() => tagContainer.remove(), 300);
+               }
+               if (typeof window.showToast === 'function') {
+                  window.showToast(data.message || 'Berhasil unfollow tag.', 'success');
+               } else {
+                  alert(data.message || 'Berhasil unfollow tag.');
+               }
+               
+               // Update UI counts visually
+               const countEl = document.querySelector('#tab-mengikuti-btn');
+               if (countEl) {
+                  let match = countEl.textContent.match(/\((\d+)\)/);
+                  if (match && match[1]) {
+                     const newCount = Math.max(0, parseInt(match[1]) - 1);
+                     countEl.textContent = `Mengikuti (${newCount})`;
+                  }
+               }
+            } else {
+               throw new Error(data.error || 'Gagal berhenti mengikuti tag.');
+            }
+         } catch (err) {
+            console.error(err);
+            if (typeof window.showToast === 'function') window.showToast(err.message, 'error');
+            else alert(err.message);
+            btnEl.disabled = false;
+         }
+      }
 
       // Infinite Scroll Logic
       let currentPage = 1;
