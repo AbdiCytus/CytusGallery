@@ -3,9 +3,15 @@
         const urlParams = new URLSearchParams();
         if (tagsForPagination) urlParams.append('tags', tagsForPagination);
         if (limit) urlParams.append('limit', limit);
+        if (locals.currentTab) urlParams.append('tab', locals.currentTab);
+        if (locals.filterQuery) urlParams.append('query', locals.filterQuery);
         
-        const baseUrl = `/search?${urlParams.toString()}`;
-        const pageParam = (tagsForPagination || limit) ? `&page=` : `page=`;
+        // Root url is /search but actually / if no tags. Let's just use /search because /search without tags redirects to / anyway, BUT wait, /search without tags + query is valid.
+        // Wait, baseUrl should be dynamic based on if tags/query exist.
+        // If we just use /search, it's fine for search.ejs. For index.ejs, it should probably be /
+        const isIndex = !tagsForPagination && !locals.filterQuery;
+        const baseUrl = isIndex ? `/?${urlParams.toString()}` : `/search?${urlParams.toString()}`;
+        const pageParam = urlParams.toString() ? `&page=` : `page=`;
     %>
 <nav id="pagination-nav" data-current-page="<%= currentPage %>" data-total-pages="<%= totalPages %>" data-base-url="<%= baseUrl %><%= pageParam %>" class="flex justify-center items-center space-x-1 my-12">
 

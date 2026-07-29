@@ -386,6 +386,97 @@ async function getTotalPostsWithParams(tags, query, limit) {
   };
 }
 
+async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
+  const prisma = require('./lib/prisma');
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { followedTags: true }
+  });
+
+  if (!user || user.followedTags.length === 0) {
+    return { posts: [], totalPages: 0, totalPosts: 0, hasFollowedTags: false };
+  }
+
+  let baseTags = filterQuery || "";
+  if (!isBypass) {
+    baseTags += " -rating:e -rating:q";
+  }
+
+  // Danbooru max limit is 200. To support deep pagination, we fetch multiple pages if needed.
+  const postsNeeded = page * limit;
+  const chunkLimit = 200;
+  const chunksNeeded = Math.ceil((postsNeeded + limit) / chunkLimit); // Fetch enough for next page
+  
+  // Cap at 15 chunks (3000 posts deep per tag)
+  const maxChunks = 15; 
+  const fetchChunks = Math.min(chunksNeeded, maxChunks);
+
+  const requestFns = [];
+  user.followedTags.forEach(tag => {
+    for (let c = 1; c <= fetchChunks; c++) {
+      requestFns.push(() => 
+        axios.get(basePostsURL, {
+          params: {
+            tags: `${tag.tagName} ${baseTags}`.trim(),
+            page: c,
+            limit: chunkLimit
+          }
+        }).catch(e => ({ data: [] }))
+      );
+    }
+  });
+
+  const results = [];
+  const batchSize = 5;
+  for (let i = 0; i < requestFns.length; i += batchSize) {
+    const batch = requestFns.slice(i, i + batchSize).map(fn => fn());
+    const batchResults = await Promise.all(batch);
+    results.push(...batchResults);
+  }
+  
+  let allPosts = [];
+  let hasMore = false;
+  results.forEach(res => {
+    if (res.data && Array.isArray(res.data)) {
+      allPosts = allPosts.concat(res.data);
+      if (res.data.length >= chunkLimit) {
+        hasMore = true;
+      }
+    }
+  });
+
+  const uniquePosts = [];
+  const seenIds = new Set();
+  for (const p of allPosts) {
+    if (p && p.id && !seenIds.has(p.id) && p.large_file_url) {
+      seenIds.add(p.id);
+      uniquePosts.push(p);
+    }
+  }
+
+  // Sort by ID descending (newest first)
+  uniquePosts.sort((a, b) => b.id - a.id);
+
+  const startIndex = (page - 1) * limit;
+  const paginatedPosts = uniquePosts.slice(startIndex, startIndex + limit);
+
+  const maxPages = Math.floor((maxChunks * chunkLimit) / limit);
+  let totalPages = Math.ceil(uniquePosts.length / limit);
+  
+  if (hasMore) {
+    totalPages = maxPages;
+  } else {
+    totalPages = Math.min(totalPages, maxPages);
+  }
+
+  return { 
+    posts: paginatedPosts, 
+    totalPages: totalPages, 
+    totalPosts: uniquePosts.length,
+    hasFollowedTags: true 
+  };
+}
+
 //2. Functional Routes
 
 const root = async (req, res) => {
@@ -394,30 +485,42 @@ const root = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    let baseTags = "";
-    if (!res.locals.isBypass) {
-      baseTags = "-rating:e -rating:q";
-    }
-    const contentsParams = { tags: baseTags, page: page, limit: limit };
-    const contents = await axios.get(basePostsURL, { params: contentsParams });
-    const posts = contents.data;
+    const tab = req.query.tab || "contents";
+    let posts = [];
+    let totalPosts = 0;
+    let totalPages = 0;
+    let hasFollowedTags = false;
 
-    let totalPosts;
-    let totalPages;
+    if (tab === "followed" && res.locals.user) {
+      const result = await getFollowedContents(res.locals.user.id, "", page, limit, res.locals.isBypass);
+      posts = result.posts;
+      totalPosts = result.totalPosts;
+      totalPages = result.totalPages;
+      hasFollowedTags = result.hasFollowedTags;
+    } else {
+      let baseTags = "";
+      if (!res.locals.isBypass) {
+        baseTags = "-rating:e -rating:q";
+      }
+      const contentsParams = { tags: baseTags, page: page, limit: limit };
+      const contents = await axios.get(basePostsURL, { params: contentsParams });
+      posts = contents.data;
+      totalPosts = (await getTotalPosts(limit)).totalPosts;
+      totalPages = (await getTotalPosts(limit)).totalPages;
+    }
+
     let sliderPosts = [];
     let popularTags = [];
     let popularCharacters = [];
 
-    totalPosts = (await getTotalPosts(limit)).totalPosts;
-    totalPages = (await getTotalPosts(limit)).totalPages;
     popularTags = await getSliderTags(3);
     popularCharacters = await getSliderTags(4);
 
     let savedPostIds = new Set();
-    if (req.user) {
+    if (res.locals.user) {
       const prisma = require('./lib/prisma');
       const saves = await prisma.savedContent.findMany({
-        where: { userId: req.user.id },
+        where: { userId: res.locals.user.id },
         select: { postId: true }
       });
       savedPostIds = new Set(saves.map(s => s.postId));
@@ -435,6 +538,8 @@ const root = async (req, res) => {
       totalPosts: totalPosts,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
+      currentTab: tab,
+      hasFollowedTags: hasFollowedTags
     });
   } catch (error) {
     console.error("Error fetching homepage data:", error);
@@ -456,19 +561,29 @@ const search = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    let posts;
-    let totalPages;
+    const tab = req.query.tab || "contents";
+    let posts = [];
+    let totalPages = 0;
+    let totalPosts = 0;
+    let hasFollowedTags = false;
     let sliderPosts = [];
     let popularTags = [];
     let popularCharacters = [];
 
-    const contentsParams = { tags: allTags, page: page, limit: limit };
-    const contents = await axios.get(basePostsURL, { params: contentsParams });
-
-    posts = contents.data;
-    const stats = await getTotalPostsWithParams(userTags, filterQuery, limit);
-    totalPages = stats.totalPages;
-    let totalPosts = stats.totalPosts;
+    if (!userTags && tab === "followed" && res.locals.user) {
+      const result = await getFollowedContents(res.locals.user.id, filterQuery, page, limit, res.locals.isBypass);
+      posts = result.posts;
+      totalPosts = result.totalPosts;
+      totalPages = result.totalPages;
+      hasFollowedTags = result.hasFollowedTags;
+    } else {
+      const contentsParams = { tags: allTags, page: page, limit: limit };
+      const contents = await axios.get(basePostsURL, { params: contentsParams });
+      posts = contents.data;
+      const stats = await getTotalPostsWithParams(userTags, filterQuery, limit);
+      totalPages = stats.totalPages;
+      totalPosts = stats.totalPosts;
+    }
 
     let smartSearchTags = [];
     let invalidTag = null;
@@ -518,10 +633,10 @@ const search = async (req, res) => {
     }
 
     let savedPostIds = new Set();
-    if (req.user) {
+    if (res.locals.user) {
       const prisma = require('./lib/prisma');
       const saves = await prisma.savedContent.findMany({
-        where: { userId: req.user.id },
+        where: { userId: res.locals.user.id },
         select: { postId: true }
       });
       savedPostIds = new Set(saves.map(s => s.postId));
@@ -536,13 +651,16 @@ const search = async (req, res) => {
       currentPage: page,
       totalPages: totalPages,
       totalPosts: totalPosts,
-      tagsForPagination: allTagsFinal,
+      tagsForPagination: actualUserTags,
       userTags: actualUserTags,
       originalUserTags: userTags,
       invalidTag: invalidTag,
       smartSearchTags: smartSearchTags,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
+      currentTab: tab,
+      hasFollowedTags: hasFollowedTags,
+      filterQuery: filterQuery
     });
   } catch (error) {
     console.error("Error fetching search data:", error);
@@ -690,7 +808,7 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
                       data: {
                         userId: tag.userId,
                         title: "Konten Baru",
-                        message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
+                        message: `**${tagNameFormatted}** baru dari **${tagTypeName}** yang Anda ikuti`,
                         link: `/posts/${post.id}`,
                         imageUrl: previewUrl,
                         extension: post.file_ext,
@@ -906,7 +1024,7 @@ setInterval(async () => {
                   data: {
                     userId: tag.userId,
                     title: 'Konten Baru',
-                    message: `Konten **${tagTypeName}** baru dari **${tagNameFormatted}** yang Anda ikuti`,
+                    message: `**${tagNameFormatted}** baru dari **${tagTypeName}** yang Anda ikuti`,
                     link: `/posts/${post.id}`,
                     imageUrl: previewUrl,
                     extension: post.file_ext,
