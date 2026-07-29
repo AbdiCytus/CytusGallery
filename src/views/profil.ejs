@@ -563,8 +563,11 @@
         removeSaveConfirm(postId, btnEl);
       };
 
-      async function unfollowTag(tagName, tagType, btnEl) {
-        if (!confirm(`Apakah Anda yakin ingin berhenti mengikuti tag "${tagName}"?`)) return;
+      let tagToUnfollow = null;
+
+      async function confirmUnfollowTag() {
+        if (!tagToUnfollow) return;
+        const { tagName, tagType, btnEl } = tagToUnfollow;
         btnEl.disabled = true;
         try {
           const res = await fetch('/api/follow', {
@@ -609,6 +612,17 @@
           if (typeof window.showToast === 'function') window.showToast(err.message, 'error');
           else alert(err.message);
           btnEl.disabled = false;
+        }
+      }
+
+      function unfollowTag(tagName, tagType, btnEl) {
+        tagToUnfollow = { tagName, tagType, btnEl };
+        if (typeof window.showAlert === 'function') {
+          window.showAlert("Unfollow Tag", `Apakah Anda yakin ingin berhenti mengikuti tag "${tagName}"?`, confirmUnfollowTag);
+        } else {
+          if (confirm(`Apakah Anda yakin ingin berhenti mengikuti tag "${tagName}"?`)) {
+            confirmUnfollowTag();
+          }
         }
       }
 
