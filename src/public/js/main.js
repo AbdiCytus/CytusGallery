@@ -1256,6 +1256,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const isDetailLink = interactiveEl.tagName === 'A' && interactiveEl.getAttribute('href') && interactiveEl.getAttribute('href').startsWith('/posts/');
       if (interactiveEl.classList.contains("detail-button") || isDetailLink) {
         e.preventDefault();
+        
+        // Jika infinite scroll aktif, buka di tab baru agar tidak merusak state
+        const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters") || "{}");
+        if (filters.scrollToggle) {
+          window.open(interactiveEl.href, '_blank');
+          return;
+        }
+
         showLoader("Memuat Konten...");
         window.location.href = interactiveEl.href;
         return;
