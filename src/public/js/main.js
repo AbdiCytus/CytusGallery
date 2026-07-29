@@ -1,4 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const currentUrl = new URL(window.location.href);
+  const path = currentUrl.pathname;
+  
+  if (currentUrl.searchParams.has("tab")) {
+    localStorage.setItem("cytusGalleryActiveTab", currentUrl.searchParams.get("tab"));
+  } else if (path === "/" || path === "/search") {
+    const savedTab = localStorage.getItem("cytusGalleryActiveTab");
+    if (savedTab && savedTab !== "contents") {
+      currentUrl.searchParams.set("tab", savedTab);
+      window.location.replace(currentUrl.toString());
+      return;
+    }
+  }
+
   const loadingOverlay = document.getElementById("loading-overlay");
   const loadingText = document.getElementById("loading-text");
   const searchInputOnLoad = document.getElementById("search-input");
@@ -20,6 +34,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  if (sessionStorage.getItem("isLoadingMessage")) {
+    showLoader(sessionStorage.getItem("isLoadingMessage"));
+    sessionStorage.removeItem("isLoadingMessage");
+    sessionStorage.removeItem("isLoading");
+  } else if (sessionStorage.getItem("isLoading") === "true") {
+    showLoader("Memuat Konten...");
+    sessionStorage.removeItem("isLoading");
+  }
+
   if (savedTags && searchInputOnLoad) searchInputOnLoad.value = savedTags;
 
   if (navigationEntries.length > 0 && navigationEntries[0].type === "back_forward") {
@@ -35,7 +58,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   window.addEventListener("beforeunload", () => {
-    showLoader("Memuat...");
+    if (loadingOverlay && loadingOverlay.classList.contains("opacity-0")) {
+      showLoader("Memuat...");
+    }
   });
 
   // === BAGIAN 1: PENGUMPULAN ELEMEN DOM ===
@@ -239,7 +264,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const isMobile = () => window.innerWidth < 768;
 
-  const navigateWithFilters = (userTypedTags = "", page = 1) => {
+  const navigateWithFilters = async (userTypedTags = "", page = 1, tab = null, useAjax = false) => {
+    let activeTab = tab;
+    if (!activeTab) {
+       activeTab = localStorage.getItem("cytusGalleryActiveTab") || "contents";
+    } else {
+       localStorage.setItem("cytusGalleryActiveTab", activeTab);
+    }
+
     sessionStorage.setItem("lastSearchTags", userTypedTags.trim());
 
     const params = new URLSearchParams();
@@ -300,8 +332,133 @@ document.addEventListener("DOMContentLoaded", () => {
     params.append("limit", limit);
     if (lazyload) params.append("lazyload", "true");
     if (page > 1) params.append("page", page);
+    if (activeTab && activeTab !== 'contents') params.append("tab", activeTab);
+    
     const queryString = params.toString();
-    window.location.href = queryString ? `/search?${queryString}` : "/";
+    const targetUrl = queryString ? `/search?${queryString}` : "/";
+    
+    if (useAjax) {
+      try {
+        const currentMain = document.querySelector('main');
+        let progressContainer = document.getElementById('tab-progress-container');
+        let progressBar = document.getElementById('tab-progress-bar');
+        
+        // Dynamically create the progress bar if it doesn't exist
+        if (!progressContainer) {
+            const tabLink = document.querySelector('.main-tab-link');
+            const tabsDiv = tabLink ? tabLink.closest('.flex') : null;
+            if (tabsDiv) {
+                progressContainer = document.createElement('div');
+                progressContainer.id = 'tab-progress-container';
+                progressContainer.style.cssText = 'position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; background-color: transparent; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.2s ease;';
+                
+                progressBar = document.createElement('div');
+                progressBar.id = 'tab-progress-bar';
+                progressBar.style.cssText = 'height: 100%; background-color: #22d3ee; width: 0%; box-shadow: 0 0 12px rgba(34,211,238,1); border-radius: 9999px; transition: width 0.3s ease-out;';
+                
+                progressContainer.appendChild(progressBar);
+                tabsDiv.appendChild(progressContainer);
+            }
+        }
+        
+        if (progressContainer && progressBar) {
+           progressContainer.style.opacity = '1';
+           
+           setTimeout(() => {
+             if (progressBar) progressBar.style.width = '40%';
+           }, 10);
+           
+           setTimeout(() => { 
+             if (progressBar) progressBar.style.width = '70%'; 
+           }, 200);
+        } else if (currentMain) {
+           currentMain.style.transition = 'opacity 0.2s ease-in-out';
+           currentMain.style.opacity = '0.5';
+        }
+
+        const [res] = await Promise.all([
+           fetch(targetUrl),
+           new Promise(resolve => setTimeout(resolve, 300)) // Force min 300ms for smooth animation
+        ]);
+        
+        const text = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        
+        const newMain = doc.querySelector('main');
+        
+        if (newMain && currentMain) {
+          if (progressBar) progressBar.style.width = '100%';
+          
+          const finalizeTransition = () => {
+             const activeProgressContainer = document.getElementById('tab-progress-container');
+             // detach it so it survives innerHTML replacement
+             if (activeProgressContainer && activeProgressContainer.parentNode) {
+                 activeProgressContainer.parentNode.removeChild(activeProgressContainer);
+             }
+             
+             currentMain.innerHTML = newMain.innerHTML;
+             window.history.pushState({}, "", targetUrl);
+             currentMain.style.opacity = '1';
+             
+             // Restore the old active progress bar into the new DOM
+             if (activeProgressContainer) {
+                 const newTabLink = document.querySelector('.main-tab-link');
+                 const newTabsDiv = newTabLink ? newTabLink.closest('.flex') : null;
+                 if (newTabsDiv) {
+                     newTabsDiv.appendChild(activeProgressContainer);
+                     
+                     // fade out smoothly
+                     activeProgressContainer.style.transition = 'opacity 0.3s ease';
+                     setTimeout(() => activeProgressContainer.style.opacity = '0', 200);
+                     setTimeout(() => {
+                         const bar = document.getElementById('tab-progress-bar');
+                         if (bar) {
+                            bar.style.transition = 'none';
+                            bar.style.width = '0%';
+                            setTimeout(() => bar.style.transition = 'width 0.3s ease-out', 50);
+                         }
+                     }, 500);
+                 }
+             }
+             
+             if (document.querySelector(".swiper")) {
+               new Swiper(".swiper", {
+                 loop: true,
+                 slidesPerView: 1,
+                 spaceBetween: 10,
+                 autoplay: {
+                   delay: 4000,
+                   disableOnInteraction: false,
+                   pauseOnMouseEnter: true,
+                 },
+                 breakpoints: {
+                   640: { slidesPerView: 3, spaceBetween: 20 },
+                   1024: { slidesPerView: 5, spaceBetween: 20 },
+                 }
+               });
+             }
+             
+             if (typeof initializeMasonry === 'function') initializeMasonry();
+             if (typeof initInfiniteScroll === 'function') initInfiniteScroll();
+             
+             setTimeout(hideLoader, 300);
+          };
+          
+          if (progressBar) {
+             setTimeout(finalizeTransition, 200);
+          } else {
+             finalizeTransition();
+          }
+        } else {
+          window.location.href = targetUrl;
+        }
+      } catch (err) {
+        window.location.href = targetUrl;
+      }
+    } else {
+      window.location.href = targetUrl;
+    }
   };
 
   // Intercept raw tag links (e.g. from profile or other pages) to apply local filters
@@ -320,6 +477,15 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       } catch (err) {}
+    }
+    
+    // Intercept main tab link clicks
+    if (a && a.classList.contains('main-tab-link')) {
+      e.preventDefault();
+      const tab = a.getAttribute('data-tab');
+      // Tab clicks are only on the main page, so userTypedTags is empty.
+      // Filter settings will be auto-applied by navigateWithFilters.
+      navigateWithFilters("", 1, tab, true);
     }
   });
 
@@ -586,11 +752,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  if (sessionStorage.getItem("isLoading") === "true") {
-    showLoader("Memuat Konten...");
-    sessionStorage.removeItem("isLoading");
-  }
-
   if (filterForm) loadFiltersToUI();
   initializeMasonry();
 
@@ -717,16 +878,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Case 3: Untuk semua perubahan lain yang tidak butuh konfirmasi
+      // Case 3: Jika Infinite Scroll diaktifkan, reset limit ke 25
+      else if (changedElement.id === "scroll-toggle" && changedElement.checked) {
+        const limitInput = document.getElementById("limit-input");
+        if (limitInput && limitInput.value !== "25") {
+          limitInput.value = "25";
+          if (window.showToast) window.showToast("Konten per halaman direset ke 25 untuk mengoptimalkan Infinite Scroll");
+        }
+        saveFilters();
+      }
+
+      // Case 4: Untuk semua perubahan lain yang tidak butuh konfirmasi
       else {
         saveFilters(); // Langsung simpan seperti biasa
       }
-    });
-
-    filterForm.addEventListener("submit", (e) => {
-      e.preventDefault();
-      showLoader("Applying Settings...");
-      navigateWithFilters(searchInput ? searchInput.value : "", 1);
     });
 
     loadFiltersToUI();
@@ -1016,6 +1181,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const handleFormSubmit = (e) => {
     e.preventDefault();
     sessionStorage.setItem("isLoading", "true");
+    
+    if (e.target.id === "filter-form") {
+      sessionStorage.setItem("isLoadingMessage", "Menyimpan Pengaturan...");
+      showLoader("Menyimpan Pengaturan...");
+    } else {
+      showLoader("Memuat...");
+    }
+    
     navigateWithFilters(document.getElementById("search-input").value, 1);
   };
 
@@ -1078,6 +1251,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const url = new URL(link.href);
       const tags = url.searchParams.get("tags") || "";
       const page = url.searchParams.get("page") || 1;
+      const tab = url.searchParams.get("tab") || null;
       const userTags = tags
         .split(" ")
         .filter(
@@ -1087,7 +1261,7 @@ document.addEventListener("DOMContentLoaded", () => {
             !t.startsWith("filetype:")
         )
         .join(" ");
-      navigateWithFilters(userTags, page);
+      navigateWithFilters(userTags, page, tab);
     }
   });
 
