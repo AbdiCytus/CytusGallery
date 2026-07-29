@@ -405,8 +405,8 @@
                mobileBadge.textContent = '0';
              }
              
-             // Kirim request ke server di background
-             // Removed to allow the notification page to show unread status
+             // Kirim request ke server di background untuk menandai semua sebagai dibaca
+             fetch('/api/notifications/read', { method: 'POST' }).catch(console.error);
           }
         };
 

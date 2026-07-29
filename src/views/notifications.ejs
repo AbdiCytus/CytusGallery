@@ -146,16 +146,13 @@
 
   let notifAction = null;
   function deleteNotification(action, idOrEl, date = null) {
-    if (isNotifFetching && action === 'day') return; // Prevent deleting while loading
-
-    if (action === 'single' && !confirm('Langsung hapus notifikasi ini tanpa konfirmasi ulang?')) {
-      return;
-    }
 
     if (action === 'single') {
       const el = document.getElementById(`notif-${idOrEl}`);
       if (el) {
+        el.style.transition = 'all 0.3s ease';
         el.style.opacity = '0';
+        el.style.transform = 'translateX(-100%)';
         setTimeout(() => {
           const list = el.parentElement;
           el.remove();
