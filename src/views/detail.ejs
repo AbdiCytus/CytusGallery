@@ -319,8 +319,19 @@
         
         if (!res.ok) {
            if (res.status === 401) window.location.href = '/login';
-           else if (typeof window.showToast === 'function') window.showToast('Gagal memproses permintaan.', 'error');
-           else alert('Gagal memproses permintaan.');
+           else {
+             try {
+               const errData = await res.json();
+               if (errData.error) {
+                 if (typeof window.showToast === 'function') window.showToast(errData.error, 'error');
+                 else alert(errData.error);
+                 return;
+               }
+             } catch (e) {}
+             
+             if (typeof window.showToast === 'function') window.showToast('Gagal memproses permintaan.', 'error');
+             else alert('Gagal memproses permintaan.');
+           }
            return;
         }
         

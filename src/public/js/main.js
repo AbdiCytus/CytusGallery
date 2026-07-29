@@ -13,10 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   
-  // Hide URL parameters to make the URL look clean
-  if (window.location.search) {
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
+  // URL parameters are kept to ensure the back button works correctly after searching
 
   const loadingOverlay = document.getElementById("loading-overlay");
   const loadingText = document.getElementById("loading-text");
@@ -403,7 +400,7 @@ document.addEventListener("DOMContentLoaded", () => {
              }
              
              currentMain.innerHTML = newMain.innerHTML;
-             window.history.pushState({}, "", window.location.pathname);
+             window.history.pushState({}, "", targetUrl);
              currentMain.style.opacity = '1';
              
              // Restore the old active progress bar into the new DOM

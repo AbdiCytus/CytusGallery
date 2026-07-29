@@ -771,6 +771,12 @@ app.post("/api/follow", requireAuth, async (req, res) => {
       });
       res.json({ followed: false, message: "Berhasil unfollow tag." });
     } else {
+      // Check maximum tags limit
+      const currentCount = await prisma.followedTag.count({ where: { userId } });
+      if (currentCount >= 40) {
+        return res.status(400).json({ error: "Gagal: Anda telah mencapai batas maksimal 40 tag. Silakan unfollow beberapa tag terlebih dahulu." });
+      }
+      
       // Get the latest post ID for this tag to start tracking
       let lastPostId = null;
       try {
