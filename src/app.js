@@ -18,6 +18,7 @@ const PORT = process.env.PORT || 3000;
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 60,
+  validate: { ip: false, xForwardedForHeader: false },
   handler: (req, res, next, options) => {
     res.status(options.statusCode).render("error", {
       message:
