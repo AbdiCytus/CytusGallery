@@ -355,27 +355,56 @@
         const copyrights = followed.filter(t => t.tagType === 3);
         const characters = followed.filter(t => t.tagType === 4);
         const artists = followed.filter(t => t.tagType === 1);
-        
-        const renderTagGroup = (title, items, colorClass) => {
-          if (items.length === 0) return '';
-          let html = `<div class="mb-6"><h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">${title} <span class="text-gray-500 text-sm font-normal">(${items.length})</span></h3><div class="flex flex-wrap gap-2">`;
-          items.forEach(item => {
-            html += `<div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 ${colorClass} pl-3 pr-2 py-1.5 rounded-full text-sm transition-colors flex items-center gap-2 shadow-sm">
-              <a href="/search?tags=${encodeURIComponent(item.tagName)}" class="font-medium hover:underline">${item.tagName.replace(/_/g, ' ')}</a>
-              <button onclick="unfollowTag('${item.tagName}', ${item.tagType}, this)" class="text-gray-500 hover:text-red-400 focus:outline-none transition-colors p-1" title="Unfollow">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
-            </div>`;
-          });
-          html += `</div></div>`;
-          return html;
-        };
       %>
       
       <% if (followed.length > 0) { %>
-        <%- renderTagGroup('Copyright', copyrights, 'text-purple-400') %>
-        <%- renderTagGroup('Character', characters, 'text-green-400') %>
-        <%- renderTagGroup('Artist', artists, 'text-red-400') %>
+        <% if (copyrights.length > 0) { %>
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">Copyright <span class="text-gray-500 text-sm font-normal">(<%= copyrights.length %>)</span></h3>
+            <div class="flex flex-wrap gap-2">
+              <% copyrights.forEach(item => { %>
+                <div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-purple-400 pl-3 pr-2 py-1.5 rounded-full text-sm transition-colors flex items-center gap-2 shadow-sm">
+                  <a href="/search?tags=<%= encodeURIComponent(item.tagName) %>" class="font-medium hover:underline"><%= item.tagName.replace(/_/g, ' ') %></a>
+                  <button onclick="unfollowTag('<%= item.tagName %>', <%= item.tagType %>, this)" class="text-gray-500 hover:text-red-400 focus:outline-none transition-colors p-1" title="Unfollow">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+
+        <% if (characters.length > 0) { %>
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">Character <span class="text-gray-500 text-sm font-normal">(<%= characters.length %>)</span></h3>
+            <div class="flex flex-wrap gap-2">
+              <% characters.forEach(item => { %>
+                <div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-green-400 pl-3 pr-2 py-1.5 rounded-full text-sm transition-colors flex items-center gap-2 shadow-sm">
+                  <a href="/search?tags=<%= encodeURIComponent(item.tagName) %>" class="font-medium hover:underline"><%= item.tagName.replace(/_/g, ' ') %></a>
+                  <button onclick="unfollowTag('<%= item.tagName %>', <%= item.tagType %>, this)" class="text-gray-500 hover:text-red-400 focus:outline-none transition-colors p-1" title="Unfollow">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+
+        <% if (artists.length > 0) { %>
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">Artist <span class="text-gray-500 text-sm font-normal">(<%= artists.length %>)</span></h3>
+            <div class="flex flex-wrap gap-2">
+              <% artists.forEach(item => { %>
+                <div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-red-400 pl-3 pr-2 py-1.5 rounded-full text-sm transition-colors flex items-center gap-2 shadow-sm">
+                  <a href="/search?tags=<%= encodeURIComponent(item.tagName) %>" class="font-medium hover:underline"><%= item.tagName.replace(/_/g, ' ') %></a>
+                  <button onclick="unfollowTag('<%= item.tagName %>', <%= item.tagType %>, this)" class="text-gray-500 hover:text-red-400 focus:outline-none transition-colors p-1" title="Unfollow">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                  </button>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
       <% } else { %>
         <div class="bg-gray-700/30 rounded-lg p-8 text-center border border-gray-700 border-dashed">
           <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
