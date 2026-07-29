@@ -290,22 +290,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const isBypassUser = document.getElementById("rating-e") !== null;
 
       if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
-        if (filters.rating === "not_e") {
-          // Moderate only shows Sensitive (s)
-          filterQueryParts.push("rating:s");
-          explicitLocked = false;
-        } else if (filters.rating === "g") {
-          filterQueryParts.push("rating:g");
-          explicitLocked = false;
-        } else if (filters.rating === "e") {
+        const selectedRatings = filters.rating.split(',');
+        let mappedRatings = [];
+        
+        if (selectedRatings.includes("g")) mappedRatings.push("g");
+        if (selectedRatings.includes("not_e")) mappedRatings.push("s");
+        if (selectedRatings.includes("e")) {
           if (isBypassUser) {
-            filterQueryParts.push("rating:e,q");
-            explicitLocked = false;
+            mappedRatings.push("e", "q");
           } else {
             // Force fallback if user logged out but still has 'e' in local storage
-            filterQueryParts.push("rating:g");
-            explicitLocked = false;
+            if (!mappedRatings.includes("g")) mappedRatings.push("g");
           }
+        }
+        
+        if (mappedRatings.length > 0) {
+          // Remove duplicates if any
+          mappedRatings = [...new Set(mappedRatings)];
+          filterQueryParts.push(`rating:${mappedRatings.join(',')}`);
+          explicitLocked = false;
         }
       } else if (!filters.ratingToggle && isBypassUser) {
         // Toggle is off and user has bypass: don't lock explicit
@@ -500,7 +503,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData(filterForm);
     const filters = {
       ratingToggle: document.getElementById("rating-toggle").checked,
-      rating: formData.get("rating"),
+      rating: formData.getAll("rating").join(","),
       typeToggle: document.getElementById("type-toggle").checked,
       type: formData.get("type"),
       limit: document.getElementById("limit-input").value,
@@ -547,17 +550,21 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("rating-options")
         .classList.toggle("hidden", !ratingToggle);
       if (rating) {
-        let actualRating = rating;
-        if (actualRating === "e" && document.getElementById("rating-e") === null) {
-            actualRating = "g";
-            filters.rating = "g";
-            localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
-            wasMissing = true;
+        const selectedRatings = rating.split(',');
+        let hasE = selectedRatings.includes("e");
+        let validRatings = selectedRatings;
+
+        if (hasE && document.getElementById("rating-e") === null) {
+          validRatings = ["g"];
+          filters.rating = "g";
+          localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+          wasMissing = true;
         }
-        const ratingInput = document.querySelector(
-          `input[name="rating"][value="${actualRating}"]`
-        );
-        if (ratingInput) ratingInput.checked = true;
+
+        validRatings.forEach(actualRating => {
+          const ratingInput = document.querySelector(`input[name="rating"][value="${actualRating}"]`);
+          if (ratingInput) ratingInput.checked = true;
+        });
       }
     }
     const typeToggleEl = document.getElementById("type-toggle");
