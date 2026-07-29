@@ -1216,6 +1216,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // Listener untuk semua form submit
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    
+    if (e.target.id === "filter-form") {
+      const currentPath = window.location.pathname;
+      const isMainPage = currentPath === '/' || currentPath.startsWith('/search');
+      
+      if (!isMainPage) {
+        saveFilters();
+        closeAllOverlays();
+        if (typeof window.showToast === 'function') {
+          window.showToast("Pengaturan disimpan!", "success");
+        }
+        return;
+      }
+    }
+    
     sessionStorage.setItem("isLoading", "true");
     
     if (e.target.id === "filter-form") {
