@@ -550,6 +550,19 @@ const root = async (req, res) => {
 };
 
 const search = async (req, res) => {
+  const allowedKeys = ['tags', 'page', 'limit', 'tab', 'query', 'lazyload'];
+  const currentKeys = Object.keys(req.query);
+  const hasInvalidKeys = currentKeys.some(key => !allowedKeys.includes(key));
+  
+  if (hasInvalidKeys) {
+    const validParams = new URLSearchParams();
+    allowedKeys.forEach(k => {
+      if (req.query[k]) validParams.set(k, req.query[k]);
+    });
+    const qs = validParams.toString();
+    return res.redirect(`/search${qs ? '?' + qs : ''}`);
+  }
+
   const userTags = (req.query.tags || "").trim();
   const filterQuery = (req.query.query || "").trim();
   const allTags = `${userTags} ${filterQuery}`;
@@ -872,38 +885,15 @@ app.get("/notifikasi", requireAuth, async (req, res) => {
   try {
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 50
+      orderBy: { createdAt: 'desc' }
     });
     
-    // Mark as read when page is visited
-    await prisma.notification.updateMany({
-      where: { userId: req.user.id, isRead: false },
-      data: { isRead: true }
-    });
+    // Notifications are marked as read client-side via IntersectionObserver
 
     res.render("notifications", { notifications: notifications, hideSearchbar: true });
   } catch (error) {
     console.error(error);
     res.status(500).render("error", { message: "Gagal memuat notifikasi." });
-  }
-});
-
-app.get("/api/notifications/more", requireAuth, async (req, res) => {
-  const prisma = require('./lib/prisma');
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const take = 50;
-    const skip = (page - 1) * take;
-    const notifications = await prisma.notification.findMany({
-      where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' },
-      take,
-      skip
-    });
-    res.json(notifications);
-  } catch (error) {
-    res.status(500).json({ error: "Gagal memuat" });
   }
 });
 
@@ -916,19 +906,12 @@ app.post("/api/notifications/delete", requireAuth, async (req, res) => {
       await prisma.notification.deleteMany({
         where: { userId: req.user.id }
       });
-    } else if (action === 'day' && date) {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-      
+    } else if (action === 'day' && id) {
+      const ids = id.split(',');
       await prisma.notification.deleteMany({
         where: {
           userId: req.user.id,
-          createdAt: {
-            gte: startOfDay,
-            lte: endOfDay
-          }
+          id: { in: ids }
         }
       });
     } else if (action === 'single' && id) {
@@ -940,6 +923,26 @@ app.post("/api/notifications/delete", requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Gagal menghapus notifikasi." });
+  }
+});
+
+app.post("/api/notifications/mark-read", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const { ids } = req.body;
+    if (ids && ids.length > 0) {
+      await prisma.notification.updateMany({
+        where: {
+          id: { in: ids },
+          userId: req.user.id
+        },
+        data: { isRead: true }
+      });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Gagal update status notifikasi" });
   }
 });
 
@@ -982,7 +985,7 @@ setInterval(async () => {
   try {
     const tagsToCheck = await prisma.followedTag.findMany({
       orderBy: { updatedAt: 'asc' },
-      take: 10,
+      take: 50,
       include: { user: true }
     });
     if (!tagsToCheck || tagsToCheck.length === 0) return;
@@ -1028,7 +1031,8 @@ setInterval(async () => {
                     link: `/posts/${post.id}`,
                     imageUrl: previewUrl,
                     extension: post.file_ext,
-                    rating: post.rating
+                    rating: post.rating,
+                    createdAt: post.created_at ? new Date(post.created_at) : new Date()
                   }
                 });
               }
@@ -1061,7 +1065,7 @@ setInterval(async () => {
   } catch (error) {
     console.error("Background sync error:", error.message);
   }
-}, 2 * 60 * 1000); // Berjalan setiap 2 menit
+}, 1 * 60 * 1000); // Berjalan setiap 1 menit
 
 //Run Server
 app.listen(PORT, "0.0.0.0", () => {

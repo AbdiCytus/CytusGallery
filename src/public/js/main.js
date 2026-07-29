@@ -12,6 +12,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
   }
+  
+  // Hide URL parameters to make the URL look clean
+  if (window.location.search) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
 
   const loadingOverlay = document.getElementById("loading-overlay");
   const loadingText = document.getElementById("loading-text");
@@ -398,7 +403,7 @@ document.addEventListener("DOMContentLoaded", () => {
              }
              
              currentMain.innerHTML = newMain.innerHTML;
-             window.history.pushState({}, "", targetUrl);
+             window.history.pushState({}, "", window.location.pathname);
              currentMain.style.opacity = '1';
              
              // Restore the old active progress bar into the new DOM
@@ -435,7 +440,11 @@ document.addEventListener("DOMContentLoaded", () => {
                  breakpoints: {
                    640: { slidesPerView: 3, spaceBetween: 20 },
                    1024: { slidesPerView: 5, spaceBetween: 20 },
-                 }
+                 },
+                 navigation: {
+                   nextEl: ".swiper-button-next",
+                   prevEl: ".swiper-button-prev",
+                 },
                });
              }
              
@@ -1025,6 +1034,8 @@ document.addEventListener("DOMContentLoaded", () => {
        }
     });
     
+    let suggestTimeout = null;
+    
     searchInputVisual.addEventListener("input", async (e) => {
       const val = searchInputVisual.value;
       if (val.endsWith(" ")) {
@@ -1045,10 +1056,23 @@ document.addEventListener("DOMContentLoaded", () => {
         else suggestionsBox.classList.add("hidden");
         return;
       }
+      
+      // Cancel previous request if any
+      if (window.suggestAbortController) {
+        window.suggestAbortController.abort();
+      }
+      window.suggestAbortController = new AbortController();
+      const signal = window.suggestAbortController.signal;
 
       try {
-        const response = await fetch(`/api/tagsuggest?term=${currentTerm}`);
-        const tags = await response.json();
+        const url = new URL("https://danbooru.donmai.us/tags.json");
+        url.searchParams.append("search[name_matches]", `${currentTerm}*`);
+        url.searchParams.append("search[order]", "count");
+        url.searchParams.append("limit", "10");
+        
+        const response = await fetch(url.toString(), { signal });
+        const data = await response.json();
+        const tags = data.filter((tag) => tag.post_count > 0);
         
         // Prevent race conditions when user types space and clears input before fetch completes
         if (searchInputVisual.value.trim() !== currentTerm) return;
@@ -1062,8 +1086,14 @@ document.addEventListener("DOMContentLoaded", () => {
             suggestionItem.className =
               "flex justify-between w-full items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2 suggestion-item focus:outline-none";
 
+            let categoryColor = 'text-white'; // 0: general
+            if (tag.category === 1) categoryColor = 'text-red-400'; // artist
+            else if (tag.category === 3) categoryColor = 'text-purple-400'; // copyright
+            else if (tag.category === 4) categoryColor = 'text-green-400'; // character
+            else if (tag.category === 5) categoryColor = 'text-yellow-400'; // meta
+
             const postCount = tag.post_count.toLocaleString("en-US");
-            suggestionItem.innerHTML = `<span class="truncate">${tag.name.replace(/_/g, ' ')}</span><span class="text-sm text-gray-400 whitespace-nowrap">${postCount}</span>`;
+            suggestionItem.innerHTML = `<span class="truncate font-medium ${categoryColor}">${tag.name.replace(/_/g, ' ')}</span><span class="text-xs text-gray-400 whitespace-nowrap">${postCount}</span>`;
 
             suggestionItem.addEventListener("click", (e) => {
               e.preventDefault();
@@ -1072,7 +1102,7 @@ document.addEventListener("DOMContentLoaded", () => {
               showRecentTags();
               searchInputVisual.focus();
             });
-
+            
             suggestionsBox.appendChild(suggestionItem);
           });
           suggestionsBox.classList.remove("hidden");
@@ -1080,7 +1110,9 @@ document.addEventListener("DOMContentLoaded", () => {
           suggestionsBox.classList.add("hidden");
         }
       } catch (error) {
-        console.error("Failed to fetch suggestions:", error);
+        if (error.name !== 'AbortError') {
+          console.error("Error fetching suggestions:", error);
+        }
       }
     });
 
