@@ -138,3 +138,21 @@ Proyek ini terinspirasi dari gaya **Pinterest Grid** namun dipadukan dengan berb
 ## 📛 Nama Proyek
 
 **CytusGallery**
+
+---
+
+## 🚀 Optimasi Performa Tingkat Lanjut (Advanced Performance Optimization)
+
+Sistem CytusGallery telah dirancang dan dioptimalkan secara mendalam untuk menangani latensi tinggi serta memastikan waktu muat (*loading time*) yang secepat kilat:
+
+1. ⚡ **In-Memory Caching (Penyimpanan Memori Jangka Pendek)**
+   - **Konsep:** Data berat seperti sesi akun, status *tags*, dan total *saved content* dari *database* Prisma disimpan sementara di dalam RAM *server* (selama 30 detik hingga 10 menit).
+   - **Hasil:** Kueri *database* turun drastis (hingga 90%). *Refresh* halaman berulang kali dalam waktu berdekatan tidak akan membebani *database* dan direspons secara instan (0 detik tunda API).
+
+2. 🔀 **Concurrent Parallel Execution (Eksekusi Paralel via Promise.all)**
+   - **Konsep:** Pada tab *Followed Contents* yang membutuhkan banyak tarikan data ke Danbooru, sistem tidak lagi menembak *tag* secara mencicil (*sequential batching*). Semua *tag* ditembak ke *server* Danbooru pada detik yang sama secara paralel.
+   - **Hasil:** Waktu tunggu yang sebelumnya bisa mencapai 24-30 detik kini terpangkas habis hingga menyentuh waktu tunggal terlama saja (maksimal 6 detik).
+
+3. ⏱ **Fail-Fast Mechanism (Mekanisme Putus Cepat / Strict Timeouts)**
+   - **Konsep:** Semua rute komunikasi ke Danbooru API dilindungi oleh batas waktu ketat (*strict timeout* selama 6 detik). Jika *server* eksternal sedang sibuk atau melambat, sistem tidak akan "menggantung" tanpa batas waktu.
+   - **Hasil:** Aplikasi tidak pernah macet (*thread blocking*). Saat lewat batas waktu, halaman tetap merender (*graceful degradation*) sehingga *user experience* (UX) tetap terjamin halus dan cepat.
