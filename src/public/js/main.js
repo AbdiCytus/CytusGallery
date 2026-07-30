@@ -230,9 +230,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (scrollToTopBtn) {
     window.addEventListener("scroll", () => {
-      if (window.scrollY > 300)
+      if (window.scrollY > 300) {
         scrollToTopBtn.classList.remove("opacity-0", "pointer-events-none");
-      else scrollToTopBtn.classList.add("opacity-0", "pointer-events-none");
+      } else {
+        scrollToTopBtn.classList.add("opacity-0", "pointer-events-none");
+      }
       
       if (scrollToBottomBtn) {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
@@ -253,6 +255,8 @@ document.addEventListener("DOMContentLoaded", () => {
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
     );
   }
+  
+  window.dispatchEvent(new Event("scroll"));
 
   const hideAlert = () => {
     if (!customAlert) return;
@@ -492,6 +496,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (a && a.classList.contains('main-tab-link')) {
       e.preventDefault();
       const tab = a.getAttribute('data-tab');
+      
+      const currentUrl = new URL(window.location.href);
+      const currentTab = currentUrl.searchParams.get("tab") || "contents";
+      if (tab === currentTab) return; // Do not reload if already active
+      
       // Tab clicks are only on the main page, so userTypedTags is empty.
       // Filter settings will be auto-applied by navigateWithFilters.
       navigateWithFilters("", 1, tab, true);
