@@ -106,8 +106,7 @@
   <% } %>
 
 
-  <div class="masonry-container relative min-h-[400px]">
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 relative z-10" id="main-gallery">
+  <div class="columns-2 md:columns-5 gap-4 space-y-4" id="main-gallery">
     <% let validIndex = 0; %>
     <% posts.forEach((post, index) => { %>
     <% if (post.large_file_url) { %>
@@ -182,11 +181,6 @@
         <span class="text-yellow-500 font-semibold"><%= limit - validIndex %> konten disembunyikan</span> secara otomatis oleh sistem Danbooru (dihapus, di-banned, atau dibatasi untuk API publik). 
       </div>
     <% } %>
-  </div>
-  <div class="masonry-loader absolute top-24 left-0 right-0 flex flex-col items-center justify-center text-gray-400 z-0 transition-opacity duration-300">
-    <div class="w-12 h-12 border-4 border-t-cyan-500 border-gray-700 rounded-full animate-spin mb-3"></div>
-    <p class="animate-pulse">Menyusun Grid...</p>
-  </div>
   </div>
 </main>
 <%- include('partials/pagination', { currentPage, totalPages, limit, tagsForPagination: tagsForPagination, currentTab: locals.currentTab, filterQuery: locals.filterQuery }) %>

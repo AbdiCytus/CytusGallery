@@ -172,8 +172,7 @@
       <% } %>
     </h2>
   <% } %>
-  <div class="masonry-container relative min-h-[400px]">
-    <div id="main-gallery" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 relative z-10 transition-opacity duration-300">
+  <div id="main-gallery" class="columns-2 md:columns-5 gap-4 space-y-4">
 
     <%# Cek apakah ada postingan untuk ditampilkan %>
     <% if (posts && posts.length > 0) { %>
@@ -258,11 +257,6 @@
 
     <% } %>
 
-  </div>
-  <div class="masonry-loader absolute top-24 left-0 right-0 flex flex-col items-center justify-center text-gray-400 z-0 transition-opacity duration-300">
-    <div class="w-12 h-12 border-4 border-t-cyan-500 border-gray-700 rounded-full animate-spin mb-3"></div>
-    <p class="animate-pulse">Menyusun Grid...</p>
-  </div>
   </div>
 </main>
 
