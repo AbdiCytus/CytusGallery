@@ -230,7 +230,7 @@
 
       <% if (userProfile.saves.length > 0) { %>
       <!-- Masonry View -->
-      <div id="koleksi-masonry" class="columns-2 md:columns-5 gap-4 space-y-4">
+      <div id="koleksi-masonry" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         <% userProfile.saves.forEach((save, index) => { 
              const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
           %>

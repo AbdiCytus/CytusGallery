@@ -106,7 +106,7 @@
   <% } %>
 
 
-  <div class="columns-2 md:columns-5 gap-4 space-y-4" id="main-gallery">
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="main-gallery">
     <% let validIndex = 0; %>
     <% posts.forEach((post, index) => { %>
     <% if (post.large_file_url) { %>
