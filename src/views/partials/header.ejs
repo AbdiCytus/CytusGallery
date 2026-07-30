@@ -30,8 +30,10 @@
       .swiper:not(.swiper-initialized) .swiper-slide { width: 20%; }
     }
     
-    /* Hide loader once Swiper initializes */
-    .swiper.swiper-initialized ~ .slider-loader {
+    /* Hide loader once Swiper/Masonry initializes */
+    .swiper.swiper-initialized ~ .slider-loader,
+    #main-gallery[data-masonry-initialized="true"] ~ .masonry-loader,
+    #koleksi-masonry[data-masonry-initialized="true"] ~ .masonry-loader {
       opacity: 0;
       pointer-events: none;
     }
