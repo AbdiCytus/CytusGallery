@@ -359,7 +359,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (tabsDiv) {
                 progressContainer = document.createElement('div');
                 progressContainer.id = 'tab-progress-container';
-                progressContainer.style.cssText = 'position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; background-color: transparent; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.2s ease;';
+                progressContainer.style.cssText = 'position: absolute; bottom: -1px; left: 0; width: 100%; height: 3px; background-color: transparent; z-index: 20; pointer-events: none; opacity: 0; transition: opacity 0.2s ease;';
                 
                 progressBar = document.createElement('div');
                 progressBar.id = 'tab-progress-bar';
