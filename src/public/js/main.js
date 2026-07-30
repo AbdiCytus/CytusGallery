@@ -717,6 +717,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
       let cols = getCols();
       let colDivs = [];
+      let colHeights = [];
+
+      const appendItemToCol = (item) => {
+        let minCol = 0;
+        let minHeight = colHeights[0];
+        for (let i = 1; i < cols; i++) {
+          if (colHeights[i] < minHeight) {
+            minHeight = colHeights[i];
+            minCol = i;
+          }
+        }
+        
+        colDivs[minCol].appendChild(item);
+        
+        const mediaContainer = item.querySelector('.media-container');
+        let ratio = 1;
+        if (mediaContainer && mediaContainer.style.aspectRatio) {
+           const parts = mediaContainer.style.aspectRatio.split('/');
+           if (parts.length === 2) {
+             ratio = parseFloat(parts[1]) / parseFloat(parts[0]);
+           }
+        }
+        colHeights[minCol] += ratio; 
+      };
 
       const renderGrid = () => {
         const newCols = getCols();
@@ -735,36 +759,20 @@ document.addEventListener("DOMContentLoaded", () => {
           colDivs.push(col);
         }
 
-        const colHeights = new Array(cols).fill(0);
+        colHeights = new Array(cols).fill(0);
         
         gallery._masonryItems.forEach(item => {
-          let minCol = 0;
-          let minHeight = colHeights[0];
-          for (let i = 1; i < cols; i++) {
-            if (colHeights[i] < minHeight) {
-              minHeight = colHeights[i];
-              minCol = i;
-            }
-          }
-          
-          colDivs[minCol].appendChild(item);
-          
-          const mediaContainer = item.querySelector('.media-container');
-          let ratio = 1;
-          if (mediaContainer && mediaContainer.style.aspectRatio) {
-             const parts = mediaContainer.style.aspectRatio.split('/');
-             if (parts.length === 2) {
-               ratio = parseFloat(parts[1]) / parseFloat(parts[0]);
-             }
-          }
-          colHeights[minCol] += ratio; 
+          appendItemToCol(item);
         });
       };
 
       gallery.appendMasonryItems = (newItemsList) => {
-         newItemsList.forEach(el => gallery._masonryItems.push(el));
-         colDivs = []; // force re-render
-         renderGrid();
+         newItemsList.forEach(item => {
+           gallery._masonryItems.push(item);
+           if (colDivs.length > 0) {
+             appendItemToCol(item);
+           }
+         });
       };
 
       renderGrid();
