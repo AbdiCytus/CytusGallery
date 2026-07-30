@@ -230,11 +230,11 @@
 
       <% if (userProfile.saves.length > 0) { %>
       <!-- Masonry View -->
-      <div id="koleksi-masonry" class="columns-2 md:columns-5 gap-4 space-y-4">
+      <div id="koleksi-masonry" class="columns-2 md:columns-5 gap-4">
         <% userProfile.saves.forEach((save, index) => { 
              const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
           %>
-        <div class="relative z-0 group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer group-hover:z-10" data-post-url="/posts/<%= save.postId %>" <%= isVideo ? 'data-is-video="true"' : '' %> data-video-url="<%= isVideo ? save.fileUrl : '' %>">
+        <div class="relative z-0 group inline-block w-full mb-4 bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer group-hover:z-10" data-post-url="/posts/<%= save.postId %>" <%= isVideo ? 'data-is-video="true"' : '' %> data-video-url="<%= isVideo ? save.fileUrl : '' %>">
           <div class="absolute top-0 left-0 z-30 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
             <%= index + 1 %>
           </div>
@@ -659,7 +659,7 @@
             const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
             let currentItemCount = masonryContainer._masonryItems ? masonryContainer._masonryItems.length : masonryContainer.querySelectorAll('.gallery-item').length;
             let masonryItem = `
-              <div class="relative z-0 group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer group-hover:z-10" data-post-url="/posts/${save.postId}" ${isVideo ? 'data-is-video="true"' : ''} data-video-url="${isVideo ? save.fileUrl : ''}">
+              <div class="relative z-0 group inline-block w-full mb-4 bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer group-hover:z-10" data-post-url="/posts/${save.postId}" ${isVideo ? 'data-is-video="true"' : ''} data-video-url="${isVideo ? save.fileUrl : ''}">
                   <div class="absolute top-0 left-0 z-30 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
                     ${currentItemCount + index + 1}
                   </div>

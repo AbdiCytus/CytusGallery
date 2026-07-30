@@ -172,7 +172,7 @@
       <% } %>
     </h2>
   <% } %>
-  <div id="main-gallery" class="columns-2 md:columns-5 gap-4 space-y-4">
+  <div id="main-gallery" class="columns-2 md:columns-5 gap-4">
 
     <%# Cek apakah ada postingan untuk ditampilkan %>
     <% if (posts && posts.length > 0) { %>
@@ -182,7 +182,7 @@
     <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
     <% const isVideo = post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm'); %>
     <% const previewUrl = isVideo ? (post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
-    <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden <%= isSaved ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
+    <div class="group gallery-item relative z-0 inline-block w-full mb-4 break-inside-avoid bg-gray-800 rounded-md overflow-hidden <%= isSaved ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
       <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
         <%= ((currentPage - 1) * limit) + validIndex + 1 %>
       </div>

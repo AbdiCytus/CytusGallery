@@ -689,80 +689,8 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const initializeMasonry = () => {
-    const galleries = document.querySelectorAll('#main-gallery, #koleksi-masonry');
-    galleries.forEach(gallery => {
-      if (gallery.dataset.masonryInitialized) return;
-      gallery.dataset.masonryInitialized = 'true';
-
-      gallery.className = "flex gap-4 items-start w-full";
-      
-      gallery._masonryItems = Array.from(gallery.querySelectorAll('.gallery-item'));
-      if (gallery._masonryItems.length === 0) return;
-
-      const getCols = () => {
-        if (window.innerWidth >= 1280) return 5;
-        if (window.innerWidth >= 1024) return 4;
-        if (window.innerWidth >= 768) return 3;
-        return 2;
-      };
-
-      let cols = getCols();
-      let colDivs = [];
-
-      const renderGrid = () => {
-        const newCols = getCols();
-        if (colDivs.length === newCols) return;
-        
-        cols = newCols;
-        gallery.innerHTML = '';
-        colDivs = [];
-        
-        for (let i = 0; i < cols; i++) {
-          const col = document.createElement('div');
-          col.className = "flex flex-col gap-4 flex-1 min-w-0";
-          gallery.appendChild(col);
-          colDivs.push(col);
-        }
-
-        const colHeights = new Array(cols).fill(0);
-        
-        gallery._masonryItems.forEach(item => {
-          let minCol = 0;
-          let minHeight = colHeights[0];
-          for (let i = 1; i < cols; i++) {
-            if (colHeights[i] < minHeight) {
-              minHeight = colHeights[i];
-              minCol = i;
-            }
-          }
-          
-          colDivs[minCol].appendChild(item);
-          
-          const mediaContainer = item.querySelector('.media-container');
-          let ratio = 1;
-          if (mediaContainer && mediaContainer.style.aspectRatio) {
-             const parts = mediaContainer.style.aspectRatio.split('/');
-             if (parts.length === 2) {
-               ratio = parseFloat(parts[1]) / parseFloat(parts[0]);
-             }
-          }
-          colHeights[minCol] += ratio; 
-        });
-      };
-
-      gallery.appendMasonryItems = (newItemsList) => {
-         newItemsList.forEach(el => gallery._masonryItems.push(el));
-         colDivs = []; // force re-render
-         renderGrid();
-      };
-
-      renderGrid();
-
-      window.addEventListener('resize', () => {
-        clearTimeout(gallery.resizeTimer);
-        gallery.resizeTimer = setTimeout(renderGrid, 200);
-      });
-    });
+    // Disabled: Relying entirely on CSS multicolumns (columns-2 md:columns-5)
+    // to prevent mobile rendering bugs caused by JS masonry firing before images load.
   };
 
   if (filterForm) loadFiltersToUI();
