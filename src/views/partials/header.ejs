@@ -9,8 +9,10 @@
   <link href="/css/style.css?v=3" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css" />
   <style>
-    /* Prevent Flash of Unstyled Content (FOUC) for Swiper */
-    .swiper:not(.swiper-initialized) {
+    /* Prevent Flash of Unstyled Content (FOUC) for Swiper and Masonry */
+    .swiper:not(.swiper-initialized),
+    #main-gallery:not([data-masonry-initialized="true"]),
+    #koleksi-masonry:not([data-masonry-initialized="true"]) {
       opacity: 0;
       pointer-events: none;
     }

@@ -694,7 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (gallery.dataset.masonryInitialized) return;
       gallery.dataset.masonryInitialized = 'true';
 
-      gallery.className = "flex gap-4 items-start w-full";
+      gallery.className = "flex gap-4 items-start w-full transition-opacity duration-300";
       
       gallery._masonryItems = Array.from(gallery.querySelectorAll('.gallery-item'));
       if (gallery._masonryItems.length === 0) return;
