@@ -469,8 +469,8 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
   const chunkLimit = 200;
   const chunksNeeded = Math.ceil((postsNeeded + limit) / chunkLimit); // Fetch enough for next page
   
-  // Cap at 15 chunks (3000 posts deep per tag)
-  const maxChunks = 15; 
+  // Cap at 50 chunks (10,000 posts deep per tag, Danbooru free API limit)
+  const maxChunks = 50; 
   const fetchChunks = Math.min(chunksNeeded, maxChunks);
 
   async function fetchDanbooruChunk(tags, page, limit) {
