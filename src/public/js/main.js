@@ -407,6 +407,14 @@ document.addEventListener("DOMContentLoaded", () => {
              }
              
              currentMain.innerHTML = newMain.innerHTML;
+             
+             // Also update pagination-nav if it exists
+             const oldPagination = document.getElementById('pagination-nav');
+             const newPagination = doc.getElementById('pagination-nav');
+             if (oldPagination && newPagination) {
+                 oldPagination.outerHTML = newPagination.outerHTML;
+             }
+             
              window.history.pushState({}, "", targetUrl);
              currentMain.style.opacity = '1';
              
@@ -777,10 +785,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       renderGrid();
 
-      window.addEventListener('resize', () => {
+      const resizeObserver = new ResizeObserver(() => {
         clearTimeout(gallery.resizeTimer);
         gallery.resizeTimer = setTimeout(renderGrid, 200);
       });
+      resizeObserver.observe(gallery);
     });
   };
 
@@ -1423,10 +1432,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 isFetching = true;
                 try {
                    const res = await fetch(baseUrl + nextPage);
+                   if (!res.ok) throw new Error('Response tidak ok');
                    const text = await res.text();
                    const parser = new DOMParser();
                    const doc = parser.parseFromString(text, 'text/html');
                    const newItems = doc.querySelectorAll('#main-gallery .gallery-item');
+                   
+                   if (newItems.length === 0) {
+                      loaderDiv.innerHTML = '<span class="text-cyan-400 font-bold">Semua konten dimuat.</span>';
+                      observer.disconnect();
+                      return;
+                   }
                    
                    if (mainGallery.appendMasonryItems) {
                       mainGallery.appendMasonryItems(Array.from(newItems));
@@ -1440,12 +1456,14 @@ document.addEventListener("DOMContentLoaded", () => {
                    if (nextPage > totalPages) {
                       loaderDiv.innerHTML = '<span class="text-cyan-400 font-bold">Semua konten dimuat.</span>';
                       observer.disconnect();
+                   } else {
+                      isFetching = false;
                    }
                 } catch (e) {
                    console.error('Infinite scroll fetch error:', e);
                    loaderDiv.innerHTML = '<span class="text-red-400 font-bold">Gagal memuat konten selanjutnya.</span>';
+                   observer.disconnect();
                 }
-                isFetching = false;
              }
           }, { rootMargin: '400px' });
           
