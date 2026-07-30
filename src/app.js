@@ -473,19 +473,24 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
   const maxChunks = 15; 
   const fetchChunks = Math.min(chunksNeeded, maxChunks);
 
+  async function fetchDanbooruChunk(tags, page, limit) {
+    const chunkCacheKey = `danbooruChunk_${tags}_${page}_${limit}`;
+    if (apiCache[chunkCacheKey] && Date.now() - apiCache[chunkCacheKey].timestamp < CACHE_TTL) {
+      return apiCache[chunkCacheKey].data;
+    }
+    const res = await axios.get(basePostsURL, {
+      params: { tags, page, limit },
+      timeout: 6000
+    }).catch(e => ({ data: [] }));
+    const data = res.data || [];
+    apiCache[chunkCacheKey] = { timestamp: Date.now(), data };
+    return data;
+  }
+
   const requestFns = [];
   user.followedTags.forEach(tag => {
     for (let c = 1; c <= fetchChunks; c++) {
-      requestFns.push(() => 
-        axios.get(basePostsURL, {
-          params: {
-            tags: `${tag.tagName} ${baseTags}`.trim(),
-            page: c,
-            limit: chunkLimit
-          },
-          timeout: 6000
-        }).catch(e => ({ data: [] }))
-      );
+      requestFns.push(() => fetchDanbooruChunk(`${tag.tagName} ${baseTags}`.trim(), c, chunkLimit));
     }
   });
 
@@ -493,14 +498,23 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
   
   let allPosts = [];
   let hasMore = false;
-  results.forEach(res => {
-    if (res.data && Array.isArray(res.data)) {
-      allPosts = allPosts.concat(res.data);
-      if (res.data.length >= chunkLimit) {
-        hasMore = true;
+  
+  // results is a flat array: [tag1_c1, tag1_c2, tag2_c1, tag2_c2, ...]
+  // We check if the LAST chunk of ANY tag has >= chunkLimit items
+  for (let i = 0; i < user.followedTags.length; i++) {
+    const tagChunks = results.slice(i * fetchChunks, (i + 1) * fetchChunks);
+    tagChunks.forEach(chunkData => {
+      if (Array.isArray(chunkData)) {
+        allPosts = allPosts.concat(chunkData);
       }
+    });
+    
+    // Check the last fetched chunk for this tag
+    const lastChunkData = tagChunks[tagChunks.length - 1];
+    if (Array.isArray(lastChunkData) && lastChunkData.length >= chunkLimit) {
+      hasMore = true;
     }
-  });
+  }
 
   const uniquePosts = [];
   const seenIds = new Set();
