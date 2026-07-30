@@ -444,6 +444,11 @@ async function getTotalPostsWithParams(tags, query, limit) {
 }
 
 async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
+  const cacheKey = `followedContents_${userId}_${filterQuery}_${page}_${limit}_${isBypass}`;
+  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
+    return apiCache[cacheKey].data;
+  }
+
   const prisma = require('./lib/prisma');
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -478,19 +483,13 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
             page: c,
             limit: chunkLimit
           },
-          timeout: 8000
+          timeout: 6000
         }).catch(e => ({ data: [] }))
       );
     }
   });
 
-  const results = [];
-  const batchSize = 5;
-  for (let i = 0; i < requestFns.length; i += batchSize) {
-    const batch = requestFns.slice(i, i + batchSize).map(fn => fn());
-    const batchResults = await Promise.all(batch);
-    results.push(...batchResults);
-  }
+  const results = await Promise.all(requestFns.map(fn => fn()));
   
   let allPosts = [];
   let hasMore = false;
@@ -527,12 +526,14 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
     totalPages = Math.min(totalPages, maxPages);
   }
 
-  return { 
+  const finalResult = { 
     posts: paginatedPosts, 
     totalPages: totalPages, 
     totalPosts: uniquePosts.length,
     hasFollowedTags: true 
   };
+  apiCache[cacheKey] = { timestamp: Date.now(), data: finalResult };
+  return finalResult;
 }
 
 //2. Functional Routes
