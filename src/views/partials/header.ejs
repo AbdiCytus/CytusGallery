@@ -27,6 +27,12 @@
     @media (min-width: 1024px) {
       .swiper:not(.swiper-initialized) .swiper-slide { width: 20%; }
     }
+    
+    /* Hide loader once Swiper initializes */
+    .swiper.swiper-initialized ~ .slider-loader {
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 
