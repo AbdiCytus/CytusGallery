@@ -297,7 +297,7 @@ async function getTopPostsThisMonth(limit, filter = "") {
 
     const query = `order:score date:>=${startOfMonth} ${filter}`.trim();
     const params = { tags: query, limit: limit };
-    const response = await axios.get(basePostsURL, { params: params });
+    const response = await axios.get(basePostsURL, { params: params, timeout: 8000 });
 
     return response.data;
   } catch (error) {
@@ -309,7 +309,7 @@ async function getTopPostsThisMonth(limit, filter = "") {
         const startOfMonth = `${year}-${month}-01`;
         
         const fallbackQuery = `date:>=${startOfMonth} ${filter}`.trim();
-        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 } });
+        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 }, timeout: 8000 });
         let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
         return sorted.slice(0, limit);
       } catch (fallbackErr) {
@@ -325,13 +325,13 @@ async function getTopPosts(tags, filter = "", limit) {
   try {
     const query = `${tags} ${filter} order:score`.trim();
     const params = { tags: query, limit: limit };
-    const response = await axios.get(basePostsURL, { params: params });
+    const response = await axios.get(basePostsURL, { params: params, timeout: 8000 });
     return response.data;
   } catch (err) {
     if (err.response && (err.response.status === 422 || err.response.status === 500)) {
       try {
         const fallbackQuery = `${tags} ${filter}`.trim();
-        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 } });
+        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 }, timeout: 8000 });
         let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
         return sorted.slice(0, limit);
       } catch (fallbackErr) {
@@ -382,8 +382,9 @@ async function getSliderTags(category) {
       "search[order]": "count",
       limit: 100,
     },
-  });
-  const pool = tagsResponse.data;
+    timeout: 8000
+  }).catch(e => ({ data: [] }));
+  const pool = tagsResponse.data || [];
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -399,8 +400,8 @@ async function getTotalPosts(limit) {
     return apiCache[cacheKey].data;
   }
   
-  const getCounts = await axios.get(baseCountsPostsURL);
-  const totalPosts = getCounts.data.counts.posts;
+  const getCounts = await axios.get(baseCountsPostsURL, { timeout: 8000 }).catch(e => ({ data: { counts: { posts: 100 } } }));
+  const totalPosts = getCounts.data?.counts?.posts || 100;
   const totalPages = Math.ceil(totalPosts / limit);
   const result = { totalPosts, totalPages };
   apiCache[cacheKey] = { timestamp: Date.now(), data: result };
@@ -419,14 +420,17 @@ async function getTotalPostsWithParams(tags, query, limit) {
     params: {
       tags: `${tags} ${query}`,
     },
-  });
-  if (getCounts.data.counts.posts === null) {
+    timeout: 8000
+  }).catch(() => ({ data: { counts: { posts: null } } }));
+  
+  if (getCounts.data?.counts?.posts == null) {
     if (tags)
       fallbackResponse = await axios.get(baseCountsPostsURL, {
         params: { tags: tags },
-      });
-    else fallbackResponse = await axios.get(baseCountsPostsURL);
-    totalPosts = fallbackResponse.data.counts.posts;
+        timeout: 8000
+      }).catch(() => ({ data: { counts: { posts: 100 } } }));
+    else fallbackResponse = await axios.get(baseCountsPostsURL, { timeout: 8000 }).catch(() => ({ data: { counts: { posts: 100 } } }));
+    totalPosts = fallbackResponse.data?.counts?.posts || 100;
   } else {
     totalPosts = getCounts.data.counts.posts;
   }
@@ -473,7 +477,8 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
             tags: `${tag.tagName} ${baseTags}`.trim(),
             page: c,
             limit: chunkLimit
-          }
+          },
+          timeout: 8000
         }).catch(e => ({ data: [] }))
       );
     }
@@ -551,6 +556,11 @@ const root = async (req, res) => {
       savedPostIds = appData.savedPostIds;
     }
 
+    const sliderTagsPromise = Promise.all([
+      getSliderTags(3),
+      getSliderTags(4)
+    ]);
+
     if (tab === "followed" && res.locals.user) {
       const result = await getFollowedContents(res.locals.user.id, "", page, limit, res.locals.isBypass);
       posts = result.posts;
@@ -563,19 +573,19 @@ const root = async (req, res) => {
         baseTags = "-rating:e -rating:q";
       }
       const contentsParams = { tags: baseTags, page: page, limit: limit };
-      const contents = await axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] }));
+      
+      const [contents, stats] = await Promise.all([
+        axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] })),
+        getTotalPosts(limit)
+      ]);
+      
       posts = contents.data || [];
-      const stats = await getTotalPosts(limit);
       totalPosts = stats.totalPosts;
       totalPages = stats.totalPages;
     }
 
     let sliderPosts = [];
-    let popularTags = [];
-    let popularCharacters = [];
-
-    popularTags = await getSliderTags(3);
-    popularCharacters = await getSliderTags(4);
+    const [popularTags, popularCharacters] = await sliderTagsPromise;
 
     res.render("index", {
       posts: posts,
@@ -638,6 +648,8 @@ const search = async (req, res) => {
     let popularTags = [];
     let popularCharacters = [];
 
+    const sliderTagsPromise = !userTags ? Promise.all([getSliderTags(3), getSliderTags(4)]) : Promise.resolve([[], []]);
+
     if (res.locals.user) {
       const appData = await getUserAppData(res.locals.user.id);
       hasFollowedTags = appData.hasFollowedTags;
@@ -652,9 +664,11 @@ const search = async (req, res) => {
       hasFollowedTags = result.hasFollowedTags;
     } else {
       const contentsParams = { tags: allTags, page: page, limit: limit };
-      const contents = await axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] }));
+      const [contents, stats] = await Promise.all([
+        axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] })),
+        getTotalPostsWithParams(userTags, filterQuery, limit)
+      ]);
       posts = contents.data || [];
-      const stats = await getTotalPostsWithParams(userTags, filterQuery, limit);
       totalPages = stats.totalPages;
       totalPosts = stats.totalPosts;
     }
@@ -671,11 +685,11 @@ const search = async (req, res) => {
             "search[name_matches]": `*${userTags}*`,
             "search[order]": "count",
             "limit": 6
-          }
-        });
+          },
+          timeout: 5000
+        }).catch(e => ({ data: [] }));
         
-        const suggestions = tagSuggestRes.data;
-        // Danbooru sometimes returns empty or unrelated tags, filter by count > 0 if needed
+        const suggestions = tagSuggestRes.data || [];
         if (suggestions && suggestions.length > 0) {
           invalidTag = userTags;
           smartSearchTags = suggestions;
@@ -683,10 +697,11 @@ const search = async (req, res) => {
           allTagsFinal = `${actualUserTags} ${filterQuery}`;
           
           const newParams = { tags: allTagsFinal, page: page, limit: limit };
-          const newContents = await axios.get(basePostsURL, { params: newParams, timeout: 8000 }).catch(e => ({ data: [] }));
+          const [newContents, newStats] = await Promise.all([
+            axios.get(basePostsURL, { params: newParams, timeout: 8000 }).catch(e => ({ data: [] })),
+            getTotalPostsWithParams(actualUserTags, filterQuery, limit)
+          ]);
           posts = newContents.data || [];
-          
-          const newStats = await getTotalPostsWithParams(actualUserTags, filterQuery, limit);
           totalPages = newStats.totalPages;
           totalPosts = newStats.totalPosts;
         }
@@ -702,8 +717,9 @@ const search = async (req, res) => {
     }
 
     if (!userTags) {
-      popularTags = await getSliderTags(3);
-      popularCharacters = await getSliderTags(4);
+      const [pt, pc] = await sliderTagsPromise;
+      popularTags = pt;
+      popularCharacters = pc;
     }
 
     res.render("search", {
