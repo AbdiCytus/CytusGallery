@@ -862,7 +862,15 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
     const ratingParam = req.query.rating || 'not_e';
     
     // Ambil data notifikasi terkini dari database secepat mungkin
-    const unread = await prisma.notification.count({ where: { userId, isRead: false } });
+    const lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+    const unread = await prisma.notification.count({ 
+      where: { 
+        userId, 
+        isRead: false,
+        createdAt: { gt: new Date(lastClear) }
+      } 
+    });
+    
     const latestNotifications = await prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -883,12 +891,9 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
 });
 
 app.post("/api/notifications/read", requireAuth, async (req, res) => {
-  const prisma = require('./lib/prisma');
   try {
-    await prisma.notification.updateMany({
-      where: { userId: req.user.id, isRead: false },
-      data: { isRead: true }
-    });
+    // Gunakan cookie untuk menghilangkan badge notifikasi tanpa menghilangkan efek border biru di halaman notifikasi
+    res.cookie('lastNotifClear', Date.now(), { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true }); // 30 hari
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Gagal update status." });

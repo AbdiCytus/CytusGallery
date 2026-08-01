@@ -25,7 +25,9 @@ const checkUser = async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'cytus_gallery_secret_key');
       
-      const cached = userCache.get(decoded.id);
+      const lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+      const cacheKey = `${decoded.id}_${lastClear}`;
+      const cached = userCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL) {
         req.user = cached.user;
         res.locals.user = cached.user;
@@ -41,12 +43,18 @@ const checkUser = async (req, res, next) => {
         res.locals.user = user;
         res.locals.isBypass = (process.env.BYPASSEXPLICITCONTENTACCOUNT && user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) || false;
         try {
-          res.locals.unreadCount = await prisma.notification.count({ where: { userId: user.id, isRead: false } });
+          res.locals.unreadCount = await prisma.notification.count({ 
+            where: { 
+              userId: user.id, 
+              isRead: false,
+              createdAt: { gt: new Date(lastClear) }
+            } 
+          });
         } catch (e) {
           res.locals.unreadCount = 0;
         }
         
-        userCache.set(decoded.id, {
+        userCache.set(cacheKey, {
           timestamp: Date.now(),
           user: user,
           isBypass: res.locals.isBypass,
