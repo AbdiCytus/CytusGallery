@@ -158,6 +158,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (title.toLowerCase().includes('hapus')) {
         customAlertConfirm.textContent = 'Hapus';
         customAlertConfirm.className = 'px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500';
+      } else if (title.toLowerCase().includes('unfollow')) {
+        customAlertConfirm.textContent = 'Unfollow';
+        customAlertConfirm.className = 'px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500';
       } else if (title.toLowerCase().includes('nonaktifkan')) {
         customAlertConfirm.textContent = 'Nonaktifkan';
         customAlertConfirm.className = 'px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-gray-500';

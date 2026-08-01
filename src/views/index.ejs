@@ -97,7 +97,20 @@
   </div>
 
   <% if (locals.currentTab === 'followed' && locals.hasFollowedTags) { %>
-    <div class="bg-cyan-900/40 border border-cyan-800 text-cyan-200 p-3 rounded-md mb-6 text-sm flex items-start gap-3">
+    <!-- Mobile Info (Collapsible) -->
+    <details class="md:hidden bg-cyan-900/40 border border-cyan-800 text-cyan-200 p-3 rounded-md mb-6 text-sm group">
+      <summary class="flex items-center gap-2 font-bold outline-none cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span>Info Followed Contents</span>
+        <svg class="w-4 h-4 ml-auto transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+      </summary>
+      <div class="mt-2 ml-7 text-cyan-200 leading-relaxed">
+        Tab ini secara otomatis menggabungkan seluruh konten dari tag yang Anda ikuti dan menampilkan maksimal 10.000 konten terbaru.
+      </div>
+    </details>
+
+    <!-- Desktop Info (Static) -->
+    <div class="hidden md:flex bg-cyan-900/40 border border-cyan-800 text-cyan-200 p-3 rounded-md mb-6 text-sm items-start gap-3">
       <svg class="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
       <div>
         <strong>Info:</strong> Tab ini secara otomatis menggabungkan seluruh konten dari tag yang Anda ikuti dan menampilkan maksimal 10.000 konten terbaru.

@@ -207,7 +207,6 @@
         <!-- Search Input: Mobile Row 1 Full Width, Desktop Center -->
         <div class="relative w-full col-span-2 sm:order-2 flex-grow order-1">
           <input type="text" name="search" id="koleksi-search-input" value="<%= typeof currentSearch !== 'undefined' ? currentSearch : '' %>" class="w-full bg-gray-700 text-white rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400" placeholder="Cari tag..." autocomplete="off">
-          <div id="koleksi-search-suggestions" class="absolute left-0 mt-1 w-full bg-gray-800 border border-gray-600 rounded-md shadow-lg hidden z-50 max-h-60 overflow-y-auto"></div>
         </div>
 
         <button type="submit" class="hidden">Cari</button>
@@ -287,7 +286,7 @@
           <a href="/posts/<%= save.postId %>" class="flex-grow flex flex-col sm:flex-row hover:bg-gray-800/50 transition-colors">
             <div class="w-full h-48 sm:w-28 sm:h-28 flex-shrink-0 relative bg-gray-800">
               <% if (save.imageUrl) { %>
-              <img src="<%= save.imageUrl %>" class="w-full h-full object-cover" alt="Saved Post <%= save.postId %>" loading="lazy">
+              <img src="<%= save.imageUrl %>" class="w-full h-full object-cover object-top sm:object-center" alt="Saved Post <%= save.postId %>" loading="lazy">
               <% } else { %>
               <div class="w-full h-full flex items-center justify-center p-2 text-center">
                 <span class="text-xs font-medium text-cyan-400 break-all">ID: <%= save.postId %></span>
@@ -807,57 +806,24 @@
         }
       });
 
-      // Autocomplete untuk Filter Tag Koleksi
+      // Debounce and Auto-lowercase untuk Filter Tag Koleksi
       const filterSearchInput = document.getElementById('koleksi-search-input');
-      const filterSearchSuggestions = document.getElementById('koleksi-search-suggestions');
+      const profilForm = document.getElementById('profil-form');
       let filterSearchTimeout;
 
-      if (filterSearchInput) {
+      if (filterSearchInput && profilForm) {
         filterSearchInput.addEventListener('input', (e) => {
+          // Auto lowercase
+          const start = e.target.selectionStart;
+          const end = e.target.selectionEnd;
+          e.target.value = e.target.value.toLowerCase();
+          e.target.setSelectionRange(start, end);
+
           clearTimeout(filterSearchTimeout);
-          const val = e.target.value;
-
-          const tags = val.split(' ');
-          const currentTag = tags[tags.length - 1];
-
-          if (currentTag.length < 2) {
-            filterSearchSuggestions.classList.add('hidden');
-            return;
-          }
-
-          filterSearchTimeout = setTimeout(async () => {
-            try {
-              const res = await fetch(`/api/tagsuggest?term=${encodeURIComponent(currentTag)}`);
-              const data = await res.json();
-              if (data.length > 0) {
-                filterSearchSuggestions.innerHTML = data.map(tag => `
-                  <div class="px-4 py-2 hover:bg-gray-700 cursor-pointer text-white tag-suggestion" data-value="${tag.name}">
-                    <div class="font-medium truncate max-w-full">${tag.name}</div>
-                  </div>
-                `).join('');
-                filterSearchSuggestions.classList.remove('hidden');
-
-                document.querySelectorAll('.tag-suggestion').forEach(item => {
-                  item.addEventListener('click', () => {
-                    tags[tags.length - 1] = item.dataset.value;
-                    filterSearchInput.value = tags.join(' ') + ' ';
-                    filterSearchSuggestions.classList.add('hidden');
-                    filterSearchInput.focus();
-                  });
-                });
-              } else {
-                filterSearchSuggestions.classList.add('hidden');
-              }
-            } catch (err) {
-              console.error(err);
-            }
-          }, 300);
-        });
-
-        document.addEventListener('click', (e) => {
-          if (!filterSearchInput.contains(e.target) && filterSearchSuggestions && !filterSearchSuggestions.contains(e.target)) {
-            filterSearchSuggestions.classList.add('hidden');
-          }
+          
+          filterSearchTimeout = setTimeout(() => {
+            profilForm.submit();
+          }, 1000);
         });
       }
     </script>
