@@ -1015,7 +1015,6 @@ const runNotificationWorker = async () => {
   try {
     const tagsToCheck = await prisma.followedTag.findMany({
       orderBy: { updatedAt: 'asc' },
-      take: 100,
       include: { user: true }
     });
     if (!tagsToCheck || tagsToCheck.length === 0) return;
@@ -1031,7 +1030,7 @@ const runNotificationWorker = async () => {
           ratingFilter = '';
         }
         
-        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=100`;
+        const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=200`;
         const dRes = await axios.get(query, { timeout: 10000 });
         const posts = dRes.data;
         
