@@ -1667,6 +1667,8 @@ document.addEventListener("DOMContentLoaded", () => {
                       observer.disconnect();
                    } else {
                       isFetching = false;
+                      observer.unobserve(loaderDiv);
+                      observer.observe(loaderDiv);
                    }
                 } catch (e) {
                    console.error('Infinite scroll fetch error:', e);
@@ -1674,7 +1676,7 @@ document.addEventListener("DOMContentLoaded", () => {
                    observer.disconnect();
                 }
              }
-          }, { rootMargin: '3000px' });
+          }, { rootMargin: '800px' });
           
           observer.observe(loaderDiv);
        }
