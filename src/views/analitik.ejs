@@ -139,24 +139,36 @@
   <!-- Divider -->
   <div class="border-t border-gray-800 my-6"></div>
 
-  <!-- ======================= SECTION 3: Quick Stats ======================= -->
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
-      <div class="text-xl font-bold text-cyan-400"><%= totalSaves %></div>
-      <div class="text-xs text-gray-400">Total Koleksi</div>
+  <!-- ======================= SECTION 5: Top 3 Collection Tags ======================= -->
+  <div class="mb-6">
+    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+      <svg style="width:20px;height:20px;min-width:20px" class="text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4v16l7-4 7 4V4H5z"></path></svg>
+      Top 3 Tag di Koleksi
+    </h2>
+    <p class="text-gray-400 text-xs mb-3">Copyright, character & artist terbanyak dari <%= totalSaves %> koleksi</p>
+
+    <% if (topCollectionTags.length > 0) { %>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <% const medals = ['🥇', '🥈', '🥉'];
+         const cardColors = [
+           { bg: 'from-yellow-900/40 to-gray-900', border: 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]', text: 'text-yellow-400' },
+           { bg: 'from-gray-600/30 to-gray-900', border: 'border-gray-400 shadow-[0_0_15px_rgba(156,163,175,0.2)]', text: 'text-gray-300' },
+           { bg: 'from-orange-900/30 to-gray-900', border: 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.2)]', text: 'text-orange-400' }
+         ];
+      %>
+      <% topCollectionTags.forEach((tag, i) => { %>
+      <a href="javascript:void(0)" onclick="navigateTag('<%= tag.name %>')" class="bg-gradient-to-br <%= cardColors[i].bg %> border-2 <%= cardColors[i].border %> rounded-xl p-4 hover:scale-[1.02] transition-all duration-300 block cursor-pointer hover:shadow-cyan-500/30 relative overflow-hidden">
+        <div class="text-2xl mb-1"><%= medals[i] %></div>
+        <div class="<%= cardColors[i].text %> font-bold text-base truncate"><%= tag.name.replace(/_/g, ' ') %></div>
+        <div class="text-gray-400 text-xs mt-0.5"><%= tag.categoryLabel %> · <span class="text-white font-medium"><%= tag.count %> konten</span></div>
+      </a>
+      <% }); %>
     </div>
-    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
-      <div class="text-xl font-bold text-emerald-400"><%= totalFollowed %></div>
-      <div class="text-xs text-gray-400">Tag Diikuti</div>
+    <% } else { %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+      <p class="text-gray-500 text-sm">Belum ada data koleksi.</p>
     </div>
-    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
-      <div class="text-xl font-bold text-yellow-400 truncate text-sm"><%= topCollectionTags.length > 0 ? topCollectionTags[0].name.replace(/_/g, ' ') : '-' %></div>
-      <div class="text-xs text-gray-400">Tag Favorit</div>
-    </div>
-    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
-      <div class="text-xl font-bold text-purple-400"><%= topCollectionTags.length > 0 ? topCollectionTags[0].count : 0 %></div>
-      <div class="text-xs text-gray-400">Simpan Tag Favorit</div>
-    </div>
+    <% } %>
   </div>
 
   <!-- ======================= SECTION 4: Followed Tags Activity ======================= -->
@@ -219,36 +231,24 @@
     <% } %>
   </div>
 
-  <!-- ======================= SECTION 5: Top 3 Collection Tags ======================= -->
-  <div class="mb-6">
-    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
-      <svg style="width:20px;height:20px;min-width:20px" class="text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4v16l7-4 7 4V4H5z"></path></svg>
-      Top 3 Tag di Koleksi
-    </h2>
-    <p class="text-gray-400 text-xs mb-3">Copyright, character & artist terbanyak dari <%= totalSaves %> koleksi</p>
-
-    <% if (topCollectionTags.length > 0) { %>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <% const medals = ['🥇', '🥈', '🥉'];
-         const cardColors = [
-           { bg: 'from-yellow-900/40 to-gray-900', border: 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]', text: 'text-yellow-400' },
-           { bg: 'from-gray-600/30 to-gray-900', border: 'border-gray-400 shadow-[0_0_15px_rgba(156,163,175,0.2)]', text: 'text-gray-300' },
-           { bg: 'from-orange-900/30 to-gray-900', border: 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.2)]', text: 'text-orange-400' }
-         ];
-      %>
-      <% topCollectionTags.forEach((tag, i) => { %>
-      <a href="javascript:void(0)" onclick="navigateTag('<%= tag.name %>')" class="bg-gradient-to-br <%= cardColors[i].bg %> border-2 <%= cardColors[i].border %> rounded-xl p-4 hover:scale-[1.02] transition-all duration-300 block cursor-pointer hover:shadow-cyan-500/30 relative overflow-hidden">
-        <div class="text-2xl mb-1"><%= medals[i] %></div>
-        <div class="<%= cardColors[i].text %> font-bold text-base truncate"><%= tag.name.replace(/_/g, ' ') %></div>
-        <div class="text-gray-400 text-xs mt-0.5"><%= tag.categoryLabel %> · <span class="text-white font-medium"><%= tag.count %> konten</span></div>
-      </a>
-      <% }); %>
+  <!-- ======================= SECTION 3: Quick Stats ======================= -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-cyan-400"><%= totalSaves %></div>
+      <div class="text-xs text-gray-400">Total Koleksi</div>
     </div>
-    <% } else { %>
-    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
-      <p class="text-gray-500 text-sm">Belum ada data koleksi.</p>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-emerald-400"><%= totalFollowed %></div>
+      <div class="text-xs text-gray-400">Tag Diikuti</div>
     </div>
-    <% } %>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-yellow-400 truncate text-sm"><%= topCollectionTags.length > 0 ? topCollectionTags[0].name.replace(/_/g, ' ') : '-' %></div>
+      <div class="text-xs text-gray-400">Tag Favorit</div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-purple-400"><%= topCollectionTags.length > 0 ? topCollectionTags[0].count : 0 %></div>
+      <div class="text-xs text-gray-400">Simpan Tag Favorit</div>
+    </div>
   </div>
 
 </div>
