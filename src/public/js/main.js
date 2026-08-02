@@ -1453,6 +1453,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isMainPage) {
         saveFilters();
         closeAllOverlays();
+        closeSidebar();
         
         sessionStorage.setItem("isLoading", "true");
         sessionStorage.setItem("isLoadingMessage", "Menyimpan Pengaturan...");
@@ -1468,6 +1469,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sessionStorage.setItem("isLoading", "true");
     
     if (e.target.id === "filter-form") {
+      closeSidebar();
       sessionStorage.setItem("isLoadingMessage", "Menyimpan Pengaturan...");
       showLoader("Menyimpan Pengaturan...");
     } else {
