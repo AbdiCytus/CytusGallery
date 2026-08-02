@@ -437,7 +437,7 @@ app.post("/api/collections/batch-delete", requireAuth, async (req, res) => {
 
 app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
-  const archiver = require('archiver');
+  const { ZipArchive } = require('archiver');
   const axios = require('axios').create({
     headers: {
       'User-Agent': 'CytusGallery/1.0 (by Abdi)'
@@ -471,7 +471,7 @@ app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
       res.setHeader('Access-Control-Expose-Headers', 'X-Estimated-Size');
     }
     
-    const archive = archiver('zip', {
+    const archive = new ZipArchive({
       zlib: { level: 9 }
     });
     
