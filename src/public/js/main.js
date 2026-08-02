@@ -119,9 +119,24 @@ document.addEventListener("DOMContentLoaded", () => {
     if (window.location.pathname !== '/' && window.location.pathname !== '/search') return;
     
     const body = document.body;
-    const gradClasses = ['bg-gradient-to-r', 'from-gray-900', 'to-purple-900/40', 'to-green-900/40', 'to-red-900/40', 'to-blue-900/40', 'to-orange-900/40', 'bg-fixed'];
+    const gradClasses = ['bg-gradient-to-r', 'from-gray-900', 'to-purple-900/40', 'to-green-900/40', 'to-red-900/40', 'to-blue-900/40', 'to-orange-900/40', 'to-black/80', 'bg-fixed'];
     body.classList.remove(...gradClasses);
     
+    // Check if rating filter is turned off
+    let isRatingActive = true;
+    const toggleEl = document.getElementById("rating-toggle");
+    if (toggleEl) {
+       isRatingActive = toggleEl.checked;
+    } else {
+       const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters") || "{}");
+       if (filters.ratingToggle === false) isRatingActive = false;
+    }
+
+    if (!isRatingActive) {
+       body.classList.add('bg-gradient-to-r', 'from-gray-900', 'to-black/80', 'bg-fixed');
+       return;
+    }
+
     const gradColors = {
       3: 'to-purple-900/40',
       4: 'to-green-900/40',
@@ -135,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
       body.classList.add('bg-gradient-to-r', 'from-gray-900', gradColor, 'bg-fixed');
     }
   };
+  window.updateBackgroundGradient = updateBackgroundGradient;
 
   const renderChips = async () => {
     if (!searchChipsContainer || !searchInput) return;
@@ -1097,11 +1113,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document
       .getElementById("rating-toggle")
-      ?.addEventListener("change", (e) =>
+      ?.addEventListener("change", (e) => {
         document
           .getElementById("rating-options")
-          ?.classList.toggle("hidden", !e.target.checked)
-      );
+          ?.classList.toggle("hidden", !e.target.checked);
+          
+        if (window.updateBackgroundGradient) {
+           let lastCat = -1;
+           const searchInput = document.getElementById("search-input");
+           if (searchInput) {
+              const tags = searchInput.value.split(' ').filter(t => t.trim());
+              if (tags.length > 0) {
+                 const lastTag = tags[tags.length - 1];
+                 if (window.tagColorCache && window.tagColorCache[lastTag] !== undefined) {
+                    lastCat = window.tagColorCache[lastTag];
+                 }
+              }
+           }
+           window.updateBackgroundGradient(lastCat);
+        }
+      });
 
     document
       .getElementById("type-toggle")
