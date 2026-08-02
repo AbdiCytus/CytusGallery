@@ -69,13 +69,20 @@
       <svg style="width:20px;height:20px;min-width:20px" class="text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
       Top 10 Trending Tag
     </h2>
-    <p class="text-gray-400 text-xs mb-3">Tag terbanyak muncul dari sampel 200 post acak per periode</p>
+    <p class="text-gray-400 text-xs mb-3">Tag terbanyak muncul dari 200 post terbaru per periode</p>
     
-    <!-- Period tabs -->
-    <div class="flex gap-2 mb-3">
-      <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-600 text-white" data-period="day" data-color="bg-cyan-600">1 Hari</button>
-      <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="month" data-color="bg-blue-600">1 Bulan</button>
-      <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="year" data-color="bg-purple-600">1 Tahun</button>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-3">
+      <!-- Period tabs -->
+      <div class="flex gap-2">
+        <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-600 text-white" data-period="day" data-color="bg-cyan-600">1 Hari</button>
+        <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="month" data-color="bg-blue-600">1 Bulan</button>
+        <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="year" data-color="bg-purple-600">1 Tahun</button>
+      </div>
+      <!-- Metric tabs -->
+      <div class="flex gap-2">
+        <button class="trend-metric-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600 text-white" data-metric="total">Total Post</button>
+        <button class="trend-metric-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-metric="freq">Frekuensi</button>
+      </div>
     </div>
 
     <% const trendPeriods = ['day', 'month', 'year'];
@@ -108,7 +115,7 @@
                   <a href="javascript:void(0)" onclick="navigateTag('<%= tag.name %>')" class="<%= index === 0 ? 'text-yellow-400' : 'text-gray-300' %> hover:text-cyan-400 transition-colors truncate text-xs">
                     <%= index === 0 ? '🔥 ' : '' %><%= tag.name.replace(/_/g, ' ') %>
                   </a>
-                  <span class="text-gray-500 text-[10px] ml-1 whitespace-nowrap"><%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %></span>
+                  <span class="text-gray-500 text-[10px] ml-1 whitespace-nowrap trend-metric-display" data-total="<%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %>" data-freq="<%= tag.hits %>x"><%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %></span>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
                   <div class="bg-<%= cat.color %>-600 h-1.5 rounded-full width-bar" data-width="<%= pct %>"></div>
@@ -245,6 +252,26 @@
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const metricBtns = document.querySelectorAll('.trend-metric-btn');
+    const metricDisplays = document.querySelectorAll('.trend-metric-display');
+
+    metricBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        metricBtns.forEach(b => {
+          b.classList.remove('bg-amber-600', 'text-white');
+          b.classList.add('bg-gray-700', 'text-gray-300');
+        });
+        btn.classList.remove('bg-gray-700', 'text-gray-300');
+        btn.classList.add('bg-amber-600', 'text-white');
+
+        const metric = btn.dataset.metric;
+        metricDisplays.forEach(display => {
+          display.textContent = display.dataset[metric];
+        });
+      });
+    });
+  });
   // Navigate to tag with localStorage filters applied
   function navigateTag(tagName) {
     if (typeof window.showLoader === 'function') window.showLoader('Memuat Konten...');

@@ -162,10 +162,22 @@ app.get("/analitik", requireAuth, async (req, res) => {
       const cacheKey = 'analitik_trendingTags';
       if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) return apiCache[cacheKey].data;
       const trendingTags = { day: { copyright: [], character: [], artist: [] }, month: { copyright: [], character: [], artist: [] }, year: { copyright: [], character: [], artist: [] } };
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yStr = yesterday.toISOString().split('T')[0];
+      
+      const lastMonth = new Date(yesterday);
+      lastMonth.setDate(yesterday.getDate() - 30);
+      const mStr = lastMonth.toISOString().split('T')[0];
+      
+      const lastYear = new Date(yesterday);
+      lastYear.setFullYear(yesterday.getFullYear() - 1);
+      const yearStr = lastYear.toISOString().split('T')[0];
+
       const periods = [
-        { key: 'day', ageFilter: 'age:<1d random:200' },
-        { key: 'month', ageFilter: 'age:<30d random:200' },
-        { key: 'year', ageFilter: 'age:<365d random:200' }
+        { key: 'day', ageFilter: `date:${yStr}` },
+        { key: 'month', ageFilter: `date:${mStr}..${yStr}` },
+        { key: 'year', ageFilter: `date:${yearStr}..${yStr}` }
       ];
       try {
         await Promise.all(periods.map(async (period) => {
@@ -459,8 +471,7 @@ app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
       res.setHeader('Access-Control-Expose-Headers', 'X-Estimated-Size');
     }
     
-    const { ZipArchive } = require('archiver');
-    const archive = new ZipArchive({
+    const archive = archiver('zip', {
       zlib: { level: 9 }
     });
     
