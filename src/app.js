@@ -506,27 +506,28 @@ app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
     
     archive.pipe(res);
     
-    const chunks = [];
-    for (let i = 0; i < saves.length; i += 5) {
-      chunks.push(saves.slice(i, i + 5));
-    }
-    
-    for (const chunk of chunks) {
-      await Promise.all(chunk.map(async (save) => {
-        if (!save.fileUrl) return;
-        try {
-          const response = await axios({
-            method: 'GET',
-            url: save.fileUrl,
-            responseType: 'stream',
-            timeout: 20000
-          });
-          const ext = save.extension || save.fileUrl.split('.').pop().split('?')[0] || 'jpg';
-          archive.append(response.data, { name: `CytusGallery_${save.postId}.${ext}` });
-        } catch(err) {
-          console.error(`Failed to download ${save.fileUrl}`, err.message);
-        }
-      }));
+    for (const save of saves) {
+      if (!save.fileUrl) continue;
+      try {
+        const response = await axios({
+          method: 'GET',
+          url: save.fileUrl,
+          responseType: 'stream',
+          timeout: 20000
+        });
+        
+        const ext = save.extension || save.fileUrl.split('.').pop().split('?')[0] || 'jpg';
+        archive.append(response.data, { name: `CytusGallery_${save.postId}.${ext}` });
+        
+        // Wait for the stream to fully complete before requesting the next file
+        // This strictly prevents Connection Reset (ECONNRESET) and Danbooru IP throttling
+        await new Promise((resolve, reject) => {
+           response.data.on('end', resolve);
+           response.data.on('error', reject);
+        });
+      } catch(err) {
+        console.error(`Failed to download ${save.fileUrl}`, err.message);
+      }
     }
     
     await archive.finalize();
