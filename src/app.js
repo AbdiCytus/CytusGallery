@@ -462,7 +462,7 @@ app.post("/api/collections/batch-delete", requireAuth, async (req, res) => {
 
 app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
-  const { ZipArchive } = require('archiver');
+  const archiver = require('archiver');
   const axios = require('axios').create({
     headers: {
       'User-Agent': 'CytusGallery/1.0 (by Abdi)'
@@ -496,7 +496,7 @@ app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
       res.setHeader('Access-Control-Expose-Headers', 'X-Estimated-Size');
     }
     
-    const archive = new ZipArchive({
+    const archive = archiver('zip', {
       zlib: { level: 9 }
     });
     
@@ -886,19 +886,15 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass, f
          results[idx] = apiCache[chunkCacheKey].data;
       } else {
          networkTasks.push(async () => {
-           const res = await axios.get(basePostsURL, { 
-             params: { tags: tName, page: c, limit: chunkLimit }, 
-             timeout: 6000 
-           }).catch(e => ({ data: [] }));
+           const res = await getCachedDanbooru(basePostsURL, { tags: tName, page: c, limit: chunkLimit }, 12000);
            const data = res.data || [];
-           apiCache[chunkCacheKey] = { timestamp: Date.now(), data };
            results[idx] = data;
          });
       }
     }
   });
 
-  const batchSize = 10;
+  const batchSize = 5;
   for (let b = 0; b < networkTasks.length; b += batchSize) {
     const batch = networkTasks.slice(b, b + batchSize);
     await Promise.all(batch.map(fn => fn()));
