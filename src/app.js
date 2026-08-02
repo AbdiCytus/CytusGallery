@@ -175,9 +175,9 @@ app.get("/analitik", requireAuth, async (req, res) => {
       const yearStr = lastYear.toISOString().split('T')[0];
 
       const periods = [
-        { key: 'day', ageFilter: `date:${yStr}` },
-        { key: 'month', ageFilter: `date:${mStr}..${yStr}` },
-        { key: 'year', ageFilter: `date:${yearStr}..${yStr}` }
+        { key: 'day', ageFilter: `date:${yStr} order:score` },
+        { key: 'month', ageFilter: `date:${mStr}..${yStr} order:score` },
+        { key: 'year', ageFilter: `date:${yearStr}..${yStr} order:score` }
       ];
       try {
         await Promise.all(periods.map(async (period) => {
