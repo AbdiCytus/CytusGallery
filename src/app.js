@@ -266,16 +266,28 @@ app.get("/analitik", requireAuth, async (req, res) => {
 
     // Promise 4: Collection Stats
     const getCollectionStats = async () => {
-      const allSaves = await prisma.savedContent.findMany({ where: { userId }, select: { tags: true } });
+      const [allSaves, myTags] = await Promise.all([
+        prisma.savedContent.findMany({ where: { userId }, select: { tags: true } }),
+        prisma.followedTag.findMany({ where: { userId }, select: { name: true } })
+      ]);
+      const myTagNames = myTags.map(t => t.name);
+      
       const tagCounts = {};
       allSaves.forEach(save => {
-        if (save.tags) save.tags.split(' ').forEach(tag => { if (tag.trim()) tagCounts[tag.trim()] = (tagCounts[tag.trim()] || 0) + 1; });
+        if (save.tags) {
+          save.tags.split(' ').forEach(tag => { 
+            const t = tag.trim();
+            if (t && myTagNames.includes(t)) {
+              tagCounts[t] = (tagCounts[t] || 0) + 1; 
+            }
+          });
+        }
       });
       const topRaw = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 50);
       let topCollectionTags = [];
       if (topRaw.length > 0) {
         try {
-          const cacheKey = 'analitik_collectionTags_' + userId;
+          const cacheKey = 'analitik_collectionTags_v2_' + userId;
           if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
             topCollectionTags = apiCache[cacheKey].data;
           } else {

@@ -171,7 +171,14 @@
     <% } %>
   </div>
 
-  <!-- ======================= SECTION 4: Followed Tags Activity ======================= -->
+  <!-- ======================= SECTION 3: Quick Stats ======================= -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-cyan-400"><%= totalSaves %></div>
+      <div class="text-xs text-gray-400">Total Koleksi</div>
+    </div>
+
+<!-- ======================= SECTION 4: Followed Tags Activity ======================= -->
   <div class="mb-6">
     <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
       <svg style="width:20px;height:20px;min-width:20px" class="text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
@@ -231,12 +238,7 @@
     <% } %>
   </div>
 
-  <!-- ======================= SECTION 3: Quick Stats ======================= -->
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
-      <div class="text-xl font-bold text-cyan-400"><%= totalSaves %></div>
-      <div class="text-xs text-gray-400">Total Koleksi</div>
-    </div>
+  
     <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
       <div class="text-xl font-bold text-emerald-400"><%= totalFollowed %></div>
       <div class="text-xs text-gray-400">Tag Diikuti</div>
