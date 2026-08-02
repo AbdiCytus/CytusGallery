@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (urlTab) {
     if (!tempTab) {
       localStorage.setItem("cytusGalleryActiveTab", urlTab);
+      document.cookie = "cytusGalleryActiveTab=" + urlTab + "; path=/; max-age=31536000";
     }
     if (urlTab === "followed") {
       const followedTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedTagsFilter') || '[]');
@@ -16,26 +17,24 @@ document.addEventListener("DOMContentLoaded", () => {
       
       if (followedTagsFilter.length > 0 && urlFollowedTags !== localFollowedTagsStr) {
          currentUrl.searchParams.set("followedTags", localFollowedTagsStr);
-         window.location.replace(currentUrl.toString());
-         return;
+         window.history.replaceState({}, '', currentUrl.toString());
       } else if (followedTagsFilter.length === 0 && urlFollowedTags) {
          currentUrl.searchParams.delete("followedTags");
-         window.location.replace(currentUrl.toString());
-         return;
+         window.history.replaceState({}, '', currentUrl.toString());
       }
     }
   } else if (path === "/" || path === "/search") {
     const savedTab = localStorage.getItem("cytusGalleryActiveTab");
     if (savedTab && savedTab !== "contents") {
       currentUrl.searchParams.set("tab", savedTab);
+      document.cookie = "cytusGalleryActiveTab=" + savedTab + "; path=/; max-age=31536000";
       if (savedTab === "followed") {
          const followedTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedTagsFilter') || '[]');
          if (followedTagsFilter.length > 0) {
             currentUrl.searchParams.set("followedTags", followedTagsFilter.join(","));
          }
       }
-      window.location.replace(currentUrl.toString());
-      return;
+      window.history.replaceState({}, '', currentUrl.toString());
     }
   }
   
@@ -297,9 +296,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const navigateWithFilters = async (userTypedTags = "", page = 1, tab = null, useAjax = false, isAutoSearch = false) => {
     let activeTab = tab;
     if (!activeTab) {
-       activeTab = localStorage.getItem('cytusGalleryActiveTab') || 'contents'; if (userTypedTags && activeTab === 'collection') { activeTab = 'contents'; localStorage.setItem('cytusGalleryActiveTab', 'contents'); }
+       activeTab = localStorage.getItem('cytusGalleryActiveTab') || 'contents'; 
+       if (userTypedTags && activeTab === 'collection') { 
+         activeTab = 'contents'; 
+         localStorage.setItem('cytusGalleryActiveTab', 'contents'); 
+         document.cookie = "cytusGalleryActiveTab=contents; path=/; max-age=31536000";
+       }
     } else {
        localStorage.setItem("cytusGalleryActiveTab", activeTab);
+       document.cookie = "cytusGalleryActiveTab=" + activeTab + "; path=/; max-age=31536000";
     }
 
     sessionStorage.setItem("lastSearchTags", userTypedTags.trim());
