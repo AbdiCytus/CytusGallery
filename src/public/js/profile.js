@@ -179,12 +179,12 @@
       // Infinite Scroll Logic
       let currentPage = 1;
       let isFetching = false;
-      let hasMore = (window.CYTUS_PROFILE_CONFIG && window.CYTUS_PROFILE_CONFIG.hasMore) || false;;
+      let hasMore = (document.getElementById("cytus-profile-config")?.dataset.hasMore === "true") || false;;
       let masonryContainer = document.getElementById('koleksi-masonry');
       let dataContainer = document.getElementById('koleksi-data');
 
-      let currentSearch = (window.CYTUS_PROFILE_CONFIG && window.CYTUS_PROFILE_CONFIG.currentSearch) || "";;
-      let currentRating = (window.CYTUS_PROFILE_CONFIG && window.CYTUS_PROFILE_CONFIG.currentRating) || "";;
+      let currentSearch = document.getElementById("cytus-profile-config")?.dataset.currentSearch || "";;
+      let currentRating = document.getElementById("cytus-profile-config")?.dataset.currentRating || "";;
 
       async function loadMoreSaves() {
         if (isFetching || !hasMore || document.getElementById('tab-koleksi-content').classList.contains('hidden')) return;

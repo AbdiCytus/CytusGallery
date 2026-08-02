@@ -501,13 +501,12 @@
     </div>
 
     <!-- Script Configuration -->
-    <script>
-      window.CYTUS_PROFILE_CONFIG = {
-        hasMore: <%= (typeof totalSaves !== 'undefined' ? totalSaves : userProfile.saves.length) > 25 ? 'true' : 'false' %>,
-        currentSearch: "<%= typeof currentSearch !== "undefined" ? currentSearch : "" %>",
-        currentRating: "<%= typeof currentRating !== "undefined" ? currentRating : "" %>"
-      };
-    </script>
+    <div id="cytus-profile-config" 
+      data-has-more="<%= (typeof totalSaves !== 'undefined' ? totalSaves : userProfile.saves.length) > 25 ? 'true' : 'false' %>"
+      data-current-search="<%= typeof currentSearch !== 'undefined' ? currentSearch : '' %>"
+      data-current-rating="<%= typeof currentRating !== 'undefined' ? currentRating : '' %>"
+      style="display: none;">
+    </div>
     <script src="/js/profile.js"></script>
 </main>
 </div>
