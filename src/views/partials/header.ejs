@@ -607,4 +607,39 @@
       }
     });
   </script>
-  <% } %>
+  <% } %><script>
+  // Filter Background Gradient Logic
+  document.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tags = urlParams.get('tags');
+    if (tags && (window.location.pathname === '/' || window.location.pathname === '/search')) {
+      const firstTag = tags.split(' ')[0];
+      if (firstTag) {
+        try {
+          const res = await fetch(https://danbooru.donmai.us/tags.json?search[name]= + encodeURIComponent(firstTag));
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0) {
+              const category = data[0].category;
+              let fromColor = '';
+              // Categories: 0: General (blue), 1: Artist (red), 3: Copyright (purple), 4: Character (green), 5: Meta (orange)
+              if (category === 3) fromColor = 'from-purple-900/40';
+              else if (category === 4) fromColor = 'from-green-900/40';
+              else if (category === 1) fromColor = 'from-red-900/40';
+              else if (category === 0) fromColor = 'from-blue-900/40';
+              else if (category === 5) fromColor = 'from-orange-900/40';
+              
+              if (fromColor) {
+                const body = document.body;
+                body.classList.remove('bg-gray-900');
+                body.classList.add('bg-gradient-to-r', fromColor, 'to-gray-900', 'bg-fixed');
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Failed to apply background gradient", e);
+        }
+      }
+    }
+  });
+</script>
