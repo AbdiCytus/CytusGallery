@@ -2,12 +2,38 @@ document.addEventListener("DOMContentLoaded", () => {
   const currentUrl = new URL(window.location.href);
   const path = currentUrl.pathname;
   
-  if (currentUrl.searchParams.has("tab")) {
-    localStorage.setItem("cytusGalleryActiveTab", currentUrl.searchParams.get("tab"));
+  const urlTab = currentUrl.searchParams.get("tab");
+  const tempTab = currentUrl.searchParams.get("tempTab") === "true";
+  
+  if (urlTab) {
+    if (!tempTab) {
+      localStorage.setItem("cytusGalleryActiveTab", urlTab);
+    }
+    if (urlTab === "followed") {
+      const followedTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedTagsFilter') || '[]');
+      const urlFollowedTags = currentUrl.searchParams.get("followedTags");
+      const localFollowedTagsStr = followedTagsFilter.join(',');
+      
+      if (followedTagsFilter.length > 0 && urlFollowedTags !== localFollowedTagsStr) {
+         currentUrl.searchParams.set("followedTags", localFollowedTagsStr);
+         window.location.replace(currentUrl.toString());
+         return;
+      } else if (followedTagsFilter.length === 0 && urlFollowedTags) {
+         currentUrl.searchParams.delete("followedTags");
+         window.location.replace(currentUrl.toString());
+         return;
+      }
+    }
   } else if (path === "/" || path === "/search") {
     const savedTab = localStorage.getItem("cytusGalleryActiveTab");
     if (savedTab && savedTab !== "contents") {
       currentUrl.searchParams.set("tab", savedTab);
+      if (savedTab === "followed") {
+         const followedTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedTagsFilter') || '[]');
+         if (followedTagsFilter.length > 0) {
+            currentUrl.searchParams.set("followedTags", followedTagsFilter.join(","));
+         }
+      }
       window.location.replace(currentUrl.toString());
       return;
     }
@@ -27,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
       loadingOverlay.classList.remove("opacity-0", "pointer-events-none");
     }
   };
+  window.showLoader = showLoader;
 
   const hideLoader = () => {
     if (loadingOverlay) {
@@ -47,23 +74,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (savedTags && searchInputOnLoad) searchInputOnLoad.value = savedTags;
 
-  if (navigationEntries.length > 0 && navigationEntries[0].type === "back_forward") {
-    showLoader("Memuat Konten...");
-    setTimeout(hideLoader, 600);
-  }
+  // back_forward navigation loader removed
 
-  window.addEventListener("pageshow", (e) => {
-    if (e.persisted) {
-      showLoader("Memuat Konten...");
-      setTimeout(hideLoader, 600);
-    }
-  });
+  // Old pageshow listener removed
 
-  window.addEventListener("beforeunload", () => {
-    if (loadingOverlay && loadingOverlay.classList.contains("opacity-0")) {
-      showLoader("Memuat...");
-    }
-  });
+  // Event beforeunload dihapus untuk mencegah loader tersangkut saat navigasi kembali
 
   // === BAGIAN 1: PENGUMPULAN ELEMEN DOM ===
   const searchForm = document.getElementById("search-form");
@@ -117,6 +132,12 @@ document.addEventListener("DOMContentLoaded", () => {
     searchInput.value = tags.join(' ');
     renderChips();
     if (searchInputVisual) searchInputVisual.focus();
+    
+    // Auto search on chip remove
+    const fullQuery = (searchInput.value + " " + (searchInputVisual ? searchInputVisual.value : "")).trim();
+    if (typeof navigateWithFilters === 'function') {
+      navigateWithFilters(fullQuery, 1, null, true, true);
+    }
   };
   
   const addChip = (tag) => {
@@ -273,10 +294,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const isMobile = () => window.innerWidth < 768;
 
-  const navigateWithFilters = async (userTypedTags = "", page = 1, tab = null, useAjax = false) => {
+  const navigateWithFilters = async (userTypedTags = "", page = 1, tab = null, useAjax = false, isAutoSearch = false) => {
     let activeTab = tab;
     if (!activeTab) {
-       activeTab = localStorage.getItem("cytusGalleryActiveTab") || "contents";
+       activeTab = localStorage.getItem('cytusGalleryActiveTab') || 'contents'; if (userTypedTags && activeTab === 'collection') { activeTab = 'contents'; localStorage.setItem('cytusGalleryActiveTab', 'contents'); }
     } else {
        localStorage.setItem("cytusGalleryActiveTab", activeTab);
     }
@@ -344,7 +365,64 @@ document.addEventListener("DOMContentLoaded", () => {
     params.append("limit", limit);
     if (lazyload) params.append("lazyload", "true");
     if (page > 1) params.append("page", page);
-    if (activeTab && activeTab !== 'contents') params.append("tab", activeTab);
+    if (activeTab && activeTab !== 'contents') {
+      params.append("tab", activeTab);
+      if (activeTab === 'followed') {
+        const followedTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedTagsFilter') || '[]');
+        if (followedTagsFilter.length > 0) {
+          params.append("followedTags", followedTagsFilter.join(","));
+        }
+        
+        const followedDateFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedDateFilter') || 'null');
+        if (followedDateFilter && followedDateFilter.enabled) {
+          let dateFilter = "";
+          const d = followedDateFilter;
+          if (d.mode === 'spesifik' && d.specYear) {
+             let specMonth = d.specMonth;
+             let specDay = d.specDay;
+             let specYear = d.specYear;
+             if (specMonth && specDay) {
+                let m = specMonth.padStart(2, '0');
+                let day = specDay.padStart(2, '0');
+                dateFilter = `date:${specYear}-${m}-${day}`;
+             } else if (specMonth) {
+                let m = specMonth.padStart(2, '0');
+                let lastDay = new Date(specYear, parseInt(m), 0).getDate();
+                dateFilter = `date:${specYear}-${m}-01..${specYear}-${m}-${lastDay}`;
+             } else {
+                dateFilter = `date:${specYear}-01-01..${specYear}-12-31`;
+             }
+          } else if (d.mode === 'rentang' && d.rsYear && d.reYear) {
+             let rangeStartStr = "";
+             if (d.rsMonth && d.rsDay) {
+                rangeStartStr = `${d.rsYear}-${d.rsMonth.padStart(2, '0')}-${d.rsDay.padStart(2, '0')}`;
+             } else if (d.rsMonth) {
+                rangeStartStr = `${d.rsYear}-${d.rsMonth.padStart(2, '0')}-01`;
+             } else {
+                rangeStartStr = `${d.rsYear}-01-01`;
+             }
+
+             let rangeEndStr = "";
+             if (d.reMonth && d.reDay) {
+                rangeEndStr = `${d.reYear}-${d.reMonth.padStart(2, '0')}-${d.reDay.padStart(2, '0')}`;
+             } else if (d.reMonth) {
+                let lastDay = new Date(d.reYear, parseInt(d.reMonth), 0).getDate();
+                rangeEndStr = `${d.reYear}-${d.reMonth.padStart(2, '0')}-${lastDay}`;
+             } else {
+                rangeEndStr = `${d.reYear}-12-31`;
+             }
+             dateFilter = `date:${rangeStartStr}..${rangeEndStr}`;
+          }
+          
+          if (dateFilter) {
+             let currentQuery = params.get("query") || "";
+             currentQuery = currentQuery.replace(/date:[^\s]+/g, '').trim();
+             currentQuery = (currentQuery + " " + dateFilter).trim();
+             params.set("query", currentQuery);
+          }
+        }
+      }
+    }
     
     const queryString = params.toString();
     const targetUrl = queryString ? `/search?${queryString}` : "/";
@@ -373,7 +451,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
         
-        if (progressContainer && progressBar) {
+        if (isAutoSearch) {
+          const mainGallery = document.getElementById('main-gallery');
+          if (mainGallery) {
+             mainGallery.innerHTML = '<div class="col-span-full w-full flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent"></div></div>';
+          }
+        } else if (progressContainer && progressBar) {
            progressContainer.style.opacity = '1';
            
            setTimeout(() => {
@@ -388,10 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
            currentMain.style.opacity = '0.5';
         }
 
-        const [res] = await Promise.all([
-           fetch(targetUrl),
-           new Promise(resolve => setTimeout(resolve, 300)) // Force min 300ms for smooth animation
-        ]);
+        const res = await fetch(targetUrl);
         
         const text = await res.text();
         const parser = new DOMParser();
@@ -442,6 +522,10 @@ document.addEventListener("DOMContentLoaded", () => {
                  }
              }
              
+             if (typeof updateFollowedTabVisuals === 'function') {
+                 updateFollowedTabVisuals();
+             }
+             
              if (document.querySelector(".swiper")) {
                new Swiper(".swiper", {
                  loop: true,
@@ -463,7 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
                });
              }
              
-             if (typeof initializeMasonry === 'function') initializeMasonry();
+             if (typeof initializeMasonry === 'function') window.initializeMasonry = initializeMasonry; initializeMasonry();
              if (typeof initInfiniteScroll === 'function') initInfiniteScroll();
              
              setTimeout(hideLoader, 300);
@@ -475,15 +559,19 @@ document.addEventListener("DOMContentLoaded", () => {
              finalizeTransition();
           }
         } else {
+          if (typeof window.showLoader === 'function') window.showLoader("Memuat Konten...");
           window.location.href = targetUrl;
         }
       } catch (err) {
+        if (typeof window.showLoader === 'function') window.showLoader("Memuat Konten...");
         window.location.href = targetUrl;
       }
     } else {
+      if (typeof window.showLoader === 'function') window.showLoader("Memuat Konten...");
       window.location.href = targetUrl;
     }
   };
+  window.navigateWithFilters = navigateWithFilters;
 
   // Intercept raw tag links (e.g. from profile or other pages) to apply local filters
   document.addEventListener('click', (e) => {
@@ -510,7 +598,12 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const currentUrl = new URL(window.location.href);
       const currentTab = currentUrl.searchParams.get("tab") || "contents";
-      if (tab === currentTab) return; // Do not reload if already active
+      if (tab === currentTab) {
+        if (tab === 'followed' && typeof window.openFollowedTagsModal === 'function') {
+          window.openFollowedTagsModal();
+        }
+        return; // Do not reload if already active
+      }
       
       // Tab clicks are only on the main page, so userTypedTags is empty.
       // Filter settings will be auto-applied by navigateWithFilters.
@@ -797,42 +890,14 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   if (filterForm) loadFiltersToUI();
-  initializeMasonry();
+  window.initializeMasonry = initializeMasonry; initializeMasonry();
 
   // Sembunyikan loader HANYA setelah semua aset (gambar, dll) selesai dimuat
   window.addEventListener("load", hideLoader);
 
   // Ganti event listener 'pageshow' yang lama dengan yang ini:
-  window.addEventListener("pageshow", (event) => {
-    if (event.persisted) {
-      showLoader("Memuat Ulang Konten...");
-
-      const checkIntervalTime = 100;
-      const maxWaitTime = 3000;
-      let elapsed = 0;
-
-      const intervalId = setInterval(() => {
-        const mediaElements = document.querySelectorAll("#main-gallery img");
-
-        if (mediaElements.length === 0) {
-          clearInterval(intervalId);
-          hideLoader();
-          return;
-        }
-
-        // Cek apakah SEMUA gambar sudah complete
-        const allMediaReady = Array.from(mediaElements).every(
-          (media) => media.complete && media.naturalHeight !== 0
-        );
-
-        elapsed += checkIntervalTime;
-
-        if (allMediaReady || elapsed >= maxWaitTime) {
-          clearInterval(intervalId);
-          hideLoader();
-        }
-      }, checkIntervalTime);
-    } else hideLoader();
+  window.addEventListener("pageshow", () => {
+    hideLoader();
   });
 
   // === BAGIAN 3: MEMASANG SEMUA EVENT LISTENER ===
@@ -1069,7 +1134,7 @@ document.addEventListener("DOMContentLoaded", () => {
        }
     });
     
-    let suggestTimeout = null;
+    
     
     searchInputVisual.addEventListener("input", async (e) => {
       const val = searchInputVisual.value;
@@ -1080,10 +1145,23 @@ document.addEventListener("DOMContentLoaded", () => {
          }
          searchInputVisual.value = "";
          showRecentTags();
+         
+         
+         
+         
+         
+         
          return;
       }
       
       const currentTerm = val.trim();
+      
+      
+      
+      
+      
+      
+
       activeSuggestionIndex = -1;
 
       if (currentTerm.length < 2) {
@@ -1593,27 +1671,7 @@ window.forceDownload = async function(url, filename, btnEl) {
   }
 };
 
-// Tambahkan animasi loading saat navigasi halaman antar menu
-document.addEventListener('click', (e) => {
-  const link = e.target.closest('a');
-  if (link && link.href) {
-    try {
-      const url = new URL(link.href);
-      const isInternal = url.origin === window.location.origin;
-      const isAnchor = url.hash && url.pathname === window.location.pathname;
-      const isSpecial = link.target === '_blank' || link.hasAttribute('download');
-      
-      if (isInternal && !isAnchor && !isSpecial) {
-        // Jangan tampilkan loader jika ini adalah request pagination masonry atau action button
-        if (!link.classList.contains('follow-btn') && !link.classList.contains('action-btn') && !link.classList.contains('tag-link')) {
-          if (typeof window.showLoader === 'function') {
-             window.showLoader("Memuat Halaman...");
-          }
-        }
-      }
-    } catch(err){}
-  }
-});
+// Animasi loading antar halaman telah dinonaktifkan atas permintaan pengguna.
 
 // --- CUSTOM GLOBAL TOOLTIP ---
 (function() {
@@ -1681,3 +1739,104 @@ document.addEventListener('click', (e) => {
     tooltipEl.style.left = left + 'px';
   }
 })();
+// Follow Search Tags Logic
+window.handleFollowBtnClick = function(btnEl) {
+  const tagsStr = btnEl.getAttribute('data-tags');
+  const isCurrentlyFollowed = btnEl.getAttribute('data-all-followed') === 'true';
+  const tagStatesStr = btnEl.getAttribute('data-tag-states');
+  const tagStates = tagStatesStr.split(',').map(s => s === 'true');
+  
+  if (!isCurrentlyFollowed) {
+    if (typeof window.showAlert === 'function') {
+      window.showAlert("Ikuti Tag?", "Ketika mengikuti, Anda akan mendapatkan notifikasi jika ada konten terbaru pada tag ini", () => {
+        window.toggleFollowSearchTags(btnEl, tagsStr, isCurrentlyFollowed, tagStates);
+      });
+      const confirmBtn = document.getElementById("custom-alert-confirm");
+      if (confirmBtn) confirmBtn.textContent = "Ikuti";
+    } else {
+      window.toggleFollowSearchTags(btnEl, tagsStr, isCurrentlyFollowed, tagStates);
+    }
+  } else {
+    window.toggleFollowSearchTags(btnEl, tagsStr, isCurrentlyFollowed, tagStates);
+  }
+};
+
+window.toggleFollowSearchTags = async function(btnEl, tagsStr, isCurrentlyFollowed, tagStates) {
+  const tags = tagsStr.split(',').filter(t => t.trim().length > 0);
+  if (tags.length === 0) return;
+
+  btnEl.disabled = true;
+  const originalHtml = btnEl.innerHTML;
+  btnEl.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span class="btn-text">Proses...</span>';
+
+  try {
+    if (isCurrentlyFollowed) {
+      // Unfollow all
+      for (const tag of tags) {
+        await fetch('/api/follow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tagName: tag, tagType: 0 }) 
+        });
+      }
+      window.showToast("Berhasil unfollow tag.", "success");
+      
+      // Update UI immediately
+      btnEl.disabled = false;
+      btnEl.setAttribute('data-all-followed', 'false');
+      btnEl.className = "ml-2 px-3 py-1 text-sm font-medium rounded-full border transition-colors flex items-center gap-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-gray-800 text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white";
+      btnEl.title = 'Ikuti tag pencarian ini';
+      btnEl.innerHTML = `<svg class="w-4 h-4 btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg><span class="btn-text">Ikuti Tag</span>`;
+    } else {
+      // Follow only those not followed
+      let successCount = 0;
+      let errorMessage = "";
+      for (let i = 0; i < tags.length; i++) {
+        const tag = tags[i];
+        if (tagStates[i]) continue; // Already followed, skip
+
+        // Fetch tag category from Danbooru
+        let category = 0;
+        try {
+          const res = await fetch(`https://danbooru.donmai.us/tags.json?search[name]=` + encodeURIComponent(tag));
+          const data = await res.json();
+          if (data && data.length > 0) category = data[0].category;
+        } catch(e) {
+          console.error("Danbooru tag fetch failed", e);
+        }
+
+        const res = await fetch('/api/follow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tagName: tag, tagType: category })
+        });
+        const result = await res.json();
+        if (res.status === 200) {
+          successCount++;
+        } else {
+          errorMessage = result.error || "Gagal follow tag.";
+        }
+      }
+      
+      if (successCount > 0) {
+        window.showToast("Berhasil follow tag.", "success");
+        
+        // Update UI immediately
+        btnEl.disabled = false;
+        btnEl.setAttribute('data-all-followed', 'true');
+        btnEl.className = "ml-2 px-3 py-1 text-sm font-medium rounded-full border transition-colors flex items-center gap-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-cyan-900/50 text-cyan-400 border-cyan-700 hover:bg-cyan-800/70";
+        btnEl.title = 'Berhenti ikuti tag pencarian ini';
+        btnEl.innerHTML = `<svg class="w-4 h-4 btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span class="btn-text">Diikuti</span>`;
+      } else {
+        window.showToast(errorMessage || "Tag sudah diikuti.", "error");
+        btnEl.disabled = false;
+        btnEl.innerHTML = originalHtml;
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    window.showToast("Terjadi kesalahan jaringan.", "error");
+    btnEl.disabled = false;
+    btnEl.innerHTML = originalHtml;
+  }
+};

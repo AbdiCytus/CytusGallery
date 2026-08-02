@@ -43,15 +43,44 @@
     <p id="loading-text" class="text-lg text-white mt-4 animate-pulse">Memuat Konten...</p>
   </div>
   <script>
-    if (!sessionStorage.getItem('cytus_first_visit')) {
+    const navEntries = performance.getEntriesByType("navigation");
+    const isReload = navEntries.length > 0 && navEntries[0].type === "reload";
+    const isHome = window.location.pathname === '/' || window.location.pathname === '/search';
+    const isDetail = window.location.pathname.startsWith('/posts/');
+    
+    if (!sessionStorage.getItem('cytus_first_visit') || (isReload && isHome) || isDetail) {
       document.getElementById('loading-overlay').classList.remove('opacity-0', 'pointer-events-none');
       document.addEventListener('DOMContentLoaded', () => {
-        sessionStorage.setItem('cytus_first_visit', 'true');
+        if (!sessionStorage.getItem('cytus_first_visit')) {
+          sessionStorage.setItem('cytus_first_visit', 'true');
+        }
         setTimeout(() => {
-          document.getElementById('loading-overlay').classList.add('opacity-0', 'pointer-events-none');
-        }, 1200); // 1.2s delay for a nice first-time splash screen effect
+          const loader = document.getElementById('loading-overlay');
+          if (loader) {
+            loader.style.transitionDuration = '';
+            loader.classList.add('opacity-0', 'pointer-events-none');
+          }
+        }, 1200); 
       });
     }
+
+    window.addEventListener('beforeunload', () => {
+       const loader = document.getElementById('loading-overlay');
+       if (loader) {
+         loader.style.transitionDuration = '100ms';
+         loader.classList.remove('opacity-0', 'pointer-events-none');
+       }
+    });
+
+    window.addEventListener('pageshow', (event) => {
+       if (event.persisted) {
+          const loader = document.getElementById('loading-overlay');
+          if (loader) {
+             loader.style.transitionDuration = '700ms';
+             loader.classList.add('opacity-0', 'pointer-events-none');
+          }
+       }
+    });
   </script>
   <div id="custom-alert" class="fixed flex inset-0 z-50 items-center justify-center p-4 transition-opacity duration-300 ease-in-out hidden opacity-0">
     <div id="custom-alert-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
@@ -199,7 +228,7 @@
                 <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
                 <span class="truncate"><%= user.name || user.email %></span>
               </a>
-              <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab');" class="text-gray-400 hover:text-red-400 p-2 transition-colors ml-2" title="Logout">
+              <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="text-gray-400 hover:text-red-400 p-2 transition-colors ml-2" title="Logout">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -211,6 +240,9 @@
             </div>
           <% } %>
           <a id="home-link-mobile" href="/search" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Beranda</a>
+          <% if (locals.user) { %>
+          <a href="/analitik" onclick="if(window.showLoader) window.showLoader('Memuat Analitik...'); sessionStorage.setItem('isLoadingMessage','Memuat Analitik...');" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Analitik</a>
+          <% } %>
           <a href="/tentang" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Tentang</a>
           <a href="/bantuan" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Bantuan</a>
         </nav>
@@ -219,7 +251,7 @@
 
       <% if (locals.user) { %>
         <div class="hidden md:flex mb-4 -mt-2">
-          <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab');" class="w-full justify-center text-gray-400 hover:text-red-400 flex items-center gap-2 text-sm font-medium transition-colors bg-gray-700/50 hover:bg-gray-700 px-3 py-2 rounded-md border border-gray-600/50 shadow-sm" title="Logout">
+          <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="w-full justify-center text-gray-400 hover:text-red-400 flex items-center gap-2 text-sm font-medium transition-colors bg-gray-700/50 hover:bg-gray-700 px-3 py-2 rounded-md border border-gray-600/50 shadow-sm" title="Logout">
             <span>Logout</span>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -316,16 +348,19 @@
     </div>
   </aside>
 
-  <header class="bg-gray-800/50 backdrop-blur-sm sticky top-0 z-30">
+  <header class="bg-gray-800/50 backdrop-blur-sm z-30">
     <nav class="container mx-auto p-4 flex justify-between items-center relative">
       <div class="flex justify-center items-center gap-3">
-        <img src="/arona_doro.png" alt="CytusGallery Logo" width="30" height="30" class="mr-3 flex-shrink-0">
+        <img src="/arona_doro.png" alt="CytusGallery Logo" width="30" height="30" class="flex-shrink-0">
         <a id="brand-link" href="/search" class="text-2xl font-bold text-cyan-400 flex-shrink-0">CytusGallery</a>
       </div>
 
       <div class="flex items-center gap-6">
         <div class="hidden md:flex items-center gap-6 text-gray-300">
           <a id="home-link" href="/search" class="hover:text-white transition-colors">Home</a>
+          <% if (locals.user) { %>
+          <a href="/analitik" onclick="if(window.showLoader) window.showLoader('Memuat Analitik...'); sessionStorage.setItem('isLoadingMessage','Memuat Analitik...');" class="hover:text-white transition-colors">Analitik</a>
+          <% } %>
           <a href="/tentang" class="hover:text-white transition-colors">Tentang</a>
           <a href="/bantuan" class="hover:text-white transition-colors">Bantuan</a>
           <% if (locals.user) { %>
@@ -389,7 +424,7 @@
     </nav>
   </header>
   <% if (locals.hideSearchbar !== true) { %>
-  <section class="container mx-auto px-4 py-2">
+  <section class="container mx-auto px-4 py-2 z-20 bg-gray-900/95 backdrop-blur-sm">
     <div class="relative">
       <form action="/search" method="GET" id="search-form">
         <div class="relative bg-gray-700 border border-gray-600 rounded-md pr-12 focus-within:ring-2 focus-within:ring-cyan-500 flex min-h-[50px]">

@@ -122,6 +122,194 @@ app.get("/test-search", async (req, res) => {
   }
 });
 
+app.get("/analitik", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  const axios = require('axios').create({
+    headers: { 'User-Agent': 'CytusGallery/1.0 (by Abdi)' }
+  });
+  // Danbooru: 1=artist, 3=copyright, 4=character
+  const ALLOWED_CATEGORIES = [1, 3, 4];
+  const CAT_LABELS = { 1: 'Artist', 3: 'Copyright', 4: 'Character' };
+  
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
+    // Promise 1: Global Tags (Cached)
+    const getGlobalTags = async () => {
+      const cacheKey = 'analitik_globalTags';
+      if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) return apiCache[cacheKey].data;
+      const globalTags = { copyright: [], character: [], artist: [] };
+      const catMap = { 3: 'copyright', 4: 'character', 1: 'artist' };
+      try {
+        await Promise.all(ALLOWED_CATEGORIES.map(async (cat) => {
+          const resp = await axios.get('https://danbooru.donmai.us/tags.json', {
+            params: { 'search[category]': cat, 'search[order]': 'count', 'search[is_deprecated]': false, 'limit': 10 },
+            timeout: 5000
+          });
+          if (resp.data && Array.isArray(resp.data)) globalTags[catMap[cat]] = resp.data.map(t => ({ name: t.name, count: t.post_count, category: t.category }));
+        }));
+        apiCache[cacheKey] = { timestamp: Date.now(), data: globalTags };
+      } catch(e) {}
+      return globalTags;
+    };
+
+    // Promise 2: Trending Tags (Cached, diparalelkan)
+    const getTrendingTags = async () => {
+      const cacheKey = 'analitik_trendingTags';
+      if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) return apiCache[cacheKey].data;
+      const trendingTags = { day: { copyright: [], character: [], artist: [] }, month: { copyright: [], character: [], artist: [] }, year: { copyright: [], character: [], artist: [] } };
+      const periods = [
+        { key: 'day', ageFilter: 'age:<1d random:200' },
+        { key: 'month', ageFilter: 'age:<30d random:200' },
+        { key: 'year', ageFilter: 'age:<365d random:200' }
+      ];
+      try {
+        await Promise.all(periods.map(async (period) => {
+          try {
+            const resp = await axios.get('https://danbooru.donmai.us/posts.json', {
+              params: { tags: period.ageFilter, limit: 200, only: 'tag_string_copyright,tag_string_character,tag_string_artist' },
+              timeout: 6000
+            });
+            if (resp.data && Array.isArray(resp.data)) {
+              const counts = { copyright: {}, character: {}, artist: {} };
+              resp.data.forEach(post => {
+                if (post.tag_string_copyright) post.tag_string_copyright.split(' ').forEach(t => { if (t) counts.copyright[t] = (counts.copyright[t] || 0) + 1; });
+                if (post.tag_string_character) post.tag_string_character.split(' ').forEach(t => { if (t) counts.character[t] = (counts.character[t] || 0) + 1; });
+                if (post.tag_string_artist) post.tag_string_artist.split(' ').forEach(t => { if (t) counts.artist[t] = (counts.artist[t] || 0) + 1; });
+              });
+              const allNames = new Set();
+              ['copyright', 'character', 'artist'].forEach(cat => {
+                Object.entries(counts[cat]).sort((a,b) => b[1]-a[1]).slice(0, 10).forEach(([name]) => allNames.add(name));
+              });
+              const postCounts = {};
+              if (allNames.size > 0) {
+                try {
+                  const lookupResp = await axios.get('https://danbooru.donmai.us/tags.json', {
+                    params: { 'search[name_comma]': [...allNames].join(','), 'limit': 30 },
+                    timeout: 5000
+                  });
+                  if (lookupResp.data) lookupResp.data.forEach(t => { postCounts[t.name] = t.post_count; });
+                } catch(e) {}
+              }
+              ['copyright', 'character', 'artist'].forEach(cat => {
+                trendingTags[period.key][cat] = Object.entries(counts[cat])
+                  .sort((a,b) => b[1]-a[1]).slice(0, 10)
+                  .map(([name, hits]) => ({ name, hits, totalPosts: postCounts[name] || 0 }));
+              });
+            }
+          } catch(e) {}
+        }));
+        apiCache[cacheKey] = { timestamp: Date.now(), data: trendingTags };
+      } catch(e) {}
+      return trendingTags;
+    };
+
+    // Promise 3: Followed Stats
+    const getFollowedStats = async () => {
+      const [followedTags, notifications] = await Promise.all([
+        prisma.followedTag.findMany({ where: { userId, tagType: { in: ALLOWED_CATEGORIES } } }),
+        prisma.notification.findMany({ where: { userId, createdAt: { gte: oneYearAgo } } })
+      ]);
+      const followedTagNames = followedTags.map(t => t.tagName);
+      const followedTagTypes = {};
+      const formattedToOriginal = {};
+      const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+      followedTags.forEach(t => { 
+        followedTagTypes[t.tagName] = t.tagType; 
+        formattedToOriginal[toTitleCase(t.tagName.replace(/_/g, ' '))] = t.tagName;
+      });
+      const followedStats = { day: {}, month: {}, year: {} };
+      if (followedTagNames.length > 0) {
+        notifications.forEach(notif => {
+          const match = notif.message.match(/\*\*([^*]+)\*\* baru dari/);
+          if (match) {
+            const originalTag = formattedToOriginal[match[1]];
+            if (originalTag) {
+              followedStats.year[originalTag] = (followedStats.year[originalTag] || 0) + 1;
+              if (new Date(notif.createdAt) >= oneMonthAgo) followedStats.month[originalTag] = (followedStats.month[originalTag] || 0) + 1;
+              if (new Date(notif.createdAt) >= oneDayAgo) followedStats.day[originalTag] = (followedStats.day[originalTag] || 0) + 1;
+            }
+          }
+        });
+      }
+      return { followedStats, followedTagNames, followedTagTypes };
+    };
+
+    // Promise 4: Collection Stats
+    const getCollectionStats = async () => {
+      const allSaves = await prisma.savedContent.findMany({ where: { userId }, select: { tags: true } });
+      const tagCounts = {};
+      allSaves.forEach(save => {
+        if (save.tags) save.tags.split(' ').forEach(tag => { if (tag.trim()) tagCounts[tag.trim()] = (tagCounts[tag.trim()] || 0) + 1; });
+      });
+      const topRaw = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 50);
+      let topCollectionTags = [];
+      if (topRaw.length > 0) {
+        try {
+          const cacheKey = 'analitik_collectionTags_' + userId;
+          if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
+            topCollectionTags = apiCache[cacheKey].data;
+          } else {
+            const names = topRaw.map(t => t[0]).join(',');
+            const resp = await axios.get('https://danbooru.donmai.us/tags.json', { params: { 'search[name_comma]': names, 'limit': 50 }, timeout: 5000 });
+            if (resp.data && Array.isArray(resp.data)) {
+              const catLookup = {};
+              resp.data.forEach(t => { catLookup[t.name] = t.category; });
+              topCollectionTags = topRaw.filter(([name]) => ALLOWED_CATEGORIES.includes(catLookup[name]))
+                .slice(0, 3).map(([name, count]) => ({ name, count, category: catLookup[name], categoryLabel: CAT_LABELS[catLookup[name]] }));
+              apiCache[cacheKey] = { timestamp: Date.now(), data: topCollectionTags };
+            }
+          }
+        } catch(e) {}
+      }
+      return { topCollectionTags, totalSaves: allSaves.length };
+    };
+
+    // Promise 5: Other user details
+    const getUserDetails = async () => {
+      let lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+      if (isNaN(lastClear)) lastClear = 0;
+      const [allFollowedTagsCount, unreadCount] = await Promise.all([
+        prisma.followedTag.count({ where: { userId } }),
+        prisma.notification.count({ where: { userId, isRead: false, createdAt: { gt: new Date(lastClear) } } })
+      ]);
+      return { totalFollowed: allFollowedTagsCount, unreadCount };
+    };
+
+    // EXECUTE ALL IN PARALLEL
+    const [globalTags, trendingTags, followedActivity, collectionData, userDetails] = await Promise.all([
+      getGlobalTags(),
+      getTrendingTags(),
+      getFollowedStats(),
+      getCollectionStats(),
+      getUserDetails()
+    ]);
+
+    res.render("analitik", { 
+      user: req.user,
+      hideSearchbar: true,
+      globalTags,
+      trendingTags,
+      followedStats: followedActivity.followedStats,
+      followedTagNames: followedActivity.followedTagNames,
+      followedTagTypes: followedActivity.followedTagTypes,
+      topCollectionTags: collectionData.topCollectionTags,
+      totalSaves: collectionData.totalSaves,
+      totalFollowed: userDetails.totalFollowed,
+      CAT_LABELS,
+      unreadCount: userDetails.unreadCount
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error loading analytics");
+  }
+});
+
 app.get("/profil", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
   try {
@@ -212,6 +400,106 @@ app.delete("/api/profil/delete", requireAuth, async (req, res) => {
   }
 });
 
+app.post("/api/collections/batch-delete", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const { postIds } = req.body;
+    const userId = req.user.id;
+    if (!postIds || !Array.isArray(postIds)) {
+      return res.status(400).json({ error: "Invalid postIds" });
+    }
+    
+    await prisma.savedContent.deleteMany({
+      where: {
+        userId: userId,
+        postId: { in: postIds.map(String) }
+      }
+    });
+    
+    res.json({ success: true, message: "Berhasil menghapus batch koleksi" });
+  } catch (error) {
+    console.error('Batch delete error:', error);
+    res.status(500).json({ error: "Gagal menghapus batch koleksi." });
+  }
+});
+
+app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  const archiver = require('archiver');
+  const axios = require('axios').create({
+    headers: {
+      'User-Agent': 'CytusGallery/1.0 (by Abdi)'
+    }
+  });
+  
+  try {
+    const { postIds } = req.body;
+    const userId = req.user.id;
+    if (!postIds || !Array.isArray(postIds)) {
+      return res.status(400).json({ error: "Invalid postIds" });
+    }
+    
+    const saves = await prisma.savedContent.findMany({
+      where: {
+        userId: userId,
+        postId: { in: postIds.map(String) }
+      }
+    });
+    
+    if (saves.length === 0) {
+      return res.status(404).json({ error: "Tidak ada konten yang valid untuk diunduh." });
+    }
+
+    const estimatedSize = saves.reduce((sum, s) => sum + (s.size || 0), 0);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename=CytusGallery_Batch_${Date.now()}.zip`);
+    if (estimatedSize > 0) {
+      res.setHeader('X-Estimated-Size', String(estimatedSize));
+      res.setHeader('Access-Control-Expose-Headers', 'X-Estimated-Size');
+    }
+    
+    const { ZipArchive } = require('archiver');
+    const archive = new ZipArchive({
+      zlib: { level: 9 }
+    });
+    
+    archive.on('error', function(err) {
+      console.error("Archiver error:", err);
+    });
+    
+    archive.pipe(res);
+    
+    const chunkArray = (arr, size) => arr.length > 0 ? [arr.slice(0, size), ...chunkArray(arr.slice(size), size)] : [];
+    const chunks = chunkArray(saves, 5); // 5 concurrent downloads max
+    
+    for (const chunk of chunks) {
+      await Promise.all(chunk.map(async (save) => {
+        if (!save.fileUrl) return;
+        try {
+          const response = await axios({
+            method: 'GET',
+            url: save.fileUrl,
+            responseType: 'arraybuffer',
+            timeout: 15000
+          });
+          const ext = save.extension || save.fileUrl.split('.').pop().split('?')[0] || 'jpg';
+          archive.append(Buffer.from(response.data), { name: `CytusGallery_${save.postId}.${ext}` });
+        } catch(err) {
+          console.error(`Failed to download ${save.fileUrl}`, err.message);
+        }
+      }));
+    }
+    
+    await archive.finalize();
+  } catch (error) {
+    console.error('Batch download error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Gagal memproses batch download." });
+    }
+  }
+});
+
 app.post("/api/save/:id", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
   try {
@@ -226,6 +514,7 @@ app.post("/api/save/:id", requireAuth, async (req, res) => {
       await prisma.savedContent.delete({
         where: { id: existingSave.id }
       });
+      delete apiCache[`userAppData_${userId}`];
       res.json({ saved: false, message: "Berhasil dihapus dari koleksi." });
     } else {
       let imageUrl = null, fileUrl = null, extension = null, rating = null, score = null, size = null, uploadedAt = null, source = null, tags = null;
@@ -247,6 +536,7 @@ app.post("/api/save/:id", requireAuth, async (req, res) => {
       await prisma.savedContent.create({
         data: { userId, postId, imageUrl, fileUrl, extension, rating, score, size, uploadedAt, source, tags }
       });
+      delete apiCache[`userAppData_${userId}`];
       res.json({ saved: true, message: "Berhasil disimpan ke koleksi." });
     }
   } catch (error) {
@@ -352,11 +642,26 @@ async function getUserAppData(userId) {
     return apiCache[cacheKey].data;
   }
   let hasFollowedTags = false;
+  let followedTags = [];
   let savedPostIds = new Set();
   const prisma = require('./lib/prisma');
   try {
-    const followedCount = await prisma.followedTag.count({ where: { userId } });
-    hasFollowedTags = followedCount > 0;
+    const follows = await prisma.followedTag.findMany({ where: { userId }, select: { tagName: true, tagType: true } });
+    hasFollowedTags = follows.length > 0;
+    follows.sort((a, b) => {
+      const aMatch = a.tagName.match(/\(([^)]+)\)$/);
+      const bMatch = b.tagName.match(/\(([^)]+)\)$/);
+      const aCopyright = aMatch ? aMatch[1] : "";
+      const bCopyright = bMatch ? bMatch[1] : "";
+      if (aCopyright !== bCopyright) {
+        if (aCopyright === "") return -1;
+        if (bCopyright === "") return 1;
+        return aCopyright.localeCompare(bCopyright);
+      }
+      return a.tagName.localeCompare(b.tagName);
+    });
+    followedTags = follows.map(f => f.tagName);
+    
     const saves = await prisma.savedContent.findMany({
       where: { userId },
       select: { postId: true }
@@ -365,7 +670,7 @@ async function getUserAppData(userId) {
   } catch(e) {
     console.error("getUserAppData Prisma error:", e.message);
   }
-  const result = { hasFollowedTags, savedPostIds };
+  const result = { hasFollowedTags, followedTags, savedPostIds };
   apiCache[cacheKey] = { timestamp: Date.now(), data: result };
   return result;
 }
@@ -443,8 +748,9 @@ async function getTotalPostsWithParams(tags, query, limit) {
   return result;
 }
 
-async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
-  const cacheKey = `followedContents_${userId}_${filterQuery}_${page}_${limit}_${isBypass}`;
+async function getFollowedContents(userId, filterQuery, page, limit, isBypass, followedTagsFilter = null) {
+  const filterKey = followedTagsFilter ? followedTagsFilter.join(',') : 'all';
+  const cacheKey = `followedContents_${userId}_${filterQuery}_${page}_${limit}_${isBypass}_${filterKey}`;
   if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
     return apiCache[cacheKey].data;
   }
@@ -459,9 +765,23 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
     return { posts: [], totalPages: 0, totalPosts: 0, hasFollowedTags: false };
   }
 
+  let tagsToProcess = user.followedTags;
+  if (followedTagsFilter && followedTagsFilter.length > 0) {
+    tagsToProcess = user.followedTags.filter(t => followedTagsFilter.includes(t.tagName));
+  }
+  
+  if (tagsToProcess.length === 0) {
+    return { posts: [], totalPages: 0, totalPosts: 0, hasFollowedTags: true };
+  }
+
   let baseTags = filterQuery || "";
+  let manualRatingFilter = false;
   if (!isBypass) {
-    baseTags += " -rating:e -rating:q";
+    // Danbooru limits queries to 2 tags for free API.
+    // Appending "-rating:e -rating:q" (2 tags) to a query that already has a tagName and a date filter
+    // results in 4 tags, causing a 422 Unprocessable Entity error and dropping all content.
+    // We now filter safety explicitly in JavaScript to preserve API allowances.
+    manualRatingFilter = true;
   }
 
   // Danbooru max limit is 200. To support deep pagination, we fetch multiple pages if needed.
@@ -473,35 +793,44 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
   const maxChunks = 50; 
   const fetchChunks = Math.min(chunksNeeded, maxChunks);
 
-  async function fetchDanbooruChunk(tags, page, limit) {
-    const chunkCacheKey = `danbooruChunk_${tags}_${page}_${limit}`;
-    if (apiCache[chunkCacheKey] && Date.now() - apiCache[chunkCacheKey].timestamp < CACHE_TTL) {
-      return apiCache[chunkCacheKey].data;
-    }
-    const res = await axios.get(basePostsURL, {
-      params: { tags, page, limit },
-      timeout: 6000
-    }).catch(e => ({ data: [] }));
-    const data = res.data || [];
-    apiCache[chunkCacheKey] = { timestamp: Date.now(), data };
-    return data;
-  }
-
-  const requestFns = [];
-  user.followedTags.forEach(tag => {
+  const results = new Array(tagsToProcess.length * fetchChunks);
+  const networkTasks = [];
+  
+  let i = 0;
+  tagsToProcess.forEach(tag => {
     for (let c = 1; c <= fetchChunks; c++) {
-      requestFns.push(() => fetchDanbooruChunk(`${tag.tagName} ${baseTags}`.trim(), c, chunkLimit));
+      const idx = i++;
+      const tName = `${tag.tagName} ${baseTags}`.trim();
+      const chunkCacheKey = `danbooruChunk_${tName}_${c}_${chunkLimit}`;
+      
+      if (apiCache[chunkCacheKey] && Date.now() - apiCache[chunkCacheKey].timestamp < CACHE_TTL) {
+         results[idx] = apiCache[chunkCacheKey].data;
+      } else {
+         networkTasks.push(async () => {
+           const res = await axios.get(basePostsURL, { 
+             params: { tags: tName, page: c, limit: chunkLimit }, 
+             timeout: 6000 
+           }).catch(e => ({ data: [] }));
+           const data = res.data || [];
+           apiCache[chunkCacheKey] = { timestamp: Date.now(), data };
+           results[idx] = data;
+         });
+      }
     }
   });
 
-  const results = await Promise.all(requestFns.map(fn => fn()));
+  const batchSize = 10;
+  for (let b = 0; b < networkTasks.length; b += batchSize) {
+    const batch = networkTasks.slice(b, b + batchSize);
+    await Promise.all(batch.map(fn => fn()));
+  }
   
   let allPosts = [];
   let hasMore = false;
   
   // results is a flat array: [tag1_c1, tag1_c2, tag2_c1, tag2_c2, ...]
   // We check if the LAST chunk of ANY tag has >= chunkLimit items
-  for (let i = 0; i < user.followedTags.length; i++) {
+  for (let i = 0; i < tagsToProcess.length; i++) {
     const tagChunks = results.slice(i * fetchChunks, (i + 1) * fetchChunks);
     tagChunks.forEach(chunkData => {
       if (Array.isArray(chunkData)) {
@@ -520,6 +849,9 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass) {
   const seenIds = new Set();
   for (const p of allPosts) {
     if (p && p.id && !seenIds.has(p.id) && p.large_file_url) {
+      if (manualRatingFilter) {
+        if (p.rating === 'e' || p.rating === 'q') continue;
+      }
       seenIds.add(p.id);
       uniquePosts.push(p);
     }
@@ -576,8 +908,51 @@ const root = async (req, res) => {
       getSliderTags(4)
     ]);
 
-    if (tab === "followed" && res.locals.user) {
-      const result = await getFollowedContents(res.locals.user.id, "", page, limit, res.locals.isBypass);
+    if (tab === "collection" && res.locals.user) {
+      const prisma = require('./lib/prisma');
+        const skip = (page - 1) * limit;
+        const saves = await prisma.savedContent.findMany({
+          where: { userId: res.locals.user.id },
+          orderBy: { savedAt: 'desc' },
+          take: limit,
+          skip
+        });
+        const totalSaves = await prisma.savedContent.count({ where: { userId: res.locals.user.id } });
+        
+        const postIds = saves.map(s => s.postId);
+        let fetchedPosts = {};
+        if (postIds.length > 0) {
+           try {
+              const dRes = await axios.get(`https://danbooru.donmai.us/posts.json?tags=id:${postIds.join(',')}&limit=200`);
+              const fetched = dRes.data;
+              fetched.forEach(p => { fetchedPosts[p.id.toString()] = p; });
+           } catch (e) {
+              console.error("Failed to fetch saves from Danbooru", e.message);
+           }
+        }
+        
+        posts = saves.map(s => {
+          const danbooruP = fetchedPosts[s.postId.toString()];
+          if (danbooruP) {
+             return danbooruP;
+          }
+          return {
+            id: parseInt(s.postId, 10) || s.postId,
+            large_file_url: s.fileUrl || s.imageUrl,
+            preview_file_url: s.imageUrl,
+            file_ext: s.extension || 'jpg',
+            rating: s.rating || 's',
+            tag_string_artist: 'Unknown',
+            tag_string_character: 'Saved Content',
+            tag_string_copyright: 'Offline Data',
+            media_asset: null
+          };
+        });
+        totalPosts = totalSaves;
+      totalPages = Math.ceil(totalSaves / limit);
+    } else if (tab === "followed" && res.locals.user) {
+      let followedTagsFilter = null; if (req.query.followedTags !== undefined) { followedTagsFilter = req.query.followedTags ? req.query.followedTags.split(',') : []; }
+      const result = await getFollowedContents(res.locals.user.id, "", page, limit, res.locals.isBypass, followedTagsFilter);
       posts = result.posts;
       totalPosts = result.totalPosts;
       totalPages = result.totalPages;
@@ -614,7 +989,7 @@ const root = async (req, res) => {
       totalPosts: totalPosts,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
-      currentTab: tab,
+      currentTab: tab, followedTagsQuery: req.query.followedTags,
       hasFollowedTags: hasFollowedTags
     });
   } catch (error) {
@@ -629,7 +1004,7 @@ const root = async (req, res) => {
 };
 
 const search = async (req, res) => {
-  const allowedKeys = ['tags', 'page', 'limit', 'tab', 'query', 'lazyload'];
+  const allowedKeys = ['tags', 'page', 'limit', 'tab', 'query', 'lazyload', 'followedTags'];
   const currentKeys = Object.keys(req.query);
   const hasInvalidKeys = currentKeys.some(key => !allowedKeys.includes(key));
   
@@ -658,6 +1033,7 @@ const search = async (req, res) => {
     let totalPages = 0;
     let totalPosts = 0;
     let hasFollowedTags = false;
+    let followedTagsList = [];
     let savedPostIds = new Set();
     let sliderPosts = [];
     let popularTags = [];
@@ -668,11 +1044,88 @@ const search = async (req, res) => {
     if (res.locals.user) {
       const appData = await getUserAppData(res.locals.user.id);
       hasFollowedTags = appData.hasFollowedTags;
+      followedTagsList = appData.followedTags || [];
       savedPostIds = appData.savedPostIds;
     }
 
-    if (!userTags && tab === "followed" && res.locals.user) {
-      const result = await getFollowedContents(res.locals.user.id, filterQuery, page, limit, res.locals.isBypass);
+    if (tab === "collection" && res.locals.user) {
+      const prisma = require('./lib/prisma');
+      let whereClause = { userId: res.locals.user.id };
+      let andConditions = [];
+      
+      const searchTerms = userTags.trim().split(/\s+/).filter(t => t.length > 0);
+      if (searchTerms.length > 0) {
+         searchTerms.forEach(tag => {
+            andConditions.push({ tags: { contains: tag } });
+         });
+      }
+      
+      const filterTerms = filterQuery.trim().split(/\s+/).filter(t => t.length > 0);
+      let ratingNotIn = [];
+      let ratingIn = [];
+      let extensionIn = [];
+      
+      filterTerms.forEach(t => {
+         if (t.startsWith("-rating:")) {
+            ratingNotIn.push(t.split(":")[1]);
+         } else if (t.startsWith("rating:")) {
+            ratingIn = ratingIn.concat(t.split(":")[1].split(","));
+         } else if (t.startsWith("filetype:")) {
+            extensionIn = extensionIn.concat(t.split(":")[1].split(","));
+         }
+      });
+      
+      if (ratingNotIn.length > 0) andConditions.push({ rating: { notIn: ratingNotIn } });
+      if (ratingIn.length > 0) andConditions.push({ rating: { in: ratingIn } });
+      if (extensionIn.length > 0) andConditions.push({ extension: { in: extensionIn } });
+      
+      if (andConditions.length > 0) {
+         whereClause.AND = andConditions;
+      }
+      
+      const skip = (page - 1) * limit;
+      const saves = await prisma.savedContent.findMany({
+        where: whereClause,
+        orderBy: { savedAt: 'desc' },
+        take: limit,
+        skip
+      });
+      const totalSaves = await prisma.savedContent.count({ where: whereClause });
+      
+      const postIds = saves.map(s => s.postId);
+      let fetchedPosts = {};
+      if (postIds.length > 0) {
+         try {
+            const dRes = await axios.get(`https://danbooru.donmai.us/posts.json?tags=id:${postIds.join(',')}&limit=200`);
+            const fetched = dRes.data;
+            fetched.forEach(p => { fetchedPosts[p.id.toString()] = p; });
+         } catch (e) {
+            console.error("Failed to fetch saves from Danbooru", e.message);
+         }
+      }
+      
+      posts = saves.map(s => {
+        const danbooruP = fetchedPosts[s.postId.toString()];
+        if (danbooruP) {
+           return danbooruP;
+        }
+        return {
+          id: parseInt(s.postId, 10) || s.postId,
+          large_file_url: s.fileUrl || s.imageUrl,
+          preview_file_url: s.imageUrl,
+          file_ext: s.extension || 'jpg',
+          rating: s.rating || 's',
+          tag_string_artist: 'Unknown',
+          tag_string_character: 'Saved Content',
+          tag_string_copyright: 'Offline Data',
+          media_asset: null
+        };
+      });
+      totalPosts = totalSaves;
+      totalPages = Math.ceil(totalSaves / limit);
+    } else if (!userTags && tab === "followed" && res.locals.user) {
+      let followedTagsFilter = null; if (req.query.followedTags !== undefined) { followedTagsFilter = req.query.followedTags ? req.query.followedTags.split(',') : []; }
+      const result = await getFollowedContents(res.locals.user.id, filterQuery, page, limit, res.locals.isBypass, followedTagsFilter);
       posts = result.posts;
       totalPosts = result.totalPosts;
       totalPages = result.totalPages;
@@ -726,9 +1179,10 @@ const search = async (req, res) => {
     }
 
     if (page === 1) {
+      const sliderFilter = tab === "followed" ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       actualUserTags
-        ? (sliderPosts = await getTopPosts(actualUserTags, filterQuery, 15))
-        : (sliderPosts = await getTopPostsThisMonth(15, filterQuery));
+        ? (sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15))
+        : (sliderPosts = await getTopPostsThisMonth(15, sliderFilter));
     }
 
     if (!userTags) {
@@ -753,8 +1207,9 @@ const search = async (req, res) => {
       smartSearchTags: smartSearchTags,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
-      currentTab: tab,
+      currentTab: tab, followedTagsQuery: req.query.followedTags,
       hasFollowedTags: hasFollowedTags,
+      followedTagsList: followedTagsList,
       filterQuery: filterQuery
     });
   } catch (error) {
@@ -796,7 +1251,7 @@ const detail = async (req, res) => {
       const follows = await prisma.followedTag.findMany({
         where: { userId: req.user.id }
       });
-      followedTags = follows.map(f => f.tagName);
+      follows.sort((a, b) => { const aCopy = a.tagType === 3 ? 0 : 1; const bCopy = b.tagType === 3 ? 0 : 1; if (aCopy !== bCopy) return aCopy - bCopy; return a.tagName.localeCompare(b.tagName); }); followedTags = follows.map(f => f.tagName);
     }
 
     res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags });
@@ -825,6 +1280,7 @@ app.post("/api/follow", requireAuth, async (req, res) => {
       await prisma.followedTag.delete({
         where: { id: existing.id }
       });
+      delete apiCache[`userAppData_${userId}`];
       res.json({ followed: false, message: "Berhasil unfollow tag." });
     } else {
       // Check maximum tags limit
@@ -847,6 +1303,7 @@ app.post("/api/follow", requireAuth, async (req, res) => {
       await prisma.followedTag.create({
         data: { userId, tagName, tagType: parseInt(tagType), lastPostId }
       });
+      delete apiCache[`userAppData_${userId}`];
       res.json({ followed: true, message: "Berhasil follow tag." });
     }
   } catch (error) {
@@ -862,7 +1319,9 @@ app.get("/api/notifications/sync", requireAuth, async (req, res) => {
     const ratingParam = req.query.rating || 'not_e';
     
     // Ambil data notifikasi terkini dari database secepat mungkin
-    const lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+    let lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+    if (isNaN(lastClear)) lastClear = 0;
+    
     const unread = await prisma.notification.count({ 
       where: { 
         userId, 

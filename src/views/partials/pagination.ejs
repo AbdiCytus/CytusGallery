@@ -4,7 +4,7 @@
         if (tagsForPagination) urlParams.append('tags', tagsForPagination);
         if (limit) urlParams.append('limit', limit);
         if (locals.currentTab) urlParams.append('tab', locals.currentTab);
-        if (locals.filterQuery) urlParams.append('query', locals.filterQuery);
+        if (locals.filterQuery) urlParams.append('query', locals.filterQuery); if (locals.followedTagsQuery !== undefined) urlParams.append('followedTags', locals.followedTagsQuery);
         
         // Root url is /search but actually / if no tags. Let's just use /search because /search without tags redirects to / anyway, BUT wait, /search without tags + query is valid.
         // Wait, baseUrl should be dynamic based on if tags/query exist.

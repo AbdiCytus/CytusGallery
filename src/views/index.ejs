@@ -1,15 +1,31 @@
 <%
-  const formatTags = (tagString, fallback = 'Original') => {
-    if (!tagString || tagString.trim() === '') return fallback;
-    const toTitleCase = (str) => str.replace(/\b\w/g, char => char.toUpperCase());
+  const getDisplayTags = (post) => {
+    const toTitleCase = (str) => {
+      if (!str || str.trim() === '') return '';
+      return str.split(' ').map(tag => tag.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).join(', ');
+    };
+    
+    const chars = toTitleCase(post.tag_string_character);
+    const copy = toTitleCase(post.tag_string_copyright);
+    const artist = toTitleCase(post.tag_string_artist);
 
-    const tags = tagString.split(' ');
-    const formattedTags = tags.map(tag => {
-      const spacedTag = tag.replace(/_/g, ' '); 
-      return toTitleCase(spacedTag);
-    });
+    let title = chars;
+    let subtitle = copy || artist || 'Original';
 
-    return formattedTags.join(', ');
+    if (!title) {
+      if (copy) {
+        title = copy;
+        subtitle = artist || 'Original';
+      } else if (artist) {
+        title = artist;
+        subtitle = 'Original';
+      } else {
+        title = 'Unknown Content';
+        subtitle = 'Original';
+      }
+    }
+    
+    return { title, subtitle };
   };
 %>
 <%- include('partials/header', { userTags: '' }) %>
@@ -55,8 +71,9 @@
 
           <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
             <div class="overlay-content">
-              <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
-              <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
+              <% const displayTags = getDisplayTags(post); %>
+              <h4 class="font-bold truncate"><%= displayTags.title %></h4>
+              <p class="text-sm truncate"><%= displayTags.subtitle %></p>
               <div class="flex gap-2 mt-2">
                 <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
                 <% if (locals.user) { %>
@@ -88,10 +105,13 @@
     <% } %>
   </div>
   <div class="relative mb-6">
-    <div class="flex items-center gap-4 border-b border-gray-700 pb-2 relative">
-      <a href="#" class="main-tab-link text-2xl font-bold <%= locals.currentTab === 'contents' || !locals.currentTab ? 'text-white pb-2' : 'text-gray-500 hover:text-white pb-2' %> transition-colors" data-tab="contents">Contents</a>
+    <div class="flex items-center gap-4 border-b border-gray-700 pb-2 relative overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <a href="#" class="main-tab-link shrink-0 text-2xl font-bold <%= locals.currentTab === 'contents' || !locals.currentTab ? 'text-white pb-2' : 'text-gray-500 hover:text-white pb-2' %> transition-colors" data-tab="contents">Contents</a>
       <% if (locals.user && locals.hasFollowedTags) { %>
-        <a href="#" class="main-tab-link text-2xl font-bold <%= locals.currentTab === 'followed' ? 'text-white pb-2' : 'text-gray-500 hover:text-white pb-2' %> transition-colors" data-tab="followed">Followed Contents</a>
+        <a href="#" class="main-tab-link shrink-0 text-2xl font-bold <%= locals.currentTab === 'followed' ? 'text-white pb-2' : 'text-gray-500 hover:text-white pb-2' %> transition-colors" data-tab="followed">Followed Contents</a>
+      <% } %>
+      <% if (locals.user) { %>
+        <a href="/profil" class="shrink-0 text-2xl font-bold text-gray-500 hover:text-white pb-2 transition-colors">My Collection</a>
       <% } %>
     </div>
   </div>
@@ -167,8 +187,9 @@
 
       <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
         <div class="overlay-content">
-          <h4 class="font-bold truncate"><%= formatTags(post.tag_string_character, 'Unknown Character') %></h4>
-          <p class="text-sm truncate"><%= formatTags(post.tag_string_copyright, 'Original') %></p>
+          <% const displayTags = getDisplayTags(post); %>
+          <h4 class="font-bold truncate"><%= displayTags.title %></h4>
+          <p class="text-sm truncate"><%= displayTags.subtitle %></p>
           <div class="flex gap-2 mt-2">
             <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
             <% if (locals.user) { %>

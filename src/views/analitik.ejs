@@ -1,0 +1,355 @@
+<%- include('partials/header.ejs') %>
+
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+
+  <!-- Page Header -->
+  <div class="flex items-center gap-3 mb-6">
+    <svg style="width:28px;height:28px;min-width:28px" class="text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+    <div>
+      <h1 class="text-2xl font-bold text-white">Analitik Tag</h1>
+      <p class="text-gray-400 text-xs">Statistik dan tren tag dari Danbooru & koleksimu</p>
+    </div>
+  </div>
+
+  <!-- ======================= SECTION 1: Global Top 10 per Category ======================= -->
+  <div class="mb-6">
+    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+      <svg style="width:20px;height:20px;min-width:20px" class="text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      Top 10 Tag Global Danbooru
+    </h2>
+    <p class="text-gray-400 text-xs mb-3">Tag terpopuler berdasarkan jumlah post sepanjang masa</p>
+    
+    <div class="flex gap-2 mb-3">
+      <button class="global-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white" data-tab="global-copyright" data-color="bg-purple-600">© Copyright</button>
+      <button class="global-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-tab="global-character" data-color="bg-green-600">👤 Character</button>
+      <button class="global-tab-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-tab="global-artist" data-color="bg-red-600">🎨 Artist</button>
+    </div>
+
+    <% const globalSections = [
+      { key: 'copyright', id: 'global-copyright', color: 'purple' },
+      { key: 'character', id: 'global-character', color: 'green' },
+      { key: 'artist', id: 'global-artist', color: 'red' }
+    ]; %>
+
+    <% globalSections.forEach((section, si) => { %>
+    <div id="<%= section.id %>" class="global-tab-content bg-gray-900 border border-gray-800 rounded-xl p-4 <%= si > 0 ? 'hidden' : '' %>">
+      <% if (globalTags[section.key] && globalTags[section.key].length > 0) { 
+           const maxCount = globalTags[section.key][0].count;
+      %>
+        <div class="space-y-2.5">
+          <% globalTags[section.key].forEach((tag, index) => { 
+               const percent = Math.round((tag.count / maxCount) * 100);
+          %>
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold w-5 text-right <%= index === 0 ? 'text-yellow-400' : 'text-gray-500' %>"><%= index + 1 %></span>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-center mb-1">
+                <a href="javascript:void(0)" onclick="navigateTag('<%= tag.name %>')" class="font-medium <%= index === 0 ? 'text-yellow-400' : 'text-gray-200' %> hover:text-cyan-400 transition-colors truncate pr-2 text-sm">
+                  <%= index === 0 ? '🏆 ' : '' %><%= tag.name.replace(/_/g, ' ') %>
+                </a>
+                <span class="text-gray-500 whitespace-nowrap text-xs"><%= tag.count.toLocaleString() %> posts</span>
+              </div>
+              <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                <div class="<%= index === 0 ? 'bg-yellow-500' : 'bg-' + section.color + '-600' %> h-2 rounded-full transition-all duration-500 width-bar" data-width="<%= percent %>"></div>
+              </div>
+            </div>
+          </div>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="text-center text-gray-500 py-6 text-sm">Tidak dapat memuat data.</div>
+      <% } %>
+    </div>
+    <% }); %>
+  </div>
+
+  <!-- ======================= SECTION 2: Trending Tags (by time period) ======================= -->
+  <div class="mb-6">
+    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+      <svg style="width:20px;height:20px;min-width:20px" class="text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+      Top 10 Trending Tag
+    </h2>
+    <p class="text-gray-400 text-xs mb-3">Tag terbanyak muncul dari sampel 200 post acak per periode</p>
+    
+    <!-- Period tabs -->
+    <div class="flex gap-2 mb-3">
+      <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-600 text-white" data-period="day" data-color="bg-cyan-600">1 Hari</button>
+      <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="month" data-color="bg-blue-600">1 Bulan</button>
+      <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="year" data-color="bg-purple-600">1 Tahun</button>
+    </div>
+
+    <% const trendPeriods = ['day', 'month', 'year'];
+       const trendCats = [
+         { key: 'copyright', label: '© Copyright', color: 'purple' },
+         { key: 'character', label: '👤 Character', color: 'green' },
+         { key: 'artist', label: '🎨 Artist', color: 'red' }
+       ];
+    %>
+
+    <% trendPeriods.forEach((period, pi) => { %>
+    <div class="trend-period-content <%= pi > 0 ? 'hidden' : '' %>" data-period="<%= period %>">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <% trendCats.forEach(cat => { %>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="px-4 py-2.5 border-b border-gray-800 bg-<%= cat.color %>-900/20">
+            <h3 class="text-xs font-semibold text-<%= cat.color %>-400"><%= cat.label %></h3>
+          </div>
+          <div class="p-4 space-y-2.5">
+            <% const trendData = trendingTags[period][cat.key];
+               if (trendData && trendData.length > 0) {
+                 const trendMax = trendData[0].hits;
+                 trendData.forEach((tag, index) => {
+                   const pct = Math.round((tag.hits / trendMax) * 100);
+            %>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold w-4 text-right <%= index === 0 ? 'text-yellow-400' : 'text-gray-600' %>"><%= index + 1 %></span>
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center mb-0.5">
+                  <a href="javascript:void(0)" onclick="navigateTag('<%= tag.name %>')" class="<%= index === 0 ? 'text-yellow-400' : 'text-gray-300' %> hover:text-cyan-400 transition-colors truncate text-xs">
+                    <%= index === 0 ? '🔥 ' : '' %><%= tag.name.replace(/_/g, ' ') %>
+                  </a>
+                  <span class="text-gray-500 text-[10px] ml-1 whitespace-nowrap"><%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %></span>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                  <div class="bg-<%= cat.color %>-600 h-1.5 rounded-full width-bar" data-width="<%= pct %>"></div>
+                </div>
+              </div>
+            </div>
+            <%   });
+               } else { %>
+            <div class="text-center text-gray-600 py-4 text-xs">Tidak ada data.</div>
+            <% } %>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <% }); %>
+  </div>
+
+  <!-- Divider -->
+  <div class="border-t border-gray-800 my-6"></div>
+
+  <!-- ======================= SECTION 3: Quick Stats ======================= -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-cyan-400"><%= totalSaves %></div>
+      <div class="text-xs text-gray-400">Total Koleksi</div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-emerald-400"><%= totalFollowed %></div>
+      <div class="text-xs text-gray-400">Tag Diikuti</div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-yellow-400 truncate text-sm"><%= topCollectionTags.length > 0 ? topCollectionTags[0].name.replace(/_/g, ' ') : '-' %></div>
+      <div class="text-xs text-gray-400">Tag Favorit</div>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-purple-400"><%= topCollectionTags.length > 0 ? topCollectionTags[0].count : 0 %></div>
+      <div class="text-xs text-gray-400">Simpan Tag Favorit</div>
+    </div>
+  </div>
+
+  <!-- ======================= SECTION 4: Followed Tags Activity ======================= -->
+  <div class="mb-6">
+    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+      <svg style="width:20px;height:20px;min-width:20px" class="text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+      Aktivitas Tag yang Diikuti
+    </h2>
+    <p class="text-gray-400 text-xs mb-3">Copyright, character & artist yang kamu ikuti (<%= followedTagNames.length %> tag)</p>
+
+    <% if (followedTagNames.length === 0) { %>
+      <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+        <p class="text-gray-500 text-sm">Belum ada tag copyright/character/artist yang diikuti.</p>
+        <a href="/" class="text-cyan-400 hover:text-cyan-300 text-xs mt-1.5 inline-block">Jelajahi tag →</a>
+      </div>
+    <% } else { %>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <% const followedPeriods = [
+          { key: 'day', label: '1 Hari', sublabel: '24 jam terakhir', color: 'cyan', bgClass: 'bg-cyan-900/20' },
+          { key: 'month', label: '1 Bulan', sublabel: '30 hari terakhir', color: 'blue', bgClass: 'bg-blue-900/20' },
+          { key: 'year', label: '1 Tahun', sublabel: '365 hari terakhir', color: 'purple', bgClass: 'bg-purple-900/20' }
+        ]; %>
+        <% followedPeriods.forEach(period => { %>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="<%= period.bgClass %> px-4 py-2.5 border-b border-gray-800">
+            <h3 class="text-sm font-semibold text-<%= period.color %>-400"><%= period.label %></h3>
+            <p class="text-xs text-gray-500"><%= period.sublabel %></p>
+          </div>
+          <div class="p-4 space-y-2.5">
+            <% 
+              const periodData = followedStats[period.key];
+              const entries = Object.entries(periodData).sort((a,b) => b[1]-a[1]).slice(0, 10);
+              if (entries.length > 0) {
+                const maxVal = entries[0][1];
+                entries.forEach(([tag, count], index) => {
+                  const pct = Math.round((count / maxVal) * 100);
+                  const tagType = followedTagTypes[tag];
+                  const typeLabel = CAT_LABELS[tagType] || '';
+            %>
+            <div>
+              <div class="flex justify-between text-sm mb-0.5">
+                <a href="javascript:void(0)" onclick="navigateTag('<%= tag %>')" class="font-medium <%= index === 0 ? 'text-yellow-400' : 'text-gray-200' %> hover:text-cyan-400 transition-colors truncate pr-2 text-xs">
+                  <%= index === 0 ? '🏆 ' : '' %><%= tag.replace(/_/g, ' ') %>
+                  <% if (typeLabel) { %><span class="text-gray-600 text-[10px]">(<%= typeLabel %>)</span><% } %>
+                </a>
+                <span class="text-gray-500 whitespace-nowrap text-xs"><%= count %> notif</span>
+              </div>
+              <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                <div class="<%= index === 0 ? 'bg-yellow-500' : 'bg-' + period.color + '-600' %> h-1.5 rounded-full width-bar" data-width="<%= pct %>"></div>
+              </div>
+            </div>
+            <%  });
+              } else { %>
+            <div class="text-center text-gray-500 py-4 text-xs">Belum ada aktivitas.</div>
+            <% } %>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- ======================= SECTION 5: Top 3 Collection Tags ======================= -->
+  <div class="mb-6">
+    <h2 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+      <svg style="width:20px;height:20px;min-width:20px" class="text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4v16l7-4 7 4V4H5z"></path></svg>
+      Top 3 Tag di Koleksi
+    </h2>
+    <p class="text-gray-400 text-xs mb-3">Copyright, character & artist terbanyak dari <%= totalSaves %> koleksi</p>
+
+    <% if (topCollectionTags.length > 0) { %>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <% const medals = ['🥇', '🥈', '🥉'];
+         const cardColors = [
+           { bg: 'from-yellow-900/40 to-gray-900', border: 'border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]', text: 'text-yellow-400' },
+           { bg: 'from-gray-600/30 to-gray-900', border: 'border-gray-400 shadow-[0_0_15px_rgba(156,163,175,0.2)]', text: 'text-gray-300' },
+           { bg: 'from-orange-900/30 to-gray-900', border: 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.2)]', text: 'text-orange-400' }
+         ];
+      %>
+      <% topCollectionTags.forEach((tag, i) => { %>
+      <a href="javascript:void(0)" onclick="navigateTag('<%= tag.name %>')" class="bg-gradient-to-br <%= cardColors[i].bg %> border-2 <%= cardColors[i].border %> rounded-xl p-4 hover:scale-[1.02] transition-all duration-300 block cursor-pointer hover:shadow-cyan-500/30 relative overflow-hidden">
+        <div class="text-2xl mb-1"><%= medals[i] %></div>
+        <div class="<%= cardColors[i].text %> font-bold text-base truncate"><%= tag.name.replace(/_/g, ' ') %></div>
+        <div class="text-gray-400 text-xs mt-0.5"><%= tag.categoryLabel %> · <span class="text-white font-medium"><%= tag.count %> konten</span></div>
+      </a>
+      <% }); %>
+    </div>
+    <% } else { %>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+      <p class="text-gray-500 text-sm">Belum ada data koleksi.</p>
+    </div>
+    <% } %>
+  </div>
+
+</div>
+
+<script>
+  // Navigate to tag with localStorage filters applied
+  function navigateTag(tagName) {
+    if (typeof window.showLoader === 'function') window.showLoader('Memuat Konten...');
+    sessionStorage.setItem('isLoadingMessage', 'Memuat Konten...');
+    sessionStorage.setItem('lastSearchTags', tagName);
+    
+    const params = new URLSearchParams();
+    params.append('tags', tagName);
+    
+    const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters'));
+    if (filters) {
+      let filterParts = [];
+      const isBypassUser = false; // from analytics, assume no bypass
+      
+      if (filters.ratingToggle && filters.rating && filters.rating !== 'all') {
+        const selectedRatings = filters.rating.split(',');
+        let mapped = [];
+        if (selectedRatings.includes('g')) mapped.push('g');
+        if (selectedRatings.includes('not_e')) mapped.push('s');
+        if (mapped.length > 0) filterParts.push('rating:' + mapped.join(','));
+        else { filterParts.push('-rating:e'); filterParts.push('-rating:q'); }
+      } else {
+        filterParts.push('-rating:e');
+        filterParts.push('-rating:q');
+      }
+      
+      if (filters.typeToggle && filters.type) {
+        if (filters.type === 'image') filterParts.push('filetype:jpg,jpeg,png,webp,gif,avif');
+        if (filters.type === 'video') filterParts.push('filetype:mp4,webm');
+      }
+      
+      if (filterParts.length) params.append('query', filterParts.join(' '));
+      params.append('limit', filters.limit || 25);
+      if (filters.lazyloadToggle) params.append('lazyload', 'true');
+    }
+    
+    params.append('tab', 'contents');
+    params.append('tempTab', 'true');
+    
+    window.location.href = '/search?' + params.toString();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Animate width bars
+    document.querySelectorAll('.width-bar').forEach(bar => {
+      const container = bar.closest('[data-width]') || bar.parentElement;
+      const w = container.getAttribute('data-width');
+      if (w) {
+        bar.style.width = '0%';
+        requestAnimationFrame(() => { bar.style.width = w + '%'; });
+      }
+    });
+
+    // Tab switching helper
+    function setupTabs(btnClass, contentClass) {
+      document.querySelectorAll('.' + btnClass).forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.' + btnClass).forEach(b => {
+            b.className = b.className.replace(/bg-\S+-600/g, '').trim();
+            b.classList.remove('text-white');
+            b.classList.add('bg-gray-700', 'text-gray-300');
+          });
+          const activeColor = btn.dataset.color || 'bg-cyan-600';
+          btn.classList.remove('bg-gray-700', 'text-gray-300');
+          btn.classList.add(activeColor, 'text-white');
+          
+          const tabId = btn.dataset.tab;
+          const period = btn.dataset.period;
+          
+          if (tabId) {
+            document.querySelectorAll('.' + contentClass).forEach(c => c.classList.add('hidden'));
+            const target = document.getElementById(tabId);
+            if (target) {
+              target.classList.remove('hidden');
+              target.querySelectorAll('.width-bar').forEach(bar => {
+                const ct = bar.closest('[data-width]') || bar.parentElement;
+                const w = ct.getAttribute('data-width');
+                if (w) { bar.style.width = '0%'; requestAnimationFrame(() => { bar.style.width = w + '%'; }); }
+              });
+            }
+          }
+          if (period) {
+            document.querySelectorAll('.' + contentClass).forEach(c => {
+              if (c.dataset.period === period) {
+                c.classList.remove('hidden');
+                c.querySelectorAll('.width-bar').forEach(bar => {
+                  const ct = bar.closest('[data-width]') || bar.parentElement;
+                  const w = ct.getAttribute('data-width');
+                  if (w) { bar.style.width = '0%'; requestAnimationFrame(() => { bar.style.width = w + '%'; }); }
+                });
+              } else {
+                c.classList.add('hidden');
+              }
+            });
+          }
+        });
+      });
+    }
+
+    setupTabs('global-tab-btn', 'global-tab-content');
+    setupTabs('trend-period-btn', 'trend-period-content');
+    
+    // Hide loader after page fully loaded
+    if (typeof window.hideLoader === 'function') window.hideLoader();
+  });
+</script>
+
+<%- include('partials/footer.ejs') %>

@@ -4,7 +4,21 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
+<script>
+  // Show loading on profile page reload & clear filters
+  window.addEventListener('beforeunload', function() {
+    sessionStorage.setItem('isLoadingMessage', 'Memuat Halaman...');
+  });
+  if (window.performance && window.performance.navigation.type === 1 && window.location.search) {
+    window.location.replace('/profil');
+  }
+</script>
+<style>
+  .gallery-item.selected-item {
+    border: 4px solid #3b82f6 !important;
+    opacity: 0.8 !important;
+  }
+</style>
 <main class="container mx-auto px-4 py-8 flex-grow">
   <div class="max-w-3xl mx-auto bg-gray-800 rounded-lg shadow-xl shadow-cyan-900/10 p-6 md:p-8 border border-gray-700">
     <div class="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -181,6 +195,19 @@
       </button>
     </div>
 
+    <!-- Batch Actions Floating Bar -->
+    <div id="batch-action-bar" class="fixed left-0 w-full bg-gray-900 border-t border-cyan-700 shadow-2xl p-3 sm:p-4 transition-transform duration-300" style="bottom: 0; transform: translateY(100%); z-index: 99999;">
+      <div class="container mx-auto flex items-center justify-between gap-3">
+        <div class="text-cyan-400 font-bold text-sm sm:text-base whitespace-nowrap"><span id="selected-count">0</span> Dipilih</div>
+        <div class="flex flex-wrap gap-2 sm:gap-3 justify-end">
+          <button id="batch-delete-btn" class="bg-red-600 hover:bg-red-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Hapus</button>
+          <button id="batch-download-btn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Download</button>
+          <button id="batch-select-all-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Pilih Semua</button>
+          <button id="batch-cancel-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Batal</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Tab Koleksi Content -->
     <div id="tab-koleksi-content" class="pt-6 block">
       <% if (userProfile.saves.length > 0 || (typeof currentSearch !== 'undefined' && currentSearch !== '') || (typeof currentRating !== 'undefined' && currentRating !== '')) { %>
@@ -206,13 +233,18 @@
 
         <!-- Search Input: Mobile Row 1 Full Width, Desktop Center -->
         <div class="relative w-full col-span-2 sm:order-2 flex-grow order-1">
-          <input type="text" name="search" id="koleksi-search-input" value="<%= typeof currentSearch !== 'undefined' ? currentSearch : '' %>" class="w-full bg-gray-700 text-white rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400" placeholder="Cari tag..." autocomplete="off">
+          <input type="text" name="search" id="koleksi-search-input" value="<%= typeof currentSearch !== 'undefined' ? currentSearch : '' %>" class="w-full bg-gray-700 text-white rounded px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 placeholder-gray-400" placeholder="Cari koleksi..." autocomplete="off">
         </div>
 
         <button type="submit" class="hidden">Cari</button>
 
         <!-- View Toggles: Mobile Row 2 Right, Desktop Right -->
         <div class="flex justify-end gap-2 shrink-0 order-3 sm:order-3 col-span-1">
+          <button type="button" id="select-mode-btn" class="p-2 bg-gray-700 text-gray-400 hover:text-white rounded focus:outline-none transition-colors" title="Mode Pilihan">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </button>
           <button type="button" id="view-masonry-btn" class="p-2 bg-cyan-600 text-white rounded focus:outline-none transition-colors" title="Tampilan Masonry">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
@@ -286,7 +318,7 @@
           <a href="/posts/<%= save.postId %>" class="flex-grow flex flex-col sm:flex-row hover:bg-gray-800/50 transition-colors">
             <div class="w-full h-48 sm:w-28 sm:h-28 flex-shrink-0 relative bg-gray-800">
               <% if (save.imageUrl) { %>
-              <img src="<%= save.imageUrl %>" class="w-full h-full object-cover object-top sm:object-center" alt="Saved Post <%= save.postId %>" loading="lazy">
+              <img src="<%= save.imageUrl %>" class="w-full h-full object-cover transition-opacity" style="object-position: top" alt="Saved Post <%= save.postId %>" loading="lazy">
               <% } else { %>
               <div class="w-full h-full flex items-center justify-center p-2 text-center">
                 <span class="text-xs font-medium text-cyan-400 break-all">ID: <%= save.postId %></span>
@@ -473,30 +505,37 @@
       }
 
       // View toggle logic
-      const btnMasonry = document.getElementById('view-masonry-btn');
-      const btnData = document.getElementById('view-data-btn');
-      const viewMasonry = document.getElementById('koleksi-masonry');
-      const viewData = document.getElementById('koleksi-data');
+      document.addEventListener('click', (e) => {
+        const btnMasonry = e.target.closest('#view-masonry-btn');
+        if (btnMasonry) {
+          const viewMasonry = document.getElementById('koleksi-masonry');
+          const viewData = document.getElementById('koleksi-data');
+          const btnData = document.getElementById('view-data-btn');
+          if (viewMasonry && viewData && btnData) {
+            viewMasonry.classList.remove('hidden');
+            viewData.classList.add('hidden');
+            btnMasonry.classList.replace('bg-gray-700', 'bg-cyan-600');
+            btnMasonry.classList.replace('text-gray-400', 'text-white');
+            btnData.classList.replace('bg-cyan-600', 'bg-gray-700');
+            btnData.classList.replace('text-white', 'text-gray-400');
+          }
+        }
 
-      if (btnMasonry && btnData) {
-        btnMasonry.addEventListener('click', () => {
-          viewMasonry.classList.remove('hidden');
-          viewData.classList.add('hidden');
-          btnMasonry.classList.replace('bg-gray-700', 'bg-cyan-600');
-          btnMasonry.classList.replace('text-gray-400', 'text-white');
-          btnData.classList.replace('bg-cyan-600', 'bg-gray-700');
-          btnData.classList.replace('text-white', 'text-gray-400');
-        });
-
-        btnData.addEventListener('click', () => {
-          viewData.classList.remove('hidden');
-          viewMasonry.classList.add('hidden');
-          btnData.classList.replace('bg-gray-700', 'bg-cyan-600');
-          btnData.classList.replace('text-white', 'text-gray-400');
-          btnMasonry.classList.replace('bg-cyan-600', 'bg-gray-700');
-          btnMasonry.classList.replace('text-white', 'text-gray-400');
-        });
-      }
+        const btnData = e.target.closest('#view-data-btn');
+        if (btnData) {
+          const viewMasonry = document.getElementById('koleksi-masonry');
+          const viewData = document.getElementById('koleksi-data');
+          const btnMasonry = document.getElementById('view-masonry-btn');
+          if (viewMasonry && viewData && btnMasonry) {
+            viewData.classList.remove('hidden');
+            viewMasonry.classList.add('hidden');
+            btnData.classList.replace('bg-gray-700', 'bg-cyan-600');
+            btnData.classList.replace('text-white', 'text-gray-400');
+            btnMasonry.classList.replace('bg-cyan-600', 'bg-gray-700');
+            btnMasonry.classList.replace('text-white', 'text-gray-400');
+          }
+        }
+      });
 
       // Remove logic
       let itemToRemove = null;
@@ -552,12 +591,9 @@
           removeSaveConfirm(postId, btnEl);
           return;
         }
-        removeSaveConfirm(postId, btnEl); // Always confirm for now as requested by user "akan memunculkan modal popup konfirmasi" for BOTH! Wait, if skipConfirm is true, skip? I will just confirm for both since they are removing a save. Let me just confirm for both to be safe. Actually, the user asked "kemudian di paling kanan ada tombol hapus dari koleksi yang akan memunculkan modal popup konfirmasi" specifically for data view, but it's safe to ask for both. 
-        // Wait, the prompt said "memunculkan modal popup konfirmasi". Let me just trigger it for both!
-        // Wait, the code logic `removeSaveConfirm` triggers the custom alert anyway. I'll just use it!
+        removeSaveConfirm(postId, btnEl); 
       }
 
-      // Override removeSave to ALWAYS confirm for safety
       window.removeSave = function(postId, btnEl, skipConfirm = false) {
         removeSaveConfirm(postId, btnEl);
       };
@@ -594,7 +630,6 @@
               alert(data.message || 'Berhasil unfollow tag.');
             }
 
-            // Update UI counts visually
             const countEl = document.querySelector('#tab-mengikuti-btn');
             if (countEl) {
               let match = countEl.textContent.match(/\((\d+)\)/);
@@ -629,9 +664,8 @@
       let currentPage = 1;
       let isFetching = false;
       let hasMore = "<%= (typeof totalSaves !== 'undefined' ? totalSaves : userProfile.saves.length) > 25 ? 'true' : 'false' %>" === "true";
-      const loader = document.getElementById('koleksi-loader');
-      const masonryContainer = document.getElementById('koleksi-masonry');
-      const dataContainer = document.getElementById('koleksi-data');
+      let masonryContainer = document.getElementById('koleksi-masonry');
+      let dataContainer = document.getElementById('koleksi-data');
 
       let currentSearch = "<%= typeof currentSearch !== 'undefined' ? currentSearch : '' %>";
       let currentRating = "<%= typeof currentRating !== 'undefined' ? currentRating : '' %>";
@@ -640,6 +674,9 @@
         if (isFetching || !hasMore || document.getElementById('tab-koleksi-content').classList.contains('hidden')) return;
 
         isFetching = true;
+        const loader = document.getElementById('koleksi-loader');
+        masonryContainer = document.getElementById('koleksi-masonry');
+        dataContainer = document.getElementById('koleksi-data');
         if (loader) loader.classList.remove('hidden');
 
         try {
@@ -717,7 +754,7 @@
                 <a href="/posts/${save.postId}" class="flex-grow flex flex-col sm:flex-row hover:bg-gray-800/50 transition-colors">
                   <div class="w-full h-48 sm:w-28 sm:h-28 flex-shrink-0 relative bg-gray-800">
                     ${save.imageUrl ? `
-                      <img src="${save.imageUrl}" class="w-full h-full object-cover" alt="Saved Post ${save.postId}" loading="lazy">
+                      <img src="${save.imageUrl}" class="w-full h-full object-cover transition-opacity" style="object-position: top" alt="Saved Post ${save.postId}" loading="lazy">
                     ` : `
                       <div class="w-full h-full flex items-center justify-center p-2 text-center">
                         <span class="text-xs font-medium text-cyan-400 break-all">ID: ${save.postId}</span>
@@ -807,13 +844,13 @@
       });
 
       // Debounce and Auto-lowercase untuk Filter Tag Koleksi
-      const filterSearchInput = document.getElementById('koleksi-search-input');
-      const profilForm = document.getElementById('profil-form');
       let filterSearchTimeout;
 
-      if (filterSearchInput && profilForm) {
-        filterSearchInput.addEventListener('input', (e) => {
-          // Auto lowercase
+      document.addEventListener('input', (e) => {
+        if (e.target && e.target.id === 'koleksi-search-input') {
+          const profilForm = document.getElementById('profil-form');
+          if (!profilForm) return;
+
           const start = e.target.selectionStart;
           const end = e.target.selectionEnd;
           e.target.value = e.target.value.toLowerCase();
@@ -821,14 +858,321 @@
 
           clearTimeout(filterSearchTimeout);
           
-          filterSearchTimeout = setTimeout(() => {
-            profilForm.submit();
-          }, 1000);
+          filterSearchTimeout = setTimeout(async () => {
+             const tabKoleksiContent = document.getElementById('tab-koleksi-content');
+             const url = new URL(profilForm.action || window.location.href);
+             const formData = new FormData(profilForm);
+             for(let [k,v] of formData.entries()) {
+                if(v) url.searchParams.set(k, v);
+             }
+             if (tabKoleksiContent) {
+               tabKoleksiContent.innerHTML = '<div class="w-full flex justify-center py-12"><div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div></div>';
+             }
+             try {
+                const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                const text = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+                const newContent = doc.getElementById('tab-koleksi-content');
+                if (newContent && tabKoleksiContent) {
+                   tabKoleksiContent.innerHTML = newContent.innerHTML;
+                   window.history.replaceState({}, '', url.toString());
+                   currentPage = 1;
+                   hasMore = true;
+                   isFetching = false;
+                   currentSearch = document.getElementById('koleksi-search-input') ? document.getElementById('koleksi-search-input').value : '';
+                   const ratingSelect = profilForm.querySelector('select[name="rating"]');
+                   currentRating = ratingSelect ? ratingSelect.value : '';
+                  
+                  const newInput = document.getElementById('koleksi-search-input');
+                  if (newInput) {
+                    newInput.focus();
+                    const valLen = newInput.value.length;
+                    newInput.setSelectionRange(valLen, valLen);
+                  }
+                  
+                  if (typeof window.initializeMasonry === 'function') {
+                    window.initializeMasonry();
+                  }
+                  
+                  // Update jumlah koleksi di tab
+                  const newTabBtn = doc.getElementById('tab-koleksi-btn');
+                  const tabBtn = document.getElementById('tab-koleksi-btn');
+                  if (newTabBtn && tabBtn) {
+                    tabBtn.textContent = newTabBtn.textContent;
+                  }
+                }
+             } catch(err) {
+                profilForm.submit();
+             }
+          }, 500);
+        }
+      });
+
+      // Batch Action Logic
+      let isSelectionMode = false;
+      const selectedItems = new Set();
+      
+      function updateBatchActionBar() {
+        const batchActionBar = document.getElementById('batch-action-bar');
+        const selectedCountEl = document.getElementById('selected-count');
+        const selectModeBtn = document.getElementById('select-mode-btn');
+        if (isSelectionMode) {
+          if (selectModeBtn) {
+            selectModeBtn.classList.replace('bg-gray-700', 'bg-cyan-600');
+            selectModeBtn.classList.replace('text-gray-400', 'text-white');
+          }
+          if (batchActionBar) batchActionBar.style.transform = 'translateY(0)';
+          if (selectedCountEl) selectedCountEl.textContent = selectedItems.size;
+        } else {
+          if (selectModeBtn) {
+            selectModeBtn.classList.replace('bg-cyan-600', 'bg-gray-700');
+            selectModeBtn.classList.replace('text-white', 'text-gray-400');
+          }
+          if (batchActionBar) batchActionBar.style.transform = 'translateY(100%)';
+          selectedItems.clear();
+          document.querySelectorAll('.gallery-item').forEach(el => {
+            el.classList.remove('selected-item');
+          });
+        }
+      }
+
+      document.addEventListener('click', (e) => {
+        const selectModeBtn = e.target.closest('#select-mode-btn');
+        if (selectModeBtn) {
+          isSelectionMode = !isSelectionMode;
+          updateBatchActionBar();
+        }
+      });
+
+      const batchCancelBtn = document.getElementById('batch-cancel-btn');
+      if (batchCancelBtn) {
+        batchCancelBtn.addEventListener('click', () => {
+          isSelectionMode = false;
+          updateBatchActionBar();
+        });
+      }
+      
+      const batchSelectAllBtn = document.getElementById('batch-select-all-btn');
+      if (batchSelectAllBtn) {
+        batchSelectAllBtn.addEventListener('click', () => {
+          const allItems = document.querySelectorAll('.gallery-item');
+          if (selectedItems.size === allItems.length && allItems.length > 0) {
+            // Deselect all
+            selectedItems.clear();
+            allItems.forEach(el => el.classList.remove('selected-item'));
+          } else {
+            // Select all
+            allItems.forEach(el => {
+              const postId = el.dataset.postId || el.getAttribute('data-post-url').split('/').pop();
+              if (postId) {
+                selectedItems.add(postId);
+                el.classList.add('selected-item');
+              }
+            });
+          }
+          updateBatchActionBar();
+        });
+      }
+
+      // Handle item click for Selection Mode (Capture phase to override default nav)
+      document.addEventListener('click', function(e) {
+        if (!isSelectionMode || window._downloadInProgress) return;
+        const item = e.target.closest('.gallery-item');
+        if (!item) return;
+
+        // In selection mode, block default navigation
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.target.closest('button')) {
+          if (e.target.closest('#batch-action-bar')) return;
+        }
+
+        const postId = item.dataset.postId || item.getAttribute('data-post-url').split('/').pop();
+        if (!postId) return;
+        
+        if (selectedItems.has(postId)) {
+          selectedItems.delete(postId);
+          document.querySelectorAll('.gallery-item[data-post-url="/posts/' + postId + '"]').forEach(el => {
+            el.classList.remove('selected-item');
+          });
+        } else {
+          selectedItems.add(postId);
+          document.querySelectorAll('.gallery-item[data-post-url="/posts/' + postId + '"]').forEach(el => {
+            el.classList.add('selected-item');
+          });
+        }
+        const countEl = document.getElementById('selected-count');
+        if (countEl) countEl.textContent = selectedItems.size;
+      }, true);
+      
+      const batchDeleteBtn = document.getElementById('batch-delete-btn');
+      if (batchDeleteBtn) {
+        batchDeleteBtn.addEventListener('click', () => {
+          if (selectedItems.size === 0) return;
+          if (typeof window.showAlert === 'function') {
+            window.showAlert("Konfirmasi Hapus", `Hapus ${selectedItems.size} konten dari koleksi?`, async () => {
+              await processBatchDelete();
+            });
+            const confirmBtn = document.getElementById("custom-alert-confirm");
+            if (confirmBtn) confirmBtn.textContent = "Hapus";
+          } else {
+            if (confirm(`Hapus ${selectedItems.size} konten dari koleksi?`)) processBatchDelete();
+          }
+          
+          async function processBatchDelete() {
+            batchDeleteBtn.disabled = true;
+            batchDeleteBtn.textContent = 'Menghapus...';
+            try {
+              const res = await fetch('/api/collections/batch-delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ postIds: Array.from(selectedItems) })
+              });
+              const data = await res.json();
+              if (data.success) {
+                selectedItems.forEach(postId => {
+                  document.querySelectorAll('.gallery-item[data-post-url="/posts/' + postId + '"]').forEach(el => {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                  });
+                });
+                isSelectionMode = false;
+                updateBatchActionBar();
+                if (typeof window.showToast === 'function') window.showToast("Berhasil menghapus.", "success");
+              } else {
+                throw new Error(data.error);
+              }
+            } catch(e) {
+              if (typeof window.showAlert === 'function') {
+                window.showAlert("Error", e.message || "Gagal menghapus batch.");
+              } else {
+                alert(e.message || "Gagal menghapus batch.");
+              }
+            } finally {
+              batchDeleteBtn.disabled = false;
+              batchDeleteBtn.textContent = 'Hapus';
+            }
+          }
+        });
+      }
+      
+      const batchDownloadBtn = document.getElementById('batch-download-btn');
+      if (batchDownloadBtn) {
+        batchDownloadBtn.addEventListener('click', () => {
+          if (selectedItems.size === 0) return;
+          if (typeof window.showAlert === 'function') {
+            window.showAlert("Konfirmasi Unduhan", `Unduh ${selectedItems.size} konten yang dipilih dalam format ZIP?`, async () => {
+              await processBatchDownload();
+            });
+            const confirmBtn = document.getElementById("custom-alert-confirm");
+            if (confirmBtn) confirmBtn.textContent = "Unduh";
+          } else {
+            if (confirm(`Unduh ${selectedItems.size} konten yang dipilih dalam format ZIP?`)) processBatchDownload();
+          }
+
+          async function processBatchDownload() {
+            let activeReader = null;
+            let downloadCancelled = false;
+            
+            // Disable other buttons during download
+            const delBtn = document.getElementById('batch-delete-btn');
+            const selAllBtn = document.getElementById('batch-select-all-btn');
+            const cancelBtn = document.getElementById('batch-cancel-btn');
+            if (delBtn) delBtn.disabled = true;
+            if (selAllBtn) selAllBtn.disabled = true;
+            batchDownloadBtn.disabled = true;
+            batchDownloadBtn.textContent = 'Mempersiapkan...';
+            
+            // Block item selection during download
+            window._downloadInProgress = true;
+            
+            // Cancel button handler
+            const cancelHandler = (e) => {
+              e.stopPropagation();
+              if (typeof window.showAlert === 'function') {
+                window.showAlert("Batalkan Unduhan", "Apakah Anda yakin ingin membatalkan unduhan?", () => {
+                  downloadCancelled = true;
+                  if (activeReader) activeReader.cancel();
+                });
+                const cBtn = document.getElementById("custom-alert-confirm");
+                if (cBtn) cBtn.textContent = "Ya, Batalkan";
+              } else {
+                if (confirm("Batalkan unduhan?")) {
+                  downloadCancelled = true;
+                  if (activeReader) activeReader.cancel();
+                }
+              }
+            };
+            if (cancelBtn) cancelBtn.addEventListener('click', cancelHandler);
+            
+            try {
+              const response = await fetch('/api/collections/batch-download', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ postIds: Array.from(selectedItems) })
+              });
+              
+              if (!response.ok) throw new Error("Gagal mengunduh batch");
+              
+              const contentLength = response.headers.get('Content-Length') || response.headers.get('X-Estimated-Size');
+              const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+              
+              activeReader = response.body.getReader();
+              let chunks = [];
+              let received = 0;
+              while(true) {
+                const {done, value} = await activeReader.read();
+                if (done) break;
+                chunks.push(value);
+                received += value.length;
+                const mbReceived = (received / 1024 / 1024).toFixed(1);
+                if (totalBytes > 0) {
+                  const percent = Math.min(100, Math.round((received / totalBytes) * 100));
+                  batchDownloadBtn.textContent = `Mengunduh... ${percent}% (${mbReceived} MB)`;
+                } else {
+                  batchDownloadBtn.textContent = `Mengunduh... ${mbReceived} MB`;
+                }
+              }
+              
+              if (!downloadCancelled) {
+                const blob = new Blob(chunks, { type: 'application/zip' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `CytusGallery_Batch_${Date.now()}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+                isSelectionMode = false;
+                updateBatchActionBar();
+              }
+            } catch(e) {
+              if (downloadCancelled) {
+                if (typeof window.showToast === 'function') window.showToast("Unduhan dibatalkan.", "info");
+              } else {
+                if (typeof window.showAlert === 'function') {
+                  window.showAlert("Error", e.message || "Gagal mengunduh batch.");
+                } else {
+                  alert(e.message || "Gagal mengunduh.");
+                }
+              }
+            } finally {
+              window._downloadInProgress = false;
+              batchDownloadBtn.disabled = false;
+              batchDownloadBtn.textContent = 'Download';
+              if (delBtn) delBtn.disabled = false;
+              if (selAllBtn) selAllBtn.disabled = false;
+              if (cancelBtn) cancelBtn.removeEventListener('click', cancelHandler);
+            }
+          }
         });
       }
     </script>
-  </div>
-</main>
+  </main>
+</div>
 
 <!-- Crop Modal -->
 <div id="crop-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="z-index: 9999;">
