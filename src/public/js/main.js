@@ -112,16 +112,100 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === BAGIAN 2: FUNGSI-FUNGSI UTAMA ===
 
-  const renderChips = () => {
+  const tagColorCache = window.tagColorCache || {};
+  window.tagColorCache = tagColorCache;
+
+  const updateBackgroundGradient = (category) => {
+    if (window.location.pathname !== '/' && window.location.pathname !== '/search') return;
+    
+    const body = document.body;
+    const gradClasses = ['bg-gradient-to-r', 'from-gray-900', 'to-purple-900/40', 'to-green-900/40', 'to-red-900/40', 'to-blue-900/40', 'to-orange-900/40', 'bg-fixed'];
+    body.classList.remove(...gradClasses);
+    
+    const gradColors = {
+      3: 'to-purple-900/40',
+      4: 'to-green-900/40',
+      1: 'to-red-900/40',
+      0: 'to-blue-900/40',
+      5: 'to-orange-900/40'
+    };
+    
+    const gradColor = gradColors[category];
+    if (gradColor) {
+      body.classList.add('bg-gradient-to-r', 'from-gray-900', gradColor, 'bg-fixed');
+    }
+  };
+
+  const renderChips = async () => {
     if (!searchChipsContainer || !searchInput) return;
-    searchChipsContainer.innerHTML = '';
+    
     const tags = searchInput.value.split(' ').filter(t => t.trim());
+    searchChipsContainer.innerHTML = '';
+    
+    const chipElements = [];
     tags.forEach(tag => {
       const chip = document.createElement('div');
-      chip.className = 'flex items-center bg-cyan-600 text-white px-2 py-1 rounded-full text-sm font-semibold shadow-sm';
-      chip.innerHTML = `<span>${tag.replace(/_/g, ' ')}</span><button type="button" class="ml-1 text-cyan-200 hover:text-white" onclick="removeChip('${tag}')">&times;</button>`;
+      chip.className = 'flex items-center bg-cyan-600 text-white px-2 py-1 rounded-full text-sm font-semibold shadow-sm transition-colors duration-300';
+      chip.innerHTML = `<span>${tag.replace(/_/g, ' ')}</span><button type="button" class="ml-1 text-cyan-200 hover:text-white transition-colors" onclick="removeChip('${tag}')">&times;</button>`;
       searchChipsContainer.appendChild(chip);
+      chipElements.push({ tag, element: chip });
     });
+    
+    if (tags.length === 0) {
+       updateBackgroundGradient(-1);
+       return;
+    }
+
+    let lastCategory = 0;
+    await Promise.all(chipElements.map(async (item, index) => {
+      const { tag, element } = item;
+      let category = tagColorCache[tag];
+      
+      if (category === undefined) {
+        try {
+          const res = await fetch(`https://danbooru.donmai.us/tags.json?search[name]=` + encodeURIComponent(tag));
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0) {
+              category = data[0].category;
+              tagColorCache[tag] = category;
+            } else {
+              category = 0;
+              tagColorCache[tag] = 0;
+            }
+          } else {
+            category = 0;
+          }
+        } catch (e) {
+          category = 0;
+        }
+      }
+      
+      const themeColors = {
+        3: { bg: 'bg-purple-600', text: 'text-purple-200' },
+        4: { bg: 'bg-green-600', text: 'text-green-200' },
+        1: { bg: 'bg-red-600', text: 'text-red-200' },
+        0: { bg: 'bg-blue-600', text: 'text-blue-200' },
+        5: { bg: 'bg-orange-600', text: 'text-orange-200' }
+      };
+      
+      const theme = themeColors[category] || themeColors[0];
+      
+      element.classList.remove('bg-cyan-600');
+      element.classList.add(theme.bg);
+      
+      const btn = element.querySelector('button');
+      if (btn) {
+        btn.classList.remove('text-cyan-200');
+        btn.classList.add(theme.text);
+      }
+      
+      if (index === chipElements.length - 1) {
+         lastCategory = category;
+      }
+    }));
+    
+    updateBackgroundGradient(lastCategory);
   };
 
   window.removeChip = (tagToRemove) => {
