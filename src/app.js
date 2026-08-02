@@ -506,8 +506,10 @@ app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
     
     archive.pipe(res);
     
-    const chunkArray = (arr, size) => arr.length > 0 ? [arr.slice(0, size), ...chunkArray(arr.slice(size), size)] : [];
-    const chunks = chunkArray(saves, 5); // 5 concurrent downloads max
+    const chunks = [];
+    for (let i = 0; i < saves.length; i += 5) {
+      chunks.push(saves.slice(i, i + 5));
+    }
     
     for (const chunk of chunks) {
       await Promise.all(chunk.map(async (save) => {
@@ -516,11 +518,11 @@ app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
           const response = await axios({
             method: 'GET',
             url: save.fileUrl,
-            responseType: 'arraybuffer',
-            timeout: 15000
+            responseType: 'stream',
+            timeout: 20000
           });
           const ext = save.extension || save.fileUrl.split('.').pop().split('?')[0] || 'jpg';
-          archive.append(Buffer.from(response.data), { name: `CytusGallery_${save.postId}.${ext}` });
+          archive.append(response.data, { name: `CytusGallery_${save.postId}.${ext}` });
         } catch(err) {
           console.error(`Failed to download ${save.fileUrl}`, err.message);
         }
