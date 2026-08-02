@@ -1,0 +1,22 @@
+<!-- Crop Modal -->
+<div id="crop-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm" style="z-index: 9999;">
+  <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+      <h3 class="text-lg font-bold text-white">Sesuaikan Foto Profil</h3>
+      <button type="button" id="crop-cancel-btn" class="text-gray-400 hover:text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="p-4 flex justify-center bg-black">
+      <div style="max-height: 400px; width: 100%;">
+        <img id="crop-image" src="" class="max-w-full block">
+      </div>
+    </div>
+    <div class="p-4 border-t border-gray-700 flex justify-end gap-2">
+      <button type="button" id="crop-close-btn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm transition-colors">Batal</button>
+      <button type="button" id="crop-save-btn" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-bold transition-colors">Simpan</button>
+    </div>
+  </div>
+</div>
