@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const prisma = require('../lib/prisma');
-const archiver = require('archiver');
 const { requireAuth } = require('../middlewares/authMiddleware');
 const { apiCache, getCachedDanbooru } = require('../utils/danbooruUtils');
 
@@ -198,6 +197,8 @@ router.post("/api/collections/batch-download", requireAuth, async (req, res) => 
       res.setHeader('Access-Control-Expose-Headers', 'X-Estimated-Size');
     }
     
+    const archiverModule = await import('archiver');
+    const archiver = archiverModule.default || archiverModule;
     const archive = archiver('zip', { zlib: { level: 9 } });
     archive.on('error', function(err) {
       console.error("Archiver error:", err);
