@@ -159,9 +159,6 @@ app.get("/analitik", requireAuth, async (req, res) => {
 
     // Promise 2: Trending Tags (Cached, diparalelkan)
     const getTrendingTags = async () => {
-      const cacheKey = 'analitik_trendingTags';
-      if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) return apiCache[cacheKey].data;
-      const trendingTags = { day: { copyright: [], character: [], artist: [] }, month: { copyright: [], character: [], artist: [] }, year: { copyright: [], character: [], artist: [] } };
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yStr = yesterday.toISOString().split('T')[0];
@@ -174,17 +171,22 @@ app.get("/analitik", requireAuth, async (req, res) => {
       lastYear.setFullYear(yesterday.getFullYear() - 1);
       const yearStr = lastYear.toISOString().split('T')[0];
 
+      const cacheKey = 'analitik_trendingTags_' + yStr;
+      if (apiCache[cacheKey]) return apiCache[cacheKey].data;
+      
+      const trendingTags = { day: { copyright: [], character: [], artist: [] }, month: { copyright: [], character: [], artist: [] }, year: { copyright: [], character: [], artist: [] } };
+
       const periods = [
         { key: 'day', ageFilter: `date:${yStr} order:score` },
         { key: 'month', ageFilter: `date:${mStr}..${yStr} order:score` },
-        { key: 'year', ageFilter: `date:${yearStr}..${yStr} order:score` }
+        { key: 'year', ageFilter: `date:${yearStr}..${yStr} random:200` }
       ];
       try {
         await Promise.all(periods.map(async (period) => {
           try {
             const resp = await axios.get('https://danbooru.donmai.us/posts.json', {
               params: { tags: period.ageFilter, limit: 200, only: 'tag_string_copyright,tag_string_character,tag_string_artist,score' },
-              timeout: 6000
+              timeout: 12000
             });
             if (resp.data && Array.isArray(resp.data)) {
               const counts = { copyright: {}, character: {}, artist: {} };
