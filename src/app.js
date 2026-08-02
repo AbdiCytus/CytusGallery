@@ -1631,6 +1631,24 @@ const runNotificationWorker = async () => {
 runNotificationWorker();
 setInterval(runNotificationWorker, 5 * 60 * 1000); // Berjalan setiap 5 menit
 
+// Warm Up Cache untuk mempercepat pemuatan halaman pertama (Cold Start)
+async function warmUpCache() {
+  try {
+    console.log("[Cache] Starting initial cache warm-up...");
+    await Promise.all([
+      getCachedDanbooru(basePostsURL, { tags: '-rating:e -rating:q', page: 1, limit: 25 }, 8000),
+      getTotalPosts(25),
+      getSliderTags(3),
+      getSliderTags(4)
+    ]);
+    console.log("[Cache] Warm-up complete. Initial page load will be instant.");
+  } catch (err) {
+    console.error("[Cache] Warm-up failed:", err.message);
+  }
+}
+warmUpCache();
+setInterval(warmUpCache, 8 * 60 * 1000); // Segarkan 2 menit sebelum cache 10 menit berakhir
+
 //Run Server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server CytusGallery berjalan di http://[0.0.0.0]:${PORT}`);
