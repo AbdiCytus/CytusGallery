@@ -268,9 +268,9 @@ app.get("/analitik", requireAuth, async (req, res) => {
     const getCollectionStats = async () => {
       const [allSaves, myTags] = await Promise.all([
         prisma.savedContent.findMany({ where: { userId }, select: { tags: true } }),
-        prisma.followedTag.findMany({ where: { userId }, select: { name: true } })
+        prisma.followedTag.findMany({ where: { userId }, select: { tagName: true } })
       ]);
-      const myTagNames = myTags.map(t => t.name);
+      const myTagNames = myTags.map(t => t.tagName);
       
       const tagCounts = {};
       allSaves.forEach(save => {
