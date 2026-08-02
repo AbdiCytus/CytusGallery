@@ -1635,38 +1635,13 @@ document.addEventListener("DOMContentLoaded", () => {
           let nextPage = currentPage + 1;
           let isFetching = false;
           
-          window.pageCache = window.pageCache || {};
-          const prefetchNextPage = async (pageToFetch) => {
-             if (pageToFetch > totalPages || window.pageCache[pageToFetch]) return;
-             try {
-                window.pageCache[pageToFetch] = 'fetching';
-                const res = await fetch(baseUrl + pageToFetch);
-                if (res.ok) {
-                   window.pageCache[pageToFetch] = await res.text();
-                } else {
-                   window.pageCache[pageToFetch] = null;
-                }
-             } catch(e) {
-                window.pageCache[pageToFetch] = null;
-             }
-          };
-          prefetchNextPage(nextPage);
-          
           const observer = new IntersectionObserver(async (entries) => {
              if (entries[0].isIntersecting && !isFetching && nextPage <= totalPages) {
                 isFetching = true;
                 try {
-                   let text;
-                   while (window.pageCache[nextPage] === 'fetching') {
-                      await new Promise(r => setTimeout(r, 100));
-                   }
-                   if (typeof window.pageCache[nextPage] === 'string') {
-                      text = window.pageCache[nextPage];
-                   } else {
-                      const res = await fetch(baseUrl + nextPage);
-                      if (!res.ok) throw new Error('Response tidak ok');
-                      text = await res.text();
-                   }
+                   const res = await fetch(baseUrl + nextPage);
+                   if (!res.ok) throw new Error('Response tidak ok');
+                   const text = await res.text();
                    
                    const parser = new DOMParser();
                    const doc = parser.parseFromString(text, 'text/html');
@@ -1692,7 +1667,6 @@ document.addEventListener("DOMContentLoaded", () => {
                       observer.disconnect();
                    } else {
                       isFetching = false;
-                      prefetchNextPage(nextPage);
                    }
                 } catch (e) {
                    console.error('Infinite scroll fetch error:', e);
@@ -1710,7 +1684,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initInfiniteScroll();
 });
 
-window.addEventListener("load", () => {
+document.addEventListener("DOMContentLoaded", () => {
   const loadingOverlay = document.getElementById("loading-overlay");
   const hideLoader = () => {
     if (loadingOverlay) {
