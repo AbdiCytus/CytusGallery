@@ -1453,9 +1453,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!isMainPage) {
         saveFilters();
         closeAllOverlays();
-        if (typeof window.showToast === 'function') {
-          window.showToast("Pengaturan disimpan!", "success");
-        }
+        
+        sessionStorage.setItem("isLoading", "true");
+        sessionStorage.setItem("isLoadingMessage", "Menyimpan Pengaturan...");
+        showLoader("Menyimpan Pengaturan...");
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
         return;
       }
     }
