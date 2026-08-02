@@ -183,15 +183,17 @@ app.get("/analitik", requireAuth, async (req, res) => {
         await Promise.all(periods.map(async (period) => {
           try {
             const resp = await axios.get('https://danbooru.donmai.us/posts.json', {
-              params: { tags: period.ageFilter, limit: 200, only: 'tag_string_copyright,tag_string_character,tag_string_artist' },
+              params: { tags: period.ageFilter, limit: 200, only: 'tag_string_copyright,tag_string_character,tag_string_artist,score' },
               timeout: 6000
             });
             if (resp.data && Array.isArray(resp.data)) {
               const counts = { copyright: {}, character: {}, artist: {} };
+              const scores = { copyright: {}, character: {}, artist: {} };
               resp.data.forEach(post => {
-                if (post.tag_string_copyright) post.tag_string_copyright.split(' ').forEach(t => { if (t) counts.copyright[t] = (counts.copyright[t] || 0) + 1; });
-                if (post.tag_string_character) post.tag_string_character.split(' ').forEach(t => { if (t) counts.character[t] = (counts.character[t] || 0) + 1; });
-                if (post.tag_string_artist) post.tag_string_artist.split(' ').forEach(t => { if (t) counts.artist[t] = (counts.artist[t] || 0) + 1; });
+                const s = post.score || 0;
+                if (post.tag_string_copyright) post.tag_string_copyright.split(' ').forEach(t => { if (t) { counts.copyright[t] = (counts.copyright[t] || 0) + 1; scores.copyright[t] = (scores.copyright[t] || 0) + s; } });
+                if (post.tag_string_character) post.tag_string_character.split(' ').forEach(t => { if (t) { counts.character[t] = (counts.character[t] || 0) + 1; scores.character[t] = (scores.character[t] || 0) + s; } });
+                if (post.tag_string_artist) post.tag_string_artist.split(' ').forEach(t => { if (t) { counts.artist[t] = (counts.artist[t] || 0) + 1; scores.artist[t] = (scores.artist[t] || 0) + s; } });
               });
               const allNames = new Set();
               ['copyright', 'character', 'artist'].forEach(cat => {
@@ -210,7 +212,7 @@ app.get("/analitik", requireAuth, async (req, res) => {
               ['copyright', 'character', 'artist'].forEach(cat => {
                 trendingTags[period.key][cat] = Object.entries(counts[cat])
                   .sort((a,b) => b[1]-a[1]).slice(0, 10)
-                  .map(([name, hits]) => ({ name, hits, totalPosts: postCounts[name] || 0 }));
+                  .map(([name, hits]) => ({ name, hits, totalPosts: postCounts[name] || 0, score: scores[cat][name] || 0 }));
               });
             }
           } catch(e) {}

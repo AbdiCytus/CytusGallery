@@ -82,6 +82,7 @@
       <div class="flex gap-2">
         <button class="trend-metric-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600 text-white" data-metric="total">Total Post</button>
         <button class="trend-metric-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-metric="freq">Frekuensi</button>
+        <button class="trend-metric-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-metric="score">Score</button>
       </div>
     </div>
 
@@ -115,7 +116,7 @@
                   <a href="javascript:void(0)" onclick="navigateTag('<%= tag.name %>')" class="<%= index === 0 ? 'text-yellow-400' : 'text-gray-300' %> hover:text-cyan-400 transition-colors truncate text-xs">
                     <%= index === 0 ? '🔥 ' : '' %><%= tag.name.replace(/_/g, ' ') %>
                   </a>
-                  <span class="text-gray-500 text-[10px] ml-1 whitespace-nowrap trend-metric-display" data-total="<%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %>" data-freq="<%= tag.hits %>x"><%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %></span>
+                  <span class="text-gray-500 text-[10px] ml-1 whitespace-nowrap trend-metric-display" data-total="<%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %>" data-freq="<%= tag.hits %>x" data-score="⭐ <%= tag.score ? tag.score.toLocaleString() : 0 %>"><%= tag.totalPosts ? tag.totalPosts.toLocaleString() : tag.hits %></span>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
                   <div class="bg-<%= cat.color %>-600 h-1.5 rounded-full width-bar" data-width="<%= pct %>"></div>
