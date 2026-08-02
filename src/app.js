@@ -162,24 +162,33 @@ app.get("/analitik", requireAuth, async (req, res) => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yStr = yesterday.toISOString().split('T')[0];
+      const lastWeek = new Date(yesterday);
+      lastWeek.setDate(yesterday.getDate() - 7);
+      const wStr = lastWeek.toISOString().split('T')[0];
       
       const lastMonth = new Date(yesterday);
       lastMonth.setDate(yesterday.getDate() - 30);
       const mStr = lastMonth.toISOString().split('T')[0];
       
-      const lastYear = new Date(yesterday);
-      lastYear.setFullYear(yesterday.getFullYear() - 1);
-      const yearStr = lastYear.toISOString().split('T')[0];
+      const lastQuarter = new Date(yesterday);
+      lastQuarter.setDate(yesterday.getDate() - 90);
+      const qStr = lastQuarter.toISOString().split('T')[0];
 
       const cacheKey = 'analitik_trendingTags_' + yStr;
       if (apiCache[cacheKey]) return apiCache[cacheKey].data;
       
-      const trendingTags = { day: { copyright: [], character: [], artist: [] }, month: { copyright: [], character: [], artist: [] }, year: { copyright: [], character: [], artist: [] } };
+      const trendingTags = { 
+        day: { copyright: [], character: [], artist: [] }, 
+        week: { copyright: [], character: [], artist: [] },
+        month: { copyright: [], character: [], artist: [] }, 
+        quarter: { copyright: [], character: [], artist: [] } 
+      };
 
       const periods = [
         { key: 'day', ageFilter: `date:${yStr} order:score` },
+        { key: 'week', ageFilter: `date:${wStr}..${yStr} order:score` },
         { key: 'month', ageFilter: `date:${mStr}..${yStr} order:score` },
-        { key: 'year', ageFilter: `date:${yearStr}..${yStr} random:200` }
+        { key: 'quarter', ageFilter: `date:${qStr}..${yStr} order:score` }
       ];
       try {
         await Promise.all(periods.map(async (period) => {

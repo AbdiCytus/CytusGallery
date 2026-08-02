@@ -75,8 +75,9 @@
       <!-- Period tabs -->
       <div class="flex gap-2">
         <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-cyan-600 text-white" data-period="day" data-color="bg-cyan-600">1 Hari</button>
+        <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="week" data-color="bg-emerald-600">7 Hari</button>
         <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="month" data-color="bg-blue-600">1 Bulan</button>
-        <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="year" data-color="bg-purple-600">1 Tahun</button>
+        <button class="trend-period-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600" data-period="quarter" data-color="bg-purple-600">3 Bulan</button>
       </div>
       <!-- Metric tabs -->
       <div class="flex gap-2">
@@ -86,7 +87,7 @@
       </div>
     </div>
 
-    <% const trendPeriods = ['day', 'month', 'year'];
+    <% const trendPeriods = ['day', 'week', 'month', 'quarter'];
        const trendCats = [
          { key: 'copyright', label: '© Copyright', color: 'purple' },
          { key: 'character', label: '👤 Character', color: 'green' },
