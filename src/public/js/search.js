@@ -100,6 +100,20 @@
       cb.checked = checkedTags.includes(cb.value);
     });
 
+    // Angkat tag yang dicentang ke urutan paling atas
+    const tagContainer = document.getElementById('followed-tags-checkboxes');
+    if (tagContainer) {
+      const labels = Array.from(tagContainer.children);
+      labels.sort((a, b) => {
+        const cbA = a.querySelector('.followed-tag-filter');
+        const cbB = b.querySelector('.followed-tag-filter');
+        const isCheckedA = cbA && cbA.checked ? 1 : 0;
+        const isCheckedB = cbB && cbB.checked ? 1 : 0;
+        return isCheckedB - isCheckedA;
+      });
+      labels.forEach(label => tagContainer.appendChild(label));
+    }
+
     const savedDateFilter = localStorage.getItem('cytusGalleryFollowedDateFilter');
     if (savedDateFilter) {
        const d = JSON.parse(savedDateFilter);
