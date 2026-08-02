@@ -1019,6 +1019,9 @@ const root = async (req, res) => {
     }
 
     let sliderPosts = [];
+    if (page === 1) {
+      sliderPosts = await getTopPostsThisMonth(15, baseTags);
+    }
     const [popularTags, popularCharacters] = await sliderTagsPromise;
 
     res.render("index", {

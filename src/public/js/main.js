@@ -585,8 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       const tab = a.getAttribute('data-tab');
       
-      const currentUrl = new URL(window.location.href);
-      const currentTab = currentUrl.searchParams.get("tab") || "contents";
+      const currentTab = document.querySelector('.main-tab-link.text-white')?.getAttribute('data-tab') || "contents";
       if (tab === currentTab) {
         if (tab === 'followed' && typeof window.openFollowedTagsModal === 'function') {
           window.openFollowedTagsModal();
