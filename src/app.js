@@ -901,7 +901,7 @@ const root = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const tab = req.query.tab || "contents";
+    const tab = req.query.tab || (req.cookies && req.cookies.cytusGalleryActiveTab) || "contents";
     let posts = [];
     let totalPosts = 0;
     let totalPages = 0;
@@ -1039,7 +1039,7 @@ const search = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const tab = req.query.tab || "contents";
+    const tab = req.query.tab || (req.cookies && req.cookies.cytusGalleryActiveTab) || "contents";
     let posts = [];
     let totalPages = 0;
     let totalPosts = 0;

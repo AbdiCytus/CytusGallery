@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (urlTab) {
     if (!tempTab) {
       localStorage.setItem("cytusGalleryActiveTab", urlTab);
+      document.cookie = "cytusGalleryActiveTab=" + urlTab + "; path=/; max-age=31536000";
     }
     if (urlTab === "followed") {
       const followedTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedTagsFilter') || '[]');
@@ -23,19 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
          window.location.replace(currentUrl.toString());
          return;
       }
-    }
-  } else if (path === "/" || path === "/search") {
-    const savedTab = localStorage.getItem("cytusGalleryActiveTab");
-    if (savedTab && savedTab !== "contents") {
-      currentUrl.searchParams.set("tab", savedTab);
-      if (savedTab === "followed") {
-         const followedTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryFollowedTagsFilter') || '[]');
-         if (followedTagsFilter.length > 0) {
-            currentUrl.searchParams.set("followedTags", followedTagsFilter.join(","));
-         }
-      }
-      window.location.replace(currentUrl.toString());
-      return;
     }
   }
   
@@ -300,6 +288,7 @@ document.addEventListener("DOMContentLoaded", () => {
        activeTab = localStorage.getItem('cytusGalleryActiveTab') || 'contents'; if (userTypedTags && activeTab === 'collection') { activeTab = 'contents'; localStorage.setItem('cytusGalleryActiveTab', 'contents'); }
     } else {
        localStorage.setItem("cytusGalleryActiveTab", activeTab);
+       document.cookie = "cytusGalleryActiveTab=" + activeTab + "; path=/; max-age=31536000";
     }
 
     sessionStorage.setItem("lastSearchTags", userTypedTags.trim());
