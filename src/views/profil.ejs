@@ -205,10 +205,18 @@
       <div class="container mx-auto flex items-center justify-between gap-3">
         <div class="text-cyan-400 font-bold text-sm sm:text-base whitespace-nowrap"><span id="selected-count">0</span> Dipilih</div>
         <div class="flex flex-wrap gap-2 sm:gap-3 justify-end">
-          <button id="batch-delete-btn" class="bg-red-600 hover:bg-red-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Hapus</button>
-          <button id="batch-download-btn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Download</button>
-          <button id="batch-select-all-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Pilih Semua</button>
-          <button id="batch-cancel-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-medium transition-colors">Batal</button>
+          <button id="batch-delete-btn" class="bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 sm:py-2 rounded font-medium transition-colors flex items-center justify-center" title="Hapus">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+          <button id="batch-download-btn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 sm:py-2 rounded font-medium transition-colors flex items-center justify-center gap-1" title="Download">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          </button>
+          <button id="batch-select-all-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 sm:py-2 rounded font-medium transition-colors flex items-center justify-center" title="Pilih Semua">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </button>
+          <button id="batch-cancel-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1.5 sm:py-2 rounded font-medium transition-colors flex items-center justify-center" title="Batal">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
         </div>
       </div>
     </div>
@@ -1028,7 +1036,7 @@
           
           async function processBatchDelete() {
             batchDeleteBtn.disabled = true;
-            batchDeleteBtn.textContent = 'Menghapus...';
+            batchDeleteBtn.innerHTML = '<svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             try {
               const res = await fetch('/api/collections/batch-delete', {
                 method: 'POST',
@@ -1056,7 +1064,7 @@
               }
             } finally {
               batchDeleteBtn.disabled = false;
-              batchDeleteBtn.textContent = 'Hapus';
+              batchDeleteBtn.innerHTML = '<svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>';
             }
           }
         });
@@ -1085,7 +1093,7 @@
             if (delBtn) delBtn.disabled = true;
             if (selAllBtn) selAllBtn.disabled = true;
             batchDownloadBtn.disabled = true;
-            batchDownloadBtn.textContent = 'Menyiapkan Data...';
+            batchDownloadBtn.innerHTML = '<svg class="w-5 h-5 animate-spin mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             window._downloadInProgress = true;
             
             const cancelHandler = (e) => {
@@ -1126,7 +1134,7 @@
               for (let i = 0; i < total; i++) {
                 if (downloadCancelled) throw new Error("Dibatalkan");
                 const item = urls[i];
-                batchDownloadBtn.textContent = `Mengunduh ${i+1}/${total}...`;
+                const pct = Math.round(((i + 1) / total) * 100); batchDownloadBtn.innerHTML = `<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span class="ml-1 text-sm font-bold">${pct}%</span>`;
                 try {
                   const imgRes = await fetch(item.url);
                   if (!imgRes.ok) throw new Error("HTTP " + imgRes.status);
@@ -1141,7 +1149,7 @@
               
               if (downloadCancelled) throw new Error("Dibatalkan");
               
-              batchDownloadBtn.textContent = 'Membungkus ZIP...';
+              batchDownloadBtn.innerHTML = '<svg class="w-5 h-5 animate-pulse mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>';
               const zipBlob = await zip.generateAsync({ type: "blob" });
               
               if (downloadCancelled) throw new Error("Dibatalkan");
@@ -1181,7 +1189,7 @@
             } finally {
               window._downloadInProgress = false;
               batchDownloadBtn.disabled = false;
-              batchDownloadBtn.textContent = 'Download';
+              batchDownloadBtn.innerHTML = '<svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>';
               if (delBtn) delBtn.disabled = false;
               if (selAllBtn) selAllBtn.disabled = false;
               if (cancelBtn) cancelBtn.removeEventListener('click', cancelHandler);
