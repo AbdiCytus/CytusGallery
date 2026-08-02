@@ -427,7 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let mappedRatings = [];
         
         if (selectedRatings.includes("g")) mappedRatings.push("g");
-        if (selectedRatings.includes("not_e")) mappedRatings.push("s");
+        if (selectedRatings.includes("not_e")) mappedRatings.push("g", "s");
         if (selectedRatings.includes("e")) {
           if (isBypassUser) {
             mappedRatings.push("e", "q");

@@ -986,13 +986,37 @@ const root = async (req, res) => {
     if (tab === "collection" && res.locals.user) {
       const prisma = require('./lib/prisma');
         const skip = (page - 1) * limit;
+        let whereClause = { userId: res.locals.user.id };
+        const filterQuery = req.query.query || "";
+        
+        let allowedRatings = [];
+        const ratingMatch = filterQuery.match(/rating:([gsqe,]+)/);
+        if (ratingMatch) {
+            allowedRatings = ratingMatch[1].split(',').filter(r => ['g','s','q','e'].includes(r));
+        }
+        
+        let blockedRatings = [];
+        if (filterQuery.includes('-rating:e')) blockedRatings.push('e');
+        if (filterQuery.includes('-rating:q')) blockedRatings.push('q');
+        if (filterQuery.includes('-rating:s')) blockedRatings.push('s');
+        if (!res.locals.isBypass) { 
+           if (!blockedRatings.includes('e')) blockedRatings.push('e'); 
+           if (!blockedRatings.includes('q')) blockedRatings.push('q'); 
+        }
+        
+        if (allowedRatings.length > 0) {
+            whereClause.rating = { in: allowedRatings };
+        } else if (blockedRatings.length > 0) {
+            whereClause.rating = { notIn: blockedRatings };
+        }
+
         const saves = await prisma.savedContent.findMany({
-          where: { userId: res.locals.user.id },
+          where: whereClause,
           orderBy: { savedAt: 'desc' },
           take: limit,
           skip
         });
-        const totalSaves = await prisma.savedContent.count({ where: { userId: res.locals.user.id } });
+        const totalSaves = await prisma.savedContent.count({ where: whereClause });
         
         const postIds = saves.map(s => s.postId);
         let fetchedPosts = {};

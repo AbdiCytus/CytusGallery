@@ -163,7 +163,7 @@
 
         if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
           if (filters.rating === "not_e") {
-             filterQueryParts.push("rating:s");
+             filterQueryParts.push("rating:g,s");
              explicitLocked = false;
           } else if (filters.rating === "g") {
              filterQueryParts.push("rating:g");
