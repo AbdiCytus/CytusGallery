@@ -615,6 +615,7 @@ document.addEventListener("DOMContentLoaded", () => {
       themeToggle: document.getElementById("theme-toggle") ? document.getElementById("theme-toggle").checked : false,
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+    document.cookie = "cytusGalleryFilters=" + encodeURIComponent(JSON.stringify(filters)) + "; path=/; max-age=31536000";
   };
 
   const loadFiltersToUI = () => {
@@ -632,6 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lazyloadToggle: true,
       };
       localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+    document.cookie = "cytusGalleryFilters=" + encodeURIComponent(JSON.stringify(filters)) + "; path=/; max-age=31536000";
       wasMissing = true;
     }
     const {
@@ -660,6 +662,7 @@ document.addEventListener("DOMContentLoaded", () => {
           validRatings = ["g"];
           filters.rating = "g";
           localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+    document.cookie = "cytusGalleryFilters=" + encodeURIComponent(JSON.stringify(filters)) + "; path=/; max-age=31536000";
           wasMissing = true;
         }
 

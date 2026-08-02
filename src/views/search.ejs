@@ -720,8 +720,10 @@
     
     if (checkedTags.length === 0 || checkedTags.length === totalTags) {
       localStorage.removeItem('cytusGalleryFollowedTagsFilter');
+      document.cookie = "cytusGalleryFollowedTagsFilter=; path=/; max-age=0";
     } else {
       localStorage.setItem('cytusGalleryFollowedTagsFilter', JSON.stringify(checkedTags));
+      document.cookie = "cytusGalleryFollowedTagsFilter=" + encodeURIComponent(JSON.stringify(checkedTags)) + "; path=/; max-age=31536000";
     }
 
     let dateFilter = "";
