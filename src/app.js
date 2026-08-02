@@ -901,7 +901,7 @@ const root = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const tab = req.query.tab || (req.cookies && req.cookies.cytusGalleryActiveTab) || "contents";
+    const tab = req.query.tab || "contents";
     let posts = [];
     let totalPosts = 0;
     let totalPages = 0;
@@ -918,45 +918,6 @@ const root = async (req, res) => {
       getSliderTags(3),
       getSliderTags(4)
     ]);
-
-    let followedTagsFilter = null; 
-    if (req.query.followedTags !== undefined) { 
-      followedTagsFilter = req.query.followedTags ? req.query.followedTags.split(',') : []; 
-    } else if (req.cookies && req.cookies.cytusGalleryFollowedTagsFilter) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(req.cookies.cytusGalleryFollowedTagsFilter));
-        if (Array.isArray(parsed)) followedTagsFilter = parsed;
-      } catch(e) {}
-    }
-
-    let baseTags = "";
-    if (req.cookies && req.cookies.cytusGalleryFilters) {
-      try {
-        const filters = JSON.parse(decodeURIComponent(req.cookies.cytusGalleryFilters));
-        let filterQueryParts = [];
-        let explicitLocked = true;
-        if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
-          if (filters.rating === "not_e") { filterQueryParts.push("rating:s"); explicitLocked = false; }
-          else if (filters.rating === "g") { filterQueryParts.push("rating:g"); explicitLocked = false; }
-          else if (filters.rating === "e") {
-             if (res.locals.isBypass) { filterQueryParts.push("rating:e,q"); explicitLocked = false; }
-             else { filterQueryParts.push("rating:g"); explicitLocked = false; }
-          }
-        } else if (!filters.ratingToggle && res.locals.isBypass) {
-          explicitLocked = false;
-        }
-        if (explicitLocked) { filterQueryParts.push("-rating:e"); filterQueryParts.push("-rating:q"); }
-        if (filters.typeToggle && filters.type) {
-           if (filters.type === 'image') filterQueryParts.push('filetype:jpg,jpeg,png,webp,gif,avif');
-           else if (filters.type === 'video') filterQueryParts.push('filetype:mp4,webm');
-        }
-        baseTags = filterQueryParts.join(' ');
-      } catch(e) {
-        baseTags = res.locals.isBypass ? "" : "-rating:e -rating:q";
-      }
-    } else {
-      if (!res.locals.isBypass) baseTags = "-rating:e -rating:q";
-    }
 
     if (tab === "collection" && res.locals.user) {
       const prisma = require('./lib/prisma');
@@ -1001,12 +962,17 @@ const root = async (req, res) => {
         totalPosts = totalSaves;
       totalPages = Math.ceil(totalSaves / limit);
     } else if (tab === "followed" && res.locals.user) {
+      let followedTagsFilter = null; if (req.query.followedTags !== undefined) { followedTagsFilter = req.query.followedTags ? req.query.followedTags.split(',') : []; }
       const result = await getFollowedContents(res.locals.user.id, "", page, limit, res.locals.isBypass, followedTagsFilter);
       posts = result.posts;
       totalPosts = result.totalPosts;
       totalPages = result.totalPages;
       hasFollowedTags = result.hasFollowedTags;
     } else {
+      let baseTags = "";
+      if (!res.locals.isBypass) {
+        baseTags = "-rating:e -rating:q";
+      }
       const contentsParams = { tags: baseTags, page: page, limit: limit };
       
       const [contents, stats] = await Promise.all([
@@ -1020,9 +986,6 @@ const root = async (req, res) => {
     }
 
     let sliderPosts = [];
-    if (page === 1) {
-      sliderPosts = await getTopPostsThisMonth(15, baseTags);
-    }
     const [popularTags, popularCharacters] = await sliderTagsPromise;
 
     res.render("index", {
@@ -1037,7 +1000,7 @@ const root = async (req, res) => {
       totalPosts: totalPosts,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
-      currentTab: tab, followedTagsQuery: followedTagsFilter ? followedTagsFilter.join(',') : '',
+      currentTab: tab, followedTagsQuery: req.query.followedTags,
       hasFollowedTags: hasFollowedTags
     });
   } catch (error) {
@@ -1066,39 +1029,8 @@ const search = async (req, res) => {
   }
 
   const userTags = (req.query.tags || "").trim();
-  let filterQuery = "";
-  if (req.query.query !== undefined) {
-    filterQuery = req.query.query.trim();
-  } else if (req.cookies && req.cookies.cytusGalleryFilters) {
-    try {
-      const filters = JSON.parse(decodeURIComponent(req.cookies.cytusGalleryFilters));
-      let filterQueryParts = [];
-      let explicitLocked = true;
-      if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
-        if (filters.rating === "not_e") { filterQueryParts.push("rating:s"); explicitLocked = false; }
-        else if (filters.rating === "g") { filterQueryParts.push("rating:g"); explicitLocked = false; }
-        else if (filters.rating === "e") {
-           // Assume no bypass for root/search unless res.locals.isBypass is injected. It is injected in middleware.
-           if (res && res.locals && res.locals.isBypass) { filterQueryParts.push("rating:e,q"); explicitLocked = false; }
-           else { filterQueryParts.push("rating:g"); explicitLocked = false; }
-        }
-      } else if (!filters.ratingToggle && res && res.locals && res.locals.isBypass) {
-        explicitLocked = false;
-      }
-      if (explicitLocked) { filterQueryParts.push("-rating:e"); filterQueryParts.push("-rating:q"); }
-      if (filters.typeToggle && filters.type) {
-         if (filters.type === 'image') filterQueryParts.push('filetype:jpg,jpeg,png,webp,gif,avif');
-         else if (filters.type === 'video') filterQueryParts.push('filetype:mp4,webm');
-      }
-      filterQuery = filterQueryParts.join(' ');
-    } catch(e) {
-      filterQuery = res && res.locals && res.locals.isBypass ? "" : "-rating:e -rating:q";
-    }
-  } else {
-    filterQuery = res && res.locals && res.locals.isBypass ? "" : "-rating:e -rating:q";
-  }
-
-  const allTags = `${userTags} ${filterQuery}`.trim();
+  const filterQuery = (req.query.query || "").trim();
+  const allTags = `${userTags} ${filterQuery}`;
 
   if (!allTags) return res.redirect("/");
 
@@ -1107,7 +1039,7 @@ const search = async (req, res) => {
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const tab = req.query.tab || (req.cookies && req.cookies.cytusGalleryActiveTab) || "contents";
+    const tab = req.query.tab || "contents";
     let posts = [];
     let totalPages = 0;
     let totalPosts = 0;
@@ -1117,16 +1049,6 @@ const search = async (req, res) => {
     let sliderPosts = [];
     let popularTags = [];
     let popularCharacters = [];
-
-    let followedTagsFilter = null; 
-    if (req.query.followedTags !== undefined) { 
-      followedTagsFilter = req.query.followedTags ? req.query.followedTags.split(',') : []; 
-    } else if (req.cookies && req.cookies.cytusGalleryFollowedTagsFilter) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(req.cookies.cytusGalleryFollowedTagsFilter));
-        if (Array.isArray(parsed)) followedTagsFilter = parsed;
-      } catch(e) {}
-    }
 
     const sliderTagsPromise = !userTags ? Promise.all([getSliderTags(3), getSliderTags(4)]) : Promise.resolve([[], []]);
 
@@ -1213,6 +1135,7 @@ const search = async (req, res) => {
       totalPosts = totalSaves;
       totalPages = Math.ceil(totalSaves / limit);
     } else if (!userTags && tab === "followed" && res.locals.user) {
+      let followedTagsFilter = null; if (req.query.followedTags !== undefined) { followedTagsFilter = req.query.followedTags ? req.query.followedTags.split(',') : []; }
       const result = await getFollowedContents(res.locals.user.id, filterQuery, page, limit, res.locals.isBypass, followedTagsFilter);
       posts = result.posts;
       totalPosts = result.totalPosts;
@@ -1295,7 +1218,7 @@ const search = async (req, res) => {
       smartSearchTags: smartSearchTags,
       limit: limit,
       isLazyLoadEnabled: isLazyLoadEnabled,
-      currentTab: tab, followedTagsQuery: followedTagsFilter ? followedTagsFilter.join(',') : '',
+      currentTab: tab, followedTagsQuery: req.query.followedTags,
       hasFollowedTags: hasFollowedTags,
       followedTagsList: followedTagsList,
       filterQuery: filterQuery
