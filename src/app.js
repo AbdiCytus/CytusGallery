@@ -929,6 +929,35 @@ const root = async (req, res) => {
       } catch(e) {}
     }
 
+    let baseTags = "";
+    if (req.cookies && req.cookies.cytusGalleryFilters) {
+      try {
+        const filters = JSON.parse(decodeURIComponent(req.cookies.cytusGalleryFilters));
+        let filterQueryParts = [];
+        let explicitLocked = true;
+        if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
+          if (filters.rating === "not_e") { filterQueryParts.push("rating:s"); explicitLocked = false; }
+          else if (filters.rating === "g") { filterQueryParts.push("rating:g"); explicitLocked = false; }
+          else if (filters.rating === "e") {
+             if (res.locals.isBypass) { filterQueryParts.push("rating:e,q"); explicitLocked = false; }
+             else { filterQueryParts.push("rating:g"); explicitLocked = false; }
+          }
+        } else if (!filters.ratingToggle && res.locals.isBypass) {
+          explicitLocked = false;
+        }
+        if (explicitLocked) { filterQueryParts.push("-rating:e"); filterQueryParts.push("-rating:q"); }
+        if (filters.typeToggle && filters.type) {
+           if (filters.type === 'image') filterQueryParts.push('filetype:jpg,jpeg,png,webp,gif,avif');
+           else if (filters.type === 'video') filterQueryParts.push('filetype:mp4,webm');
+        }
+        baseTags = filterQueryParts.join(' ');
+      } catch(e) {
+        baseTags = res.locals.isBypass ? "" : "-rating:e -rating:q";
+      }
+    } else {
+      if (!res.locals.isBypass) baseTags = "-rating:e -rating:q";
+    }
+
     if (tab === "collection" && res.locals.user) {
       const prisma = require('./lib/prisma');
         const skip = (page - 1) * limit;
@@ -978,34 +1007,6 @@ const root = async (req, res) => {
       totalPages = result.totalPages;
       hasFollowedTags = result.hasFollowedTags;
     } else {
-      let baseTags = "";
-      if (req.cookies && req.cookies.cytusGalleryFilters) {
-        try {
-          const filters = JSON.parse(decodeURIComponent(req.cookies.cytusGalleryFilters));
-          let filterQueryParts = [];
-          let explicitLocked = true;
-          if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
-            if (filters.rating === "not_e") { filterQueryParts.push("rating:s"); explicitLocked = false; }
-            else if (filters.rating === "g") { filterQueryParts.push("rating:g"); explicitLocked = false; }
-            else if (filters.rating === "e") {
-               if (res.locals.isBypass) { filterQueryParts.push("rating:e,q"); explicitLocked = false; }
-               else { filterQueryParts.push("rating:g"); explicitLocked = false; }
-            }
-          } else if (!filters.ratingToggle && res.locals.isBypass) {
-            explicitLocked = false;
-          }
-          if (explicitLocked) { filterQueryParts.push("-rating:e"); filterQueryParts.push("-rating:q"); }
-          if (filters.typeToggle && filters.type) {
-             if (filters.type === 'image') filterQueryParts.push('filetype:jpg,jpeg,png,webp,gif,avif');
-             else if (filters.type === 'video') filterQueryParts.push('filetype:mp4,webm');
-          }
-          baseTags = filterQueryParts.join(' ');
-        } catch(e) {
-          baseTags = res.locals.isBypass ? "" : "-rating:e -rating:q";
-        }
-      } else {
-        if (!res.locals.isBypass) baseTags = "-rating:e -rating:q";
-      }
       const contentsParams = { tags: baseTags, page: page, limit: limit };
       
       const [contents, stats] = await Promise.all([
