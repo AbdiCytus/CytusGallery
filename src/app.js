@@ -612,14 +612,36 @@ const baseTagURL = "https://danbooru.donmai.us/tags.json";
 const basePostsURL = "https://danbooru.donmai.us/posts.json";
 const baseCountsPostsURL = "https://danbooru.donmai.us/counts/posts.json";
 
+const inFlightRequests = {};
 async function getCachedDanbooru(url, params = {}, timeout = 8000) {
   const cacheKey = `danbooru_${url}_${JSON.stringify(params)}`;
+  
   if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
     return { data: apiCache[cacheKey].data };
   }
-  const response = await axios.get(url, { params: params, timeout: timeout });
-  apiCache[cacheKey] = { timestamp: Date.now(), data: response.data };
-  return { data: response.data };
+  
+  if (inFlightRequests[cacheKey]) {
+    return inFlightRequests[cacheKey];
+  }
+  
+  const reqPromise = (async () => {
+    try {
+      const response = await axios.get(url, { params: params, timeout: timeout });
+      apiCache[cacheKey] = { timestamp: Date.now(), data: response.data };
+      return { data: response.data };
+    } catch (err) {
+      return { data: [] }; // Return fallback
+    }
+  })();
+  
+  inFlightRequests[cacheKey] = reqPromise;
+  
+  try {
+    const result = await reqPromise;
+    return result;
+  } finally {
+    delete inFlightRequests[cacheKey];
+  }
 }
 
 
@@ -1637,6 +1659,7 @@ async function warmUpCache() {
     console.log("[Cache] Starting initial cache warm-up...");
     await Promise.all([
       getCachedDanbooru(basePostsURL, { tags: '-rating:e -rating:q', page: 1, limit: 25 }, 8000),
+      getCachedDanbooru(basePostsURL, { tags: '', page: 1, limit: 25 }, 8000), // bypass cache
       getTotalPosts(25),
       getSliderTags(3),
       getSliderTags(4)

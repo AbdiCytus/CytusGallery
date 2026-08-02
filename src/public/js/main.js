@@ -1673,7 +1673,7 @@ document.addEventListener("DOMContentLoaded", () => {
                    observer.disconnect();
                 }
              }
-          }, { rootMargin: '400px' });
+          }, { rootMargin: '3000px' });
           
           observer.observe(loaderDiv);
        }
