@@ -460,6 +460,43 @@ app.post("/api/collections/batch-delete", requireAuth, async (req, res) => {
   }
 });
 
+
+app.post("/api/collections/batch-download-urls", requireAuth, async (req, res) => {
+  const prisma = require('./lib/prisma');
+  try {
+    const { postIds } = req.body;
+    const userId = req.user.id;
+    if (!postIds || !Array.isArray(postIds)) {
+      return res.status(400).json({ error: "Invalid postIds" });
+    }
+    
+    const saves = await prisma.savedContent.findMany({
+      where: {
+        userId: userId,
+        postId: { in: postIds.map(String) }
+      }
+    });
+    
+    if (saves.length === 0) {
+      return res.status(404).json({ error: "Tidak ada konten yang valid." });
+    }
+
+    const urls = saves.map(s => {
+      const ext = s.extension || (s.fileUrl ? s.fileUrl.split('.').pop().split('?')[0] : 'jpg');
+      return {
+        postId: s.postId,
+        url: s.fileUrl || s.imageUrl,
+        filename: `CytusGallery_${s.postId}.${ext}`
+      };
+    }).filter(u => u.url);
+
+    res.json({ urls });
+  } catch (error) {
+    console.error('Batch get URLs error:', error);
+    res.status(500).json({ error: "Gagal memproses daftar unduhan." });
+  }
+});
+
 app.post("/api/collections/batch-download", requireAuth, async (req, res) => {
   const prisma = require('./lib/prisma');
   const archiver = require('archiver');

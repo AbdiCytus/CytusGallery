@@ -56,7 +56,12 @@
         </div>
         <p id="avatar-msg" class="text-xs mt-2 hidden text-center md:text-left"></p>
 
-        <script>
+    
+    <!-- Client-side Zipping Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script>
+
           function deleteAccount() {
             if (typeof window.showAlert === 'function') {
               window.showAlert("Hapus Akun", "Apakah Anda yakin ingin menghapus akun Anda secara permanen? Semua data koleksi dan notifikasi akan hilang!", confirmDeleteAccount);
@@ -1072,85 +1077,99 @@
           }
 
           async function processBatchDownload() {
-            let activeReader = null;
             let downloadCancelled = false;
             
-            // Disable other buttons during download
             const delBtn = document.getElementById('batch-delete-btn');
             const selAllBtn = document.getElementById('batch-select-all-btn');
             const cancelBtn = document.getElementById('batch-cancel-btn');
             if (delBtn) delBtn.disabled = true;
             if (selAllBtn) selAllBtn.disabled = true;
             batchDownloadBtn.disabled = true;
-            batchDownloadBtn.textContent = 'Mempersiapkan...';
-            
-            // Block item selection during download
+            batchDownloadBtn.textContent = 'Menyiapkan Data...';
             window._downloadInProgress = true;
             
-            // Cancel button handler
             const cancelHandler = (e) => {
               e.stopPropagation();
               if (typeof window.showAlert === 'function') {
                 window.showAlert("Batalkan Unduhan", "Apakah Anda yakin ingin membatalkan unduhan?", () => {
                   downloadCancelled = true;
-                  if (activeReader) activeReader.cancel();
                 });
                 const cBtn = document.getElementById("custom-alert-confirm");
                 if (cBtn) cBtn.textContent = "Ya, Batalkan";
               } else {
                 if (confirm("Batalkan unduhan?")) {
                   downloadCancelled = true;
-                  if (activeReader) activeReader.cancel();
                 }
               }
             };
             if (cancelBtn) cancelBtn.addEventListener('click', cancelHandler);
             
             try {
-              const response = await fetch('/api/collections/batch-download', {
+              if (typeof JSZip === 'undefined') {
+                throw new Error("Library ZIP belum termuat, mohon periksa koneksi internet.");
+              }
+              const response = await fetch('/api/collections/batch-download-urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ postIds: Array.from(selectedItems) })
               });
+              if (!response.ok) throw new Error("Gagal mengambil daftar unduhan dari server.");
               
-              if (!response.ok) throw new Error("Gagal mengunduh batch");
+              const { urls } = await response.json();
+              if (!urls || urls.length === 0) throw new Error("Tidak ada file valid yang bisa diunduh.");
+
+              const zip = new JSZip();
+              let successCount = 0;
+              let failCount = 0;
+              const total = urls.length;
               
-              const contentLength = response.headers.get('Content-Length') || response.headers.get('X-Estimated-Size');
-              const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
-              
-              activeReader = response.body.getReader();
-              let chunks = [];
-              let received = 0;
-              while(true) {
-                const {done, value} = await activeReader.read();
-                if (done) break;
-                chunks.push(value);
-                received += value.length;
-                const mbReceived = (received / 1024 / 1024).toFixed(1);
-                if (totalBytes > 0) {
-                  const percent = Math.min(100, Math.round((received / totalBytes) * 100));
-                  batchDownloadBtn.textContent = `Mengunduh... ${percent}% (${mbReceived} MB)`;
-                } else {
-                  batchDownloadBtn.textContent = `Mengunduh... ${mbReceived} MB`;
+              for (let i = 0; i < total; i++) {
+                if (downloadCancelled) throw new Error("Dibatalkan");
+                const item = urls[i];
+                batchDownloadBtn.textContent = `Mengunduh ${i+1}/${total}...`;
+                try {
+                  const imgRes = await fetch(item.url);
+                  if (!imgRes.ok) throw new Error("HTTP " + imgRes.status);
+                  const blob = await imgRes.blob();
+                  zip.file(item.filename, blob);
+                  successCount++;
+                } catch (err) {
+                  console.error("Gagal unduh " + item.url, err);
+                  failCount++;
                 }
               }
               
-              if (!downloadCancelled) {
-                const blob = new Blob(chunks, { type: 'application/zip' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `CytusGallery_Batch_${Date.now()}.zip`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                
-                isSelectionMode = false;
-                updateBatchActionBar();
+              if (downloadCancelled) throw new Error("Dibatalkan");
+              
+              batchDownloadBtn.textContent = 'Membungkus ZIP...';
+              const zipBlob = await zip.generateAsync({ type: "blob" });
+              
+              if (downloadCancelled) throw new Error("Dibatalkan");
+              
+              if (typeof saveAs !== 'undefined') {
+                 saveAs(zipBlob, `CytusGallery_Batch_${Date.now()}.zip`);
+              } else {
+                 const url = window.URL.createObjectURL(zipBlob);
+                 const a = document.createElement('a');
+                 a.style.display = 'none';
+                 a.href = url;
+                 a.download = `CytusGallery_Batch_${Date.now()}.zip`;
+                 document.body.appendChild(a);
+                 a.click();
+                 window.URL.revokeObjectURL(url);
               }
+              
+              if (failCount > 0) {
+                 if (typeof window.showToast === 'function') window.showToast(`Selesai dengan ${failCount} gagal.`, 'info');
+              } else {
+                 if (typeof window.showToast === 'function') window.showToast("Berhasil diunduh!", 'success');
+              }
+              
+              isSelectionMode = false;
+              updateBatchActionBar();
+              
             } catch(e) {
-              if (downloadCancelled) {
+              if (downloadCancelled || e.message === "Dibatalkan") {
                 if (typeof window.showToast === 'function') window.showToast("Unduhan dibatalkan.", "info");
               } else {
                 if (typeof window.showAlert === 'function') {
