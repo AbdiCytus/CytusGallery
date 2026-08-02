@@ -612,6 +612,17 @@ const baseTagURL = "https://danbooru.donmai.us/tags.json";
 const basePostsURL = "https://danbooru.donmai.us/posts.json";
 const baseCountsPostsURL = "https://danbooru.donmai.us/counts/posts.json";
 
+async function getCachedDanbooru(url, params = {}, timeout = 8000) {
+  const cacheKey = `danbooru_${url}_${JSON.stringify(params)}`;
+  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
+    return { data: apiCache[cacheKey].data };
+  }
+  const response = await axios.get(url, { params: params, timeout: timeout });
+  apiCache[cacheKey] = { timestamp: Date.now(), data: response.data };
+  return { data: response.data };
+}
+
+
 // 1. Function Handler
 
 async function getTopPostsThisMonth(limit, filter = "") {
@@ -623,7 +634,7 @@ async function getTopPostsThisMonth(limit, filter = "") {
 
     const query = `order:score date:>=${startOfMonth} ${filter}`.trim();
     const params = { tags: query, limit: limit };
-    const response = await axios.get(basePostsURL, { params: params, timeout: 8000 });
+    const response = await getCachedDanbooru(basePostsURL, params, 8000);
 
     return response.data;
   } catch (error) {
@@ -635,7 +646,7 @@ async function getTopPostsThisMonth(limit, filter = "") {
         const startOfMonth = `${year}-${month}-01`;
         
         const fallbackQuery = `date:>=${startOfMonth} ${filter}`.trim();
-        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 }, timeout: 8000 });
+        const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 100 }, 8000);
         let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
         return sorted.slice(0, limit);
       } catch (fallbackErr) {
@@ -651,13 +662,13 @@ async function getTopPosts(tags, filter = "", limit) {
   try {
     const query = `${tags} ${filter} order:score`.trim();
     const params = { tags: query, limit: limit };
-    const response = await axios.get(basePostsURL, { params: params, timeout: 8000 });
+    const response = await getCachedDanbooru(basePostsURL, params, 8000);
     return response.data;
   } catch (err) {
     if (err.response && (err.response.status === 422 || err.response.status === 500)) {
       try {
         const fallbackQuery = `${tags} ${filter}`.trim();
-        const fallbackResponse = await axios.get(basePostsURL, { params: { tags: fallbackQuery, limit: 100 }, timeout: 8000 });
+        const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 100 }, 8000);
         let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
         return sorted.slice(0, limit);
       } catch (fallbackErr) {
@@ -789,7 +800,7 @@ async function getCachedPosts(params) {
   if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
     return apiCache[cacheKey].data;
   }
-  const response = await axios.get(basePostsURL, { params: params, timeout: 8000 }).catch(e => ({ data: [] }));
+  const response = await getCachedDanbooru(basePostsURL, params, 8000).catch(e => ({ data: [] }));
   apiCache[cacheKey] = { timestamp: Date.now(), data: response };
   return response;
 }
@@ -969,7 +980,7 @@ const root = async (req, res) => {
         let fetchedPosts = {};
         if (postIds.length > 0) {
            try {
-              const dRes = await axios.get(`https://danbooru.donmai.us/posts.json?tags=id:${postIds.join(',')}&limit=200`);
+              const dRes = await getCachedDanbooru(`https://danbooru.donmai.us/posts.json`, { tags: `id:${postIds.join(',')}`, limit: 200 });
               const fetched = dRes.data;
               fetched.forEach(p => { fetchedPosts[p.id.toString()] = p; });
            } catch (e) {
@@ -1142,7 +1153,7 @@ const search = async (req, res) => {
       let fetchedPosts = {};
       if (postIds.length > 0) {
          try {
-            const dRes = await axios.get(`https://danbooru.donmai.us/posts.json?tags=id:${postIds.join(',')}&limit=200`);
+            const dRes = await getCachedDanbooru(`https://danbooru.donmai.us/posts.json`, { tags: `id:${postIds.join(',')}`, limit: 200 });
             const fetched = dRes.data;
             fetched.forEach(p => { fetchedPosts[p.id.toString()] = p; });
          } catch (e) {
@@ -1273,9 +1284,7 @@ const search = async (req, res) => {
 const detail = async (req, res) => {
   try {
     const postId = req.params.id;
-    const response = await axios.get(
-      `https://danbooru.donmai.us/posts/${postId}.json`,
-    );
+    const response = await getCachedDanbooru(`https://danbooru.donmai.us/posts/${postId}.json`);
     const post = response.data;
     
     // Check if the post is Explicit or Questionable
@@ -1497,7 +1506,7 @@ app.get("/api/tagsuggest", async (req, res) => {
       limit: 10,
     };
 
-    const response = await axios.get(baseTagURL, { params: suggestParams });
+    const response = await getCachedDanbooru(baseTagURL, suggestParams);
     const postExist = response.data.filter((tag) => tag.post_count > 0);
 
     res.json(postExist);
