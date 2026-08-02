@@ -784,6 +784,16 @@ async function getTotalPostsWithParams(tags, query, limit) {
   return result;
 }
 
+async function getCachedPosts(params) {
+  const cacheKey = `posts_${params.tags || ''}_${params.page}_${params.limit}`;
+  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
+    return apiCache[cacheKey].data;
+  }
+  const response = await axios.get(basePostsURL, { params: params, timeout: 8000 }).catch(e => ({ data: [] }));
+  apiCache[cacheKey] = { timestamp: Date.now(), data: response };
+  return response;
+}
+
 async function getFollowedContents(userId, filterQuery, page, limit, isBypass, followedTagsFilter = null) {
   const filterKey = followedTagsFilter ? followedTagsFilter.join(',') : 'all';
   const cacheKey = `followedContents_${userId}_${filterQuery}_${page}_${limit}_${isBypass}_${filterKey}`;
@@ -1001,7 +1011,7 @@ const root = async (req, res) => {
       const contentsParams = { tags: baseTags, page: page, limit: limit };
       
       const [contents, stats] = await Promise.all([
-        axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] })),
+        getCachedPosts(contentsParams),
         getTotalPosts(limit)
       ]);
       
@@ -1169,7 +1179,7 @@ const search = async (req, res) => {
     } else {
       const contentsParams = { tags: allTags, page: page, limit: limit };
       const [contents, stats] = await Promise.all([
-        axios.get(basePostsURL, { params: contentsParams, timeout: 8000 }).catch(e => ({ data: [] })),
+        getCachedPosts(contentsParams),
         getTotalPostsWithParams(userTags, filterQuery, limit)
       ]);
       posts = contents.data || [];
@@ -1202,7 +1212,7 @@ const search = async (req, res) => {
           
           const newParams = { tags: allTagsFinal, page: page, limit: limit };
           const [newContents, newStats] = await Promise.all([
-            axios.get(basePostsURL, { params: newParams, timeout: 8000 }).catch(e => ({ data: [] })),
+            getCachedPosts(newParams),
             getTotalPostsWithParams(actualUserTags, filterQuery, limit)
           ]);
           posts = newContents.data || [];
