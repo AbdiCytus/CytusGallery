@@ -848,6 +848,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  if (sidebar) {
+    sidebar.querySelectorAll('a').forEach(link => {
+       link.addEventListener('click', closeSidebar);
+    });
+  }
   const closeAllOverlays = () => {
     document.querySelectorAll(".gallery-item").forEach((item) => {
       item.classList.remove("mobile-active");
@@ -1481,7 +1486,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   if (filterForm) filterForm.addEventListener("submit", handleFormSubmit);
-  if (searchForm) searchForm.addEventListener("submit", handleFormSubmit);
 
   document.addEventListener("click", (e) => {
     if (searchForm && !searchForm.contains(e.target) && suggestionsBox)

@@ -184,8 +184,20 @@ const search = async (req, res) => {
     return res.redirect(`/search${qs ? '?' + qs : ''}`);
   }
 
-  const userTags = (req.query.tags || "").trim();
-  const filterQuery = (req.query.query || "").trim();
+  let userTags = (req.query.tags || "").trim();
+  let filterQuery = (req.query.query || "").trim();
+
+  // Proteksi URL untuk rating bypass
+  if (!res.locals.isBypass) {
+     const explicitRegex = /rating:[^\s]*(e|q)[^\s]*/gi;
+     userTags = userTags.replace(explicitRegex, '').trim();
+     filterQuery = filterQuery.replace(explicitRegex, '').trim();
+     
+     if (!filterQuery.includes('-rating:e')) filterQuery += ' -rating:e';
+     if (!filterQuery.includes('-rating:q')) filterQuery += ' -rating:q';
+     filterQuery = filterQuery.trim();
+  }
+
   const allTags = `${userTags} ${filterQuery}`.trim();
 
   if (!allTags) {
@@ -359,7 +371,7 @@ const search = async (req, res) => {
       const sliderFilter = tab === "followed" ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       if (actualUserTags) {
          const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
-         if (tagsCount >= 2) {
+         if (tagsCount > 2) {
             sliderPosts = [];
          } else {
             sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);

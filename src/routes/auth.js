@@ -120,12 +120,14 @@ router.post('/login', async (req, res) => {
 // Logout
 router.get('/logout', (req, res) => {
   res.clearCookie('token');
+  res.clearCookie('cytusGalleryActiveTab');
   res.redirect('/');
 });
 
 // Switch Account
 router.get('/switch-account', (req, res) => {
   res.clearCookie('token');
+  res.clearCookie('cytusGalleryActiveTab');
   res.redirect('/login');
 });
 

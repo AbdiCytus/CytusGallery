@@ -181,7 +181,7 @@ router.get("/analitik", requireAuth, async (req, res) => {
     };
 
     const getUserDetails = async () => {
-      let lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+      let lastClear = parseInt(req.cookies[`lastNotifClear_${req.user.id}`] || '0', 10);
       if (isNaN(lastClear)) lastClear = 0;
       const [allFollowedTagsCount, unreadCount] = await Promise.all([
         prisma.followedTag.count({ where: { userId } }),

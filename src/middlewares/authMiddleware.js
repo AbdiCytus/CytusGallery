@@ -25,7 +25,7 @@ const checkUser = async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'cytus_gallery_secret_key');
       
-      const lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+      const lastClear = parseInt(req.cookies[`lastNotifClear_${decoded.id}`] || '0', 10);
       const cacheKey = `${decoded.id}_${lastClear}`;
       const cached = userCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL) {

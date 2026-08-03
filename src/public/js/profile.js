@@ -361,6 +361,55 @@
 
       // Debounce and Auto-lowercase untuk Filter Tag Koleksi
       let filterSearchTimeout;
+      
+      const performProfilSearch = async (profilForm) => {
+         const koleksiResults = document.getElementById('koleksi-results');
+         const url = new URL(profilForm.action || window.location.href);
+         const formData = new FormData(profilForm);
+         for(let [k,v] of formData.entries()) {
+            if(v) url.searchParams.set(k, v);
+         }
+         if (koleksiResults) {
+           koleksiResults.innerHTML = '<div class="w-full flex justify-center py-12"><div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div></div>';
+         }
+         try {
+            const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const text = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const newContent = doc.getElementById('koleksi-results');
+            if (newContent && koleksiResults) {
+               koleksiResults.innerHTML = newContent.innerHTML;
+               window.history.replaceState({}, '', url.toString());
+               currentPage = 1;
+               hasMore = true;
+               isFetching = false;
+               currentSearch = document.getElementById('koleksi-search-input') ? document.getElementById('koleksi-search-input').value : '';
+               const ratingSelect = profilForm.querySelector('select[name="rating"]');
+               currentRating = ratingSelect ? ratingSelect.value : '';
+              
+              const newInput = document.getElementById('koleksi-search-input');
+              if (newInput) {
+                newInput.focus();
+                const valLen = newInput.value.length;
+                newInput.setSelectionRange(valLen, valLen);
+              }
+              
+              if (typeof window.initializeMasonry === 'function') {
+                window.initializeMasonry();
+              }
+              
+              // Update jumlah koleksi di tab
+              const newTabBtn = doc.getElementById('tab-koleksi-btn');
+              const tabBtn = document.getElementById('tab-koleksi-btn');
+              if (newTabBtn && tabBtn) {
+                tabBtn.textContent = newTabBtn.textContent;
+              }
+            }
+         } catch(err) {
+            profilForm.submit();
+         }
+      };
 
       document.addEventListener('input', (e) => {
         if (e.target && e.target.id === 'koleksi-search-input') {
@@ -373,57 +422,25 @@
           e.target.setSelectionRange(start, end);
 
           clearTimeout(filterSearchTimeout);
-          
-          filterSearchTimeout = setTimeout(async () => {
-             const koleksiResults = document.getElementById('koleksi-results');
-             const url = new URL(profilForm.action || window.location.href);
-             const formData = new FormData(profilForm);
-             for(let [k,v] of formData.entries()) {
-                if(v) url.searchParams.set(k, v);
-             }
-             if (koleksiResults) {
-               koleksiResults.innerHTML = '<div class="w-full flex justify-center py-12"><div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div></div>';
-             }
-             try {
-                const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                const text = await res.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(text, 'text/html');
-                const newContent = doc.getElementById('koleksi-results');
-                if (newContent && koleksiResults) {
-                   koleksiResults.innerHTML = newContent.innerHTML;
-                   window.history.replaceState({}, '', url.toString());
-                   currentPage = 1;
-                   hasMore = true;
-                   isFetching = false;
-                   currentSearch = document.getElementById('koleksi-search-input') ? document.getElementById('koleksi-search-input').value : '';
-                   const ratingSelect = profilForm.querySelector('select[name="rating"]');
-                   currentRating = ratingSelect ? ratingSelect.value : '';
-                  
-                  const newInput = document.getElementById('koleksi-search-input');
-                  if (newInput) {
-                    newInput.focus();
-                    const valLen = newInput.value.length;
-                    newInput.setSelectionRange(valLen, valLen);
-                  }
-                  
-                  if (typeof window.initializeMasonry === 'function') {
-                    window.initializeMasonry();
-                  }
-                  
-                  // Update jumlah koleksi di tab
-                  const newTabBtn = doc.getElementById('tab-koleksi-btn');
-                  const tabBtn = document.getElementById('tab-koleksi-btn');
-                  if (newTabBtn && tabBtn) {
-                    tabBtn.textContent = newTabBtn.textContent;
-                  }
-                }
-             } catch(err) {
-                profilForm.submit();
-             }
-          }, 500);
+          filterSearchTimeout = setTimeout(() => performProfilSearch(profilForm), 500);
         }
       });
+      
+      document.addEventListener('change', (e) => {
+        if (e.target && e.target.name === 'rating' && e.target.closest('#profil-form')) {
+          const profilForm = document.getElementById('profil-form');
+          if (!profilForm) return;
+          performProfilSearch(profilForm);
+        }
+      });
+      
+      const pForm = document.getElementById('profil-form');
+      if (pForm) {
+        pForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          performProfilSearch(pForm);
+        });
+      }
 
       // Batch Action Logic
       let isSelectionMode = false;
