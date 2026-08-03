@@ -349,9 +349,12 @@ const search = async (req, res) => {
       }
     }
 
+    let sliderTitle = "Contents of the Month";
     if (page === 1) {
       const sliderFilter = tab === "followed" ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       if (actualUserTags) {
+         const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
+         sliderTitle = tagsCount >= 2 ? "Trending Contents" : "Top Contents";
          sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);
       } else {
          sliderPosts = await getTopPostsThisMonth(15, sliderFilter);
@@ -368,6 +371,7 @@ const search = async (req, res) => {
       posts: posts,
       savedPostIds: savedPostIds,
       sliderPosts: sliderPosts,
+      sliderTitle: sliderTitle,
       popularTags: popularTags,
       popularCharacters: popularCharacters,
       currentPage: page,

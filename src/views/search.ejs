@@ -78,7 +78,7 @@
   <% } %>
 
   <% if (sliderPosts.length > 0) { %>
-  <h2 class="text-2xl font-bold mb-4 text-white text-start"><%= userTags ? 'Top Contents' : 'Contents of the Month' %></h2>
+  <h2 class="text-2xl font-bold mb-4 text-white text-start"><%= typeof sliderTitle !== 'undefined' ? sliderTitle : (userTags ? 'Top Contents' : 'Contents of the Month') %></h2>
   <div class="slider-container relative mb-12 min-h-[200px]">
     <div class="swiper relative z-10 transition-opacity duration-500">
     <div class="swiper-wrapper">
