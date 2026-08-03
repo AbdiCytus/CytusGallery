@@ -66,7 +66,7 @@ async function getTopPostsThisMonth(limit, filter = "") {
         const startOfMonth = `${year}-${month}-01`;
         
         const fallbackQuery = `date:>=${startOfMonth} ${filter}`.trim();
-        const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 100 }, 8000);
+        const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 200 }, 8000);
         let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
         return sorted.slice(0, limit);
       } catch (fallbackErr) {
@@ -92,7 +92,7 @@ async function getTopPosts(tags, filter = "", limit) {
     if (err.response && (err.response.status === 422 || err.response.status === 500)) {
       try {
         const fallbackQuery = `${tags} ${filter}`.trim();
-        const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 100 }, 8000);
+        const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 200 }, 8000);
         let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
         return sorted.slice(0, limit);
       } catch (fallbackErr) {
