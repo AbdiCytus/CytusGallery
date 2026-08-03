@@ -123,8 +123,14 @@
         if (filters.lazyloadToggle) {
           params.append('lazyload', 'true');
         }
+        
+        const currentParams = new URLSearchParams(window.location.search);
+        if (currentParams.has('tab')) {
+           params.append('tab', currentParams.get('tab'));
+        }
 
         const queryString = params.toString();
+        if (!filterQuery) return `/?${queryString}`;
         return `/search?${queryString}`;
       };
 
@@ -144,12 +150,10 @@
         localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
       }
 
-      // Cek jika perlu redirect (pengguna baru atau URL cocok untuk redirect)
-      const needsRedirect = true;
-
-      if (needsRedirect) {
-        const newUrl = buildUrlFromFilters(filters);
-        // Ganti halaman saat ini, ini lebih cepat dari redirect biasa
+      const newUrl = buildUrlFromFilters(filters);
+      const currentUrl = window.location.pathname + window.location.search;
+      
+      if (currentUrl !== newUrl) {
         window.location.replace(newUrl);
       }
     })();
