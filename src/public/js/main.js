@@ -837,10 +837,14 @@ document.addEventListener("DOMContentLoaded", () => {
       /\btheme-\S+/g,
       ""
     );
-    if (filters.ratingToggle && filters.rating) {
-      if (filters.rating === "g") document.body.classList.add("theme-safe");
-      if (filters.rating === "not_e") document.body.classList.add("theme-moderate");
-      if (filters.rating === "e") document.body.classList.add("theme-explicit");
+    if (filters.ratingToggle !== false && filters.rating) {
+      if (filters.rating.includes("e")) {
+        document.body.classList.add("theme-explicit");
+      } else if (filters.rating.includes("s")) {
+        document.body.classList.add("theme-moderate");
+      } else if (filters.rating.includes("g")) {
+        document.body.classList.add("theme-safe");
+      }
     }
     
     const scrollToggleEl = document.getElementById("scroll-toggle");
