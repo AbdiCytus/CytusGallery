@@ -77,17 +77,9 @@ async function getTopPostsThisMonth(limit, filter = "") {
 
 async function getTopPosts(tags, filter = "", limit) {
   try {
-    const rawTagsCount = tags.trim().split(/\s+/).filter(t => t).length;
-    const filterTagsCount = filter.trim().split(/\s+/).filter(t => t).length;
-    const totalTags = rawTagsCount + filterTagsCount;
-
-    if (totalTags >= 2) {
-       // Cannot append order:score because it will exceed the 2-tag limit. Do fallback logic directly.
-       const fallbackQuery = `${tags} ${filter}`.trim();
-       const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 100 }, 8000);
-       let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
-       return sorted.slice(0, limit);
-    }
+    // The manual totalTags check has been removed.
+    // Danbooru allows up to 2 "General" tags. Metatags like rating:, order:, date: do NOT count.
+    // If the query exceeds the true limit, Danbooru will return 422, which is properly caught below and triggers the fallback.
 
     const query = `${tags} ${filter} order:score`.trim();
     const params = { tags: query, limit: limit };
