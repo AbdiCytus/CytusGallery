@@ -1100,22 +1100,7 @@ document.addEventListener("DOMContentLoaded", () => {
         changedElement.value === "e" &&
         changedElement.checked
       ) {
-        // Cek apakah peringatan ini sudah pernah ditampilkan di sesi ini
-        if (sessionStorage.getItem("explicitWarningShown") === "true") {
-          saveFilters(); // Jika sudah, langsung simpan
-        } else {
-          // Jika belum, tampilkan alert
-          const confirmAction = () => {
-            saveFilters();
-            // Tandai bahwa alert sudah ditampilkan untuk sesi ini
-            sessionStorage.setItem("explicitWarningShown", "true");
-          };
-          showAlert(
-            "Aktifkan Mode Explicit?",
-            "Konten dewasa akan ditampilkan. Pastikan Anda berada di lingkungan yang sesuai. Lanjutkan?",
-            confirmAction
-          );
-        }
+        saveFilters(); // Langsung simpan tanpa konfirmasi
       }
 
       // Case 3: Jika Infinite Scroll diaktifkan, reset limit ke 25

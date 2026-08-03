@@ -212,7 +212,7 @@ router.get('/api/auth/callback/orbit', async (req, res) => {
     
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name, avatarUrl: safeAvatar }, JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.redirect('/');
+    res.render('orbit-login');
   } catch (error) {
     console.error('Orbit OAuth Error:', error.response?.data || error.message);
     res.redirect('/login');

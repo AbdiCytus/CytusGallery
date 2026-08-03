@@ -16,7 +16,11 @@
         </button>
         <div id="accordion-content-tags" class="p-5 flex-col flex hide-scrollbar max-h-[50vh] md:max-h-none overflow-y-auto w-full">
           <h4 class="font-bold text-white mb-1 hidden md:block">Pilih Tag</h4>
-          <p class="text-xs text-gray-400 mb-4 hidden md:block">Centang tag yang ingin ditampilkan. Jika kosong, semua tag ditampilkan.</p>
+          <p class="text-xs text-gray-400 mb-2 hidden md:block">Centang tag yang ingin ditampilkan. Jika kosong, semua tag ditampilkan.</p>
+          <div class="flex gap-3 mb-4">
+             <button type="button" onclick="document.querySelectorAll('.followed-tag-filter').forEach(e => e.checked = true)" class="text-xs bg-gray-800 hover:bg-gray-700 text-cyan-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Pilih Semua</button>
+             <button type="button" onclick="document.querySelectorAll('.followed-tag-filter').forEach(e => e.checked = false)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Batal Pilih</button>
+          </div>
           <style>
             .custom-checkbox:checked + .custom-box {
               background-color: #06b6d4;
