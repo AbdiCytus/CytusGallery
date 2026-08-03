@@ -582,18 +582,27 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof closeSidebar === 'function') closeSidebar();
         
         const cacheKey = `cytus_page_${targetUrl}`;
-        let text = sessionStorage.getItem(cacheKey);
+        let text = localStorage.getItem(cacheKey);
+        
+        const saveToLocalCache = (key, val) => {
+          try {
+            localStorage.setItem(key, val);
+            // Limit cache to 15 pages to prevent quota issues
+            const keys = Object.keys(localStorage).filter(k => k.startsWith('cytus_page_'));
+            if (keys.length > 15) {
+               // Remove random/oldest keys if it exceeds 15
+               localStorage.removeItem(keys[0]);
+            }
+          } catch(e) {}
+        };
         
         if (!text) {
           const res = await fetch(targetUrl);
           text = await res.text();
-          try {
-            sessionStorage.setItem(cacheKey, text);
-          } catch(e) {} // Handle storage full
+          saveToLocalCache(cacheKey, text);
         } else {
-          // Lakukan background fetch untuk update data secara diam-diam (stale-while-revalidate)
           fetch(targetUrl).then(r => r.text()).then(t => {
-            try { sessionStorage.setItem(cacheKey, t); } catch(e) {}
+            saveToLocalCache(cacheKey, t);
           }).catch(() => {});
         }
         
