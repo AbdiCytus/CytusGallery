@@ -2023,19 +2023,6 @@
       }
     }
   }
-  .peer-checked\/moderate\:border-yellow-500 {
-    &:is(:where(.peer\/moderate):checked ~ *) {
-      border-color: var(--color-yellow-500);
-    }
-  }
-  .peer-checked\/moderate\:bg-yellow-900\/50 {
-    &:is(:where(.peer\/moderate):checked ~ *) {
-      background-color: color-mix(in srgb, oklch(42.1% 0.095 57.708) 50%, transparent);
-      @supports (color: color-mix(in lab, red, red)) {
-        background-color: color-mix(in oklab, var(--color-yellow-900) 50%, transparent);
-      }
-    }
-  }
   .peer-checked\/safe\:border-green-500 {
     &:is(:where(.peer\/safe):checked ~ *) {
       border-color: var(--color-green-500);
