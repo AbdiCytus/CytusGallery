@@ -163,8 +163,8 @@
             <div id="rating-options" class="space-y-2">
               <input type="<%= locals.isBypass ? 'checkbox' : 'radio' %>" name="rating" value="g" id="rating-g" class="hidden peer/safe">
               <label for="rating-g" class="w-full block text-start px-3 py-2 border-2 border-transparent rounded-md text-sm cursor-pointer hover:bg-gray-700 peer-checked/safe:border-green-500 peer-checked/safe:bg-green-900/50">Safe</label>
-              <input type="<%= locals.isBypass ? 'checkbox' : 'radio' %>" name="rating" value="not_e" id="rating-not_e" class="hidden peer/moderate">
-              <label for="rating-not_e" class="w-full block text-start px-3 py-2 border-2 border-transparent rounded-md text-sm cursor-pointer hover:bg-gray-700 peer-checked/moderate:border-yellow-500 peer-checked/moderate:bg-yellow-900/50">Moderate</label>
+              <input type="<%= locals.isBypass ? 'checkbox' : 'radio' %>" name="rating" value="s" id="rating-s" class="hidden peer/sensitive">
+              <label for="rating-s" class="w-full block text-start px-3 py-2 border-2 border-transparent rounded-md text-sm cursor-pointer hover:bg-gray-700 peer-checked/sensitive:border-yellow-500 peer-checked/sensitive:bg-yellow-900/50">Sensitive</label>
               <% if (locals.isBypass) { %>
               <input type="checkbox" name="rating" value="e" id="rating-e" class="hidden peer/explicit">
               <label for="rating-e" class="w-full block text-start px-3 py-2 border-2 border-transparent rounded-md text-sm cursor-pointer hover:bg-gray-700 peer-checked/explicit:border-red-500 peer-checked/explicit:bg-red-900/50">Explicit</label>

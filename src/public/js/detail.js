@@ -21,6 +21,8 @@
     if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
       if (filters.rating === 'g' && postRating !== 'g') {
         showError('Konten ini tidak sesuai dengan filter Safe Anda.');
+      } else if (filters.rating === 's' && postRating !== 's') {
+        showError('Konten ini tidak sesuai dengan filter Sensitive Anda.');
       } else if (filters.rating === 'not_e' && (postRating === 'q' || postRating === 'e')) {
         showError('Konten ini tidak sesuai dengan filter Moderate Anda.');
       }

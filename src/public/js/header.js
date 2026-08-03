@@ -80,7 +80,10 @@
         const isBypassUser = (document.getElementById('cytus-header-config')?.dataset.bypass === 'true');
 
         if (filters.ratingToggle && filters.rating && filters.rating !== "all") {
-          if (filters.rating === "not_e") {
+          if (filters.rating === "s") {
+             filterQueryParts.push("rating:s");
+             explicitLocked = false;
+          } else if (filters.rating === "not_e") {
              filterQueryParts.push("rating:g,s");
              explicitLocked = false;
           } else if (filters.rating === "g") {
@@ -102,8 +105,7 @@
         }
 
         if (explicitLocked) {
-           filterQueryParts.push("-rating:e");
-           filterQueryParts.push("-rating:q");
+           filterQueryParts.push("rating:g,s");
         }
         if (filters.typeToggle && filters.type) {
           let typeTag = '';

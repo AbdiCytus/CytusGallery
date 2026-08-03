@@ -421,13 +421,14 @@ document.addEventListener("DOMContentLoaded", () => {
         let mappedRatings = [];
         
         if (selectedRatings.includes("g")) mappedRatings.push("g");
-        if (selectedRatings.includes("not_e")) mappedRatings.push("g", "s");
+        if (selectedRatings.includes("s")) mappedRatings.push("s");
+        if (selectedRatings.includes("not_e")) mappedRatings.push("g", "s"); // fallback for cached 'not_e'
         if (selectedRatings.includes("e")) {
           if (isBypassUser) {
             mappedRatings.push("e", "q");
           } else {
             // Force fallback if user logged out but still has 'e' in local storage
-            if (!mappedRatings.includes("g")) mappedRatings.push("g");
+            if (!mappedRatings.includes("g") && !mappedRatings.includes("s")) mappedRatings.push("g", "s");
           }
         }
         
@@ -443,9 +444,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       if (explicitLocked) {
-        // Locked explicit means showing everything except 'e' and 'q'
-        filterQueryParts.push("-rating:e");
-        filterQueryParts.push("-rating:q");
+        // Locked explicit means showing everything except 'e' and 'q', which is 'g,s'
+        filterQueryParts.push("rating:g,s");
       }
       if (filters.typeToggle && filters.type) {
         let typeTag = "";

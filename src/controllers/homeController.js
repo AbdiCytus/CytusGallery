@@ -14,17 +14,11 @@ const {
 
 const root = async (req, res) => {
   const allowedKeys = ['page', 'limit', 'tab', 'lazyload', 'followedTags'];
-  const currentKeys = Object.keys(req.query);
-  const hasInvalidKeys = currentKeys.some(key => !allowedKeys.includes(key));
-  
-  if (hasInvalidKeys) {
-    const validParams = new URLSearchParams();
-    allowedKeys.forEach(k => {
-      if (req.query[k]) validParams.set(k, req.query[k]);
-    });
-    const qs = validParams.toString();
-    return res.redirect(`/${qs ? '?' + qs : ''}`);
-  }
+  Object.keys(req.query).forEach(key => {
+    if (!allowedKeys.includes(key)) {
+      delete req.query[key];
+    }
+  });
   
   try {
     const page = parseInt(req.query.page) || 1;
@@ -128,7 +122,7 @@ const root = async (req, res) => {
     } else {
       let baseTags = "";
       if (!res.locals.isBypass) {
-        baseTags = "-rating:e -rating:q";
+        baseTags = "rating:g,s";
       }
       const contentsParams = { tags: baseTags, page: page, limit: limit };
       
@@ -172,17 +166,11 @@ const root = async (req, res) => {
 
 const search = async (req, res) => {
   const allowedKeys = ['tags', 'page', 'limit', 'tab', 'query', 'lazyload', 'followedTags'];
-  const currentKeys = Object.keys(req.query);
-  const hasInvalidKeys = currentKeys.some(key => !allowedKeys.includes(key));
-  
-  if (hasInvalidKeys) {
-    const validParams = new URLSearchParams();
-    allowedKeys.forEach(k => {
-      if (req.query[k]) validParams.set(k, req.query[k]);
-    });
-    const qs = validParams.toString();
-    return res.redirect(`/search${qs ? '?' + qs : ''}`);
-  }
+  Object.keys(req.query).forEach(key => {
+    if (!allowedKeys.includes(key)) {
+      delete req.query[key];
+    }
+  });
 
   let userTags = (req.query.tags || "").trim();
   let filterQuery = (req.query.query || "").trim();
@@ -193,8 +181,9 @@ const search = async (req, res) => {
      userTags = userTags.replace(explicitRegex, '').trim();
      filterQuery = filterQuery.replace(explicitRegex, '').trim();
      
-     if (!filterQuery.includes('-rating:e')) filterQuery += ' -rating:e';
-     if (!filterQuery.includes('-rating:q')) filterQuery += ' -rating:q';
+     if (!filterQuery.includes('rating:g') && !filterQuery.includes('rating:s') && !userTags.includes('rating:g') && !userTags.includes('rating:s')) {
+         filterQuery += ' rating:g,s';
+     }
      filterQuery = filterQuery.trim();
   }
 

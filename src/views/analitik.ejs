@@ -294,12 +294,12 @@
         const selectedRatings = filters.rating.split(',');
         let mapped = [];
         if (selectedRatings.includes('g')) mapped.push('g');
+        if (selectedRatings.includes('s')) mapped.push('s');
         if (selectedRatings.includes('not_e')) mapped.push('s');
         if (mapped.length > 0) filterParts.push('rating:' + mapped.join(','));
-        else { filterParts.push('-rating:e'); filterParts.push('-rating:q'); }
+        else { filterParts.push('rating:g,s'); }
       } else {
-        filterParts.push('-rating:e');
-        filterParts.push('-rating:q');
+        filterParts.push('rating:g,s');
       }
       
       if (filters.typeToggle && filters.type) {

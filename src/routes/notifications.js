@@ -103,7 +103,8 @@ router.get("/notifikasi", requireAuth, async (req, res) => {
   try {
     const notifications = await prisma.notification.findMany({
       where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      take: 200
     });
     
     res.render("notifications", { notifications: notifications, hideSearchbar: true });
