@@ -77,6 +77,18 @@ async function getTopPostsThisMonth(limit, filter = "") {
 
 async function getTopPosts(tags, filter = "", limit) {
   try {
+    const rawTagsCount = tags.trim().split(/\s+/).filter(t => t).length;
+    const filterTagsCount = filter.trim().split(/\s+/).filter(t => t).length;
+    const totalTags = rawTagsCount + filterTagsCount;
+
+    if (totalTags >= 2) {
+       // Cannot append order:score because it will exceed the 2-tag limit. Do fallback logic directly.
+       const fallbackQuery = `${tags} ${filter}`.trim();
+       const fallbackResponse = await getCachedDanbooru(basePostsURL, { tags: fallbackQuery, limit: 100 }, 8000);
+       let sorted = fallbackResponse.data.sort((a, b) => b.score - a.score);
+       return sorted.slice(0, limit);
+    }
+
     const query = `${tags} ${filter} order:score`.trim();
     const params = { tags: query, limit: limit };
     const response = await getCachedDanbooru(basePostsURL, params, 8000);

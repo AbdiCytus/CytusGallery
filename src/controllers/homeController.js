@@ -360,8 +360,17 @@ const search = async (req, res) => {
       const sliderFilter = tab === "followed" ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       if (actualUserTags) {
          const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
-         if (tagsCount > 2) {
-            sliderPosts = [];
+         if (tagsCount >= 2) {
+            const rawPosts = await getTopPosts(actualUserTags, "", 50);
+            sliderPosts = rawPosts.filter(p => {
+               if (!res.locals.isBypass && (p.rating === 'e' || p.rating === 'q')) return false;
+               if (sliderFilter.includes('rating:g') && !sliderFilter.includes('s') && p.rating !== 'g') return false;
+               if (sliderFilter.includes('rating:s') && !sliderFilter.includes('g') && p.rating !== 's') return false;
+               if (sliderFilter.includes('rating:g,s') && (p.rating === 'e' || p.rating === 'q')) return false;
+               if (sliderFilter.includes('filetype:mp4') && p.file_ext !== 'mp4' && p.file_ext !== 'webm') return false;
+               if (sliderFilter.includes('filetype:jpg') && (p.file_ext === 'mp4' || p.file_ext === 'webm')) return false;
+               return true;
+            }).slice(0, 15);
          } else {
             sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);
          }
