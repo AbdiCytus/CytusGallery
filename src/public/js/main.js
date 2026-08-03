@@ -231,12 +231,6 @@ document.addEventListener("DOMContentLoaded", () => {
     searchInput.value = tags.join(' ');
     renderChips();
     if (searchInputVisual) searchInputVisual.focus();
-    
-    // Auto search on chip remove
-    const fullQuery = (searchInput.value + " " + (searchInputVisual ? searchInputVisual.value : "")).trim();
-    if (typeof navigateWithFilters === 'function') {
-      navigateWithFilters(fullQuery, 1, null, true, true);
-    }
   };
   
   const addChip = (tag) => {
@@ -576,6 +570,7 @@ document.addEventListener("DOMContentLoaded", () => {
            currentMain.style.opacity = '0.5';
         }
 
+        if (typeof closeSidebar === 'function') closeSidebar();
         const res = await fetch(targetUrl);
         
         const text = await res.text();
@@ -1169,6 +1164,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       const tags = searchInput.value.trim();
+      
+      const tagsArr = tags.split(/\s+/).filter(t => t);
+      if (tagsArr.length > 2) {
+         if (window.showToast) window.showToast("Maksimal 2 tag", "error");
+         return;
+      }
       
       // Save to recent searches
       if (tags) {

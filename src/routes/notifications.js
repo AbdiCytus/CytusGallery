@@ -58,7 +58,7 @@ router.get("/api/notifications/sync", requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     
-    let lastClear = parseInt(req.cookies.lastNotifClear || '0', 10);
+    let lastClear = parseInt(req.cookies[`lastNotifClear_${userId}`] || '0', 10);
     if (isNaN(lastClear)) lastClear = 0;
     
     const unread = await prisma.notification.count({ 
@@ -89,7 +89,7 @@ router.get("/api/notifications/sync", requireAuth, async (req, res) => {
 // =====================================================
 router.post("/api/notifications/read", requireAuth, async (req, res) => {
   try {
-    res.cookie('lastNotifClear', Date.now(), { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true });
+    res.cookie(`lastNotifClear_${req.user.id}`, Date.now(), { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Gagal update status." });

@@ -375,23 +375,23 @@
           clearTimeout(filterSearchTimeout);
           
           filterSearchTimeout = setTimeout(async () => {
-             const tabKoleksiContent = document.getElementById('tab-koleksi-content');
+             const koleksiResults = document.getElementById('koleksi-results');
              const url = new URL(profilForm.action || window.location.href);
              const formData = new FormData(profilForm);
              for(let [k,v] of formData.entries()) {
                 if(v) url.searchParams.set(k, v);
              }
-             if (tabKoleksiContent) {
-               tabKoleksiContent.innerHTML = '<div class="w-full flex justify-center py-12"><div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div></div>';
+             if (koleksiResults) {
+               koleksiResults.innerHTML = '<div class="w-full flex justify-center py-12"><div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div></div>';
              }
              try {
                 const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                 const text = await res.text();
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(text, 'text/html');
-                const newContent = doc.getElementById('tab-koleksi-content');
-                if (newContent && tabKoleksiContent) {
-                   tabKoleksiContent.innerHTML = newContent.innerHTML;
+                const newContent = doc.getElementById('koleksi-results');
+                if (newContent && koleksiResults) {
+                   koleksiResults.innerHTML = newContent.innerHTML;
                    window.history.replaceState({}, '', url.toString());
                    currentPage = 1;
                    hasMore = true;

@@ -265,6 +265,18 @@
         };
 
         try {
+          if (navigator.share) {
+             try {
+               await navigator.share({
+                 title: document.title,
+                 url: url
+               });
+               return; // Berhasil share native, tidak perlu modal copy
+             } catch (err) {
+               if (err.name !== 'AbortError') console.error('Share error:', err);
+             }
+          }
+
           // Coba cara modern dulu (Clipboard API)
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(url);

@@ -120,7 +120,13 @@ router.post('/login', async (req, res) => {
 // Logout
 router.get('/logout', (req, res) => {
   res.clearCookie('token');
-  res.redirect('/?tab=contents');
+  res.redirect('/');
+});
+
+// Switch Account
+router.get('/switch-account', (req, res) => {
+  res.clearCookie('token');
+  res.redirect('/login');
 });
 
 // Google OAuth Routes

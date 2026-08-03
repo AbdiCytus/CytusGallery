@@ -13,12 +13,28 @@ const {
 } = require('../utils/danbooruUtils');
 
 const root = async (req, res) => {
+  const allowedKeys = ['page', 'limit', 'tab', 'lazyload', 'followedTags'];
+  const currentKeys = Object.keys(req.query);
+  const hasInvalidKeys = currentKeys.some(key => !allowedKeys.includes(key));
+  
+  if (hasInvalidKeys) {
+    const validParams = new URLSearchParams();
+    allowedKeys.forEach(k => {
+      if (req.query[k]) validParams.set(k, req.query[k]);
+    });
+    const qs = validParams.toString();
+    return res.redirect(`/${qs ? '?' + qs : ''}`);
+  }
+  
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const tab = req.query.tab || req.cookies?.cytusGalleryActiveTab || "contents";
+    let tab = req.query.tab || req.cookies?.cytusGalleryActiveTab || "contents";
+    if (!res.locals.user && (tab === 'collection' || tab === 'followed')) {
+        tab = 'contents';
+    }
     let posts = [];
     let totalPosts = 0;
     let totalPages = 0;
@@ -170,16 +186,26 @@ const search = async (req, res) => {
 
   const userTags = (req.query.tags || "").trim();
   const filterQuery = (req.query.query || "").trim();
-  const allTags = `${userTags} ${filterQuery}`;
+  const allTags = `${userTags} ${filterQuery}`.trim();
 
-  if (!allTags) return res.redirect("/");
+  if (!allTags) {
+    const validParams = new URLSearchParams();
+    allowedKeys.forEach(k => {
+      if (req.query[k] && k !== 'tags' && k !== 'query') validParams.set(k, req.query[k]);
+    });
+    const qs = validParams.toString();
+    return res.redirect(`/${qs ? '?' + qs : ''}`);
+  }
 
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const isLazyLoadEnabled = req.query.lazyload === "true";
 
-    const tab = req.query.tab || req.cookies?.cytusGalleryActiveTab || "contents";
+    let tab = req.query.tab || req.cookies?.cytusGalleryActiveTab || "contents";
+    if (!res.locals.user && (tab === 'collection' || tab === 'followed')) {
+        tab = 'contents';
+    }
     let posts = [];
     let totalPages = 0;
     let totalPosts = 0;
@@ -331,9 +357,16 @@ const search = async (req, res) => {
 
     if (page === 1) {
       const sliderFilter = tab === "followed" ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
-      actualUserTags
-        ? (sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15))
-        : (sliderPosts = await getTopPostsThisMonth(15, sliderFilter));
+      if (actualUserTags) {
+         const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
+         if (tagsCount >= 2) {
+            sliderPosts = [];
+         } else {
+            sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);
+         }
+      } else {
+         sliderPosts = await getTopPostsThisMonth(15, sliderFilter);
+      }
     }
 
     if (!userTags) {

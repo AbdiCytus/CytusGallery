@@ -33,7 +33,7 @@
             <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Score:</strong> <%= post.score %></span>
             <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Size:</strong> <%= (post.file_size / 1024 / 1024).toFixed(2) %> MB</span>
             <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Dimensions:</strong> <%= post.image_width %>x<%= post.image_height %></span>
-            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Uploaded:</strong> <%= new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', 'month': 'short', 'year': 'numeric' }) %></span>
+            <span class="bg-gray-700 px-2 py-1 rounded-md"><strong>Uploaded:</strong> <%= new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) %></span>
             <% if (post.source) { %>
             <a href="<%= post.source %>" target="_blank" rel="noopener noreferrer" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded-md flex items-center gap-1">
               <strong>Source</strong>
