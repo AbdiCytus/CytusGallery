@@ -6,14 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title><%= typeof post !== 'undefined' ? ('CytusGallery - Post ' + post.id) : 'CytusGallery' %></title>
   <meta property="og:title" content="<%= typeof post !== 'undefined' ? ('CytusGallery - Post ' + post.id) : 'CytusGallery' %>" />
-  <meta property="og:description" content="Explore amazing contents on CytusGallery" />
+  <meta property="og:description" content="Search and explore thousand of anime imageboards more easily." />
   <meta property="og:type" content="website" />
   <% if (typeof post !== 'undefined' && post.large_file_url) { %>
-    <meta property="og:image" content="<%= post.large_file_url %>" />
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="<%= post.large_file_url %>">
+  <meta property="og:image" content="<%= post.large_file_url %>" />
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="<%= post.large_file_url %>">
   <% } else { %>
-    <meta property="og:image" content="/arona_doro.png" />
+  <meta property="og:image" content="/arona_doro.png" />
   <% } %>
   <meta name="theme-color" content="#0891b2" />
   <link rel="icon" type="image/png" href="/arona_doro.png">
@@ -25,22 +25,30 @@
       opacity: 0;
       pointer-events: none;
     }
+
     .swiper:not(.swiper-initialized) .swiper-wrapper {
       display: flex;
     }
+
     .swiper:not(.swiper-initialized) .swiper-slide {
       width: 100%;
       flex-shrink: 0;
     }
+
     @media (min-width: 640px) {
-      .swiper:not(.swiper-initialized) .swiper-slide { width: calc(100% / 3); }
+      .swiper:not(.swiper-initialized) .swiper-slide {
+        width: calc(100% / 3);
+      }
     }
+
     @media (min-width: 1024px) {
-      .swiper:not(.swiper-initialized) .swiper-slide { width: 20%; }
+      .swiper:not(.swiper-initialized) .swiper-slide {
+        width: 20%;
+      }
     }
-    
+
     /* Hide loader once Swiper initializes */
-    .swiper.swiper-initialized ~ .slider-loader {
+    .swiper.swiper-initialized~.slider-loader {
       opacity: 0;
       pointer-events: none;
     }
@@ -106,24 +114,26 @@
         <h2 class="text-xl font-bold text-white mb-4">Menu</h2>
         <nav class="flex flex-col space-y-1 text-gray-300">
           <% if (locals.user) { %>
-            <div class="flex items-center justify-between px-3 py-2 bg-gray-700/50 rounded-md mb-2">
-              <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-3 flex-grow min-w-0">
-                <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
-                <span class="truncate"><%= user.name || user.email %></span>
-              </a>
-              <a href="/switch-account" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="text-gray-400 hover:text-cyan-400 p-2 transition-colors ml-2" title="Ganti Akun">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-              </a>
-              <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="text-gray-400 hover:text-red-400 p-2 transition-colors ml-2" title="Logout">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-              </a>
-            </div>
+          <div class="flex items-center justify-between px-3 py-2 bg-gray-700/50 rounded-md mb-2">
+            <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-3 flex-grow min-w-0">
+              <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
+              <span class="truncate"><%= user.name || user.email %></span>
+            </a>
+            <a href="/switch-account" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="text-gray-400 hover:text-cyan-400 p-2 transition-colors ml-2" title="Ganti Akun">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+              </svg>
+            </a>
+            <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="text-gray-400 hover:text-red-400 p-2 transition-colors ml-2" title="Logout">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </a>
+          </div>
           <% } else { %>
-            <div class="mb-2">
-              <a href="/login" class="block w-full text-center px-3 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white font-semibold transition-colors">Login / Daftar</a>
-            </div>
+          <div class="mb-2">
+            <a href="/login" class="block w-full text-center px-3 py-2 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white font-semibold transition-colors">Login / Daftar</a>
+          </div>
           <% } %>
           <a id="home-link-mobile" href="/search" onclick="goToHome(event)" class="px-3 py-2 rounded-md hover:bg-gray-700 hover:text-white transition-colors">Beranda</a>
           <% if (locals.user) { %>
@@ -136,18 +146,20 @@
       <h2 class="text-xl font-bold text-white mb-6 w-3/4">Pengaturan</h2>
 
       <% if (locals.user) { %>
-        <div class="hidden md:flex mb-4 -mt-2 gap-2">
-          <a href="/switch-account" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="w-full justify-center text-cyan-400 hover:text-cyan-300 flex items-center gap-2 text-sm font-medium transition-colors bg-gray-700/50 hover:bg-gray-700 px-3 py-2 rounded-md border border-gray-600/50 shadow-sm" title="Ganti Akun">
-            <span>Ganti Akun</span>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-          </a>
-          <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="w-full justify-center text-gray-400 hover:text-red-400 flex items-center gap-2 text-sm font-medium transition-colors bg-gray-700/50 hover:bg-gray-700 px-3 py-2 rounded-md border border-gray-600/50 shadow-sm" title="Logout">
-            <span>Logout</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-          </a>
-        </div>
+      <div class="hidden md:flex mb-4 -mt-2 gap-2">
+        <a href="/switch-account" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="w-full justify-center text-cyan-400 hover:text-cyan-300 flex items-center gap-2 text-sm font-medium transition-colors bg-gray-700/50 hover:bg-gray-700 px-3 py-2 rounded-md border border-gray-600/50 shadow-sm" title="Ganti Akun">
+          <span>Ganti Akun</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+          </svg>
+        </a>
+        <a href="/logout" onclick="localStorage.removeItem('cytusGalleryActiveTab'); localStorage.removeItem('cytusGalleryFollowedTagsFilter');" class="w-full justify-center text-gray-400 hover:text-red-400 flex items-center gap-2 text-sm font-medium transition-colors bg-gray-700/50 hover:bg-gray-700 px-3 py-2 rounded-md border border-gray-600/50 shadow-sm" title="Logout">
+          <span>Logout</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </a>
+      </div>
       <% } %>
 
       <form action="/search" method="GET" id="filter-form">
@@ -254,43 +266,47 @@
           <a href="/tentang" class="hover:text-white transition-colors">Tentang</a>
           <a href="/bantuan" class="hover:text-white transition-colors">Bantuan</a>
           <% if (locals.user) { %>
-            <div class="relative flex items-center gap-4 bg-gray-700/50 px-3 py-2 rounded-full border border-gray-600/50">
-              <div class="flex items-center mt-1">
-                <button id="notification-btn" class="relative text-gray-300 hover:text-white transition-colors focus:outline-none block">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                  <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full <%= locals.unreadCount > 0 ? '' : 'hidden' %>"><%= locals.unreadCount > 99 ? '99+' : (locals.unreadCount || 0) %></span>
-                </button>
-              </div>
-              
-              <div id="desktop-notification-dropdown" class="absolute right-0 top-full mt-4 w-80 bg-gray-800 rounded-md shadow-2xl overflow-hidden z-50 hidden border border-gray-700 flex flex-col cursor-default">
-                <div class="p-3 border-b border-gray-700 font-bold text-white flex justify-between items-center shrink-0">
-                  Notifikasi
-                </div>
-                <div class="notification-list max-h-64 overflow-y-auto flex-grow">
-                  <div class="p-4 text-sm text-gray-400 text-center">Memuat...</div>
-                </div>
-                <div class="p-2 bg-gray-900 border-t border-gray-700 text-center shrink-0">
-                  <a href="/notifikasi" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a>
-                </div>
-              </div>
-
-              <div class="h-6 w-px bg-gray-600"></div>
-              <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-2">
-                <span class="truncate max-w-[150px]"><%= user.name || user.email %></span>
-                <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
-              </a>
+          <div class="relative flex items-center gap-4 bg-gray-700/50 px-3 py-2 rounded-full border border-gray-600/50">
+            <div class="flex items-center mt-1">
+              <button id="notification-btn" class="relative text-gray-300 hover:text-white transition-colors focus:outline-none block">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full <%= locals.unreadCount > 0 ? '' : 'hidden' %>"><%= locals.unreadCount > 99 ? '99+' : (locals.unreadCount || 0) %></span>
+              </button>
             </div>
+
+            <div id="desktop-notification-dropdown" class="absolute right-0 top-full mt-4 w-80 bg-gray-800 rounded-md shadow-2xl overflow-hidden z-50 hidden border border-gray-700 flex flex-col cursor-default">
+              <div class="p-3 border-b border-gray-700 font-bold text-white flex justify-between items-center shrink-0">
+                Notifikasi
+              </div>
+              <div class="notification-list max-h-64 overflow-y-auto flex-grow">
+                <div class="p-4 text-sm text-gray-400 text-center">Memuat...</div>
+              </div>
+              <div class="p-2 bg-gray-900 border-t border-gray-700 text-center shrink-0">
+                <a href="/notifikasi" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a>
+              </div>
+            </div>
+
+            <div class="h-6 w-px bg-gray-600"></div>
+            <a href="/profil" class="hover:text-cyan-400 font-bold transition-colors flex items-center gap-2">
+              <span class="truncate max-w-[150px]"><%= user.name || user.email %></span>
+              <img src="<%= user.avatarUrl || '/arona_doro.png' %>" alt="Avatar" class="w-8 h-8 rounded-full object-cover bg-gray-600 flex-shrink-0">
+            </a>
+          </div>
           <% } else { %>
-            <a href="/login" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded transition-colors">Login</a>
+          <a href="/login" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded transition-colors">Login</a>
           <% } %>
         </div>
 
         <div class="flex items-center gap-5">
           <% if (locals.user) { %>
-            <button id="mobile-notification-btn" class="md:hidden relative text-gray-300 hover:text-white transition-colors block mr-4 focus:outline-none">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-              <span id="mobile-notification-badge" class="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full <%= locals.unreadCount > 0 ? '' : 'hidden' %>"><%= locals.unreadCount > 99 ? '99+' : (locals.unreadCount || 0) %></span>
-            </button>
+          <button id="mobile-notification-btn" class="md:hidden relative text-gray-300 hover:text-white transition-colors block mr-4 focus:outline-none">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span id="mobile-notification-badge" class="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full <%= locals.unreadCount > 0 ? '' : 'hidden' %>"><%= locals.unreadCount > 99 ? '99+' : (locals.unreadCount || 0) %></span>
+          </button>
           <% } %>
           <button id="open-sidebar-button" class="space-y-2 cursor-pointer">
             <span class="block w-8 h-0.5 bg-gray-100"></span>
@@ -336,8 +352,8 @@
   </section>
   <% } %>
   <main class="flex-grow">
-  <% if (locals.user) { %>
-  <% } %>
+    <% if (locals.user) { %>
+    <% } %>
 
-<div id="cytus-header-config" data-bypass="<%= typeof locals !== 'undefined' && locals.isBypass ? 'true' : 'false' %>" style="display: none;"></div>
-<script src="/js/header.js"></script>
+    <div id="cytus-header-config" data-bypass="<%= typeof locals !== 'undefined' && locals.isBypass ? 'true' : 'false' %>" style="display: none;"></div>
+    <script src="/js/header.js"></script>
