@@ -128,18 +128,7 @@
         return `/search?${queryString}`;
       };
 
-      let filters = null;
-      const headerConfig = document.getElementById('cytus-header-config');
-      if (headerConfig && headerConfig.dataset.preferences) {
-        try {
-          filters = JSON.parse(headerConfig.dataset.preferences);
-          localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
-        } catch(e) {}
-      }
-      
-      if (!filters) {
-        filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
-      }
+      let filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
       // Jika pengguna baru (tidak ada setting), buat defaultnya
       if (!filters) {
         filters = {

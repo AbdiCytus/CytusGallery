@@ -726,30 +726,12 @@ document.addEventListener("DOMContentLoaded", () => {
       themeToggle: document.getElementById("theme-toggle") ? document.getElementById("theme-toggle").checked : false,
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
-    
-    return fetch("/api/profil/preferences", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ preferences: filters })
-    }).catch(() => {});
   };
 
   const loadFiltersToUI = () => {
     if (!filterForm) return;
     
-    let filters = null;
-    const headerConfig = document.getElementById('cytus-header-config');
-    if (headerConfig && headerConfig.dataset.preferences) {
-      try {
-        filters = JSON.parse(headerConfig.dataset.preferences);
-        localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
-      } catch(e) {}
-    }
-    
-    if (!filters) {
-      filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
-    }
-    
+    let filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
     let wasMissing = false;
     if (!filters) {
       filters = {
@@ -1457,7 +1439,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Listener untuk semua form submit
-  const handleFormSubmit = async (e) => {
+  const handleFormSubmit = (e) => {
     e.preventDefault();
     
     if (e.target.id === "filter-form") {
@@ -1465,7 +1447,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const isMainPage = currentPath === '/' || currentPath.startsWith('/search');
       
       if (!isMainPage) {
-        await saveFilters();
+        saveFilters();
         closeAllOverlays();
         closeSidebar();
         
@@ -1483,7 +1465,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sessionStorage.setItem("isLoading", "true");
     
     if (e.target.id === "filter-form") {
-      await saveFilters();
+      saveFilters();
       closeSidebar();
       sessionStorage.setItem("isLoadingMessage", "Menyimpan Pengaturan...");
       showLoader("Menyimpan Pengaturan...");

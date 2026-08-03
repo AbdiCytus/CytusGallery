@@ -284,31 +284,5 @@ router.post("/api/save/:id", requireAuth, async (req, res) => {
   }
 });
 
-// =====================================================
-// API: Update User Preferences
-// =====================================================
-router.post("/api/profil/preferences", requireAuth, async (req, res) => {
-  try {
-    const { preferences } = req.body;
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: { preferences: typeof preferences === 'string' ? preferences : JSON.stringify(preferences) }
-    });
-    
-    // Invalidate user cache to ensure the next page load gets the fresh preferences
-    const keysToClear = [];
-    userCache.forEach((value, key) => {
-       if (key.startsWith(req.user.id + '_')) {
-           keysToClear.push(key);
-       }
-    });
-    keysToClear.forEach(k => userCache.delete(k));
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Update preferences error:', error);
-    res.status(500).json({ error: "Gagal menyimpan pengaturan." });
-  }
-});
 
 module.exports = router;
