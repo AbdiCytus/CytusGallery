@@ -1,4 +1,13 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // Register Service Worker for Client-Side Caching (Opsi 4)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.error('Service Worker registration failed: ', err);
+      });
+    });
+  }
+
   const currentUrl = new URL(window.location.href);
   const path = currentUrl.pathname;
   
@@ -571,9 +580,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (typeof closeSidebar === 'function') closeSidebar();
-        const res = await fetch(targetUrl);
         
-        const text = await res.text();
+        const cacheKey = `cytus_page_${targetUrl}`;
+        let text = sessionStorage.getItem(cacheKey);
+        
+        if (!text) {
+          const res = await fetch(targetUrl);
+          text = await res.text();
+          try {
+            sessionStorage.setItem(cacheKey, text);
+          } catch(e) {} // Handle storage full
+        } else {
+          // Lakukan background fetch untuk update data secara diam-diam (stale-while-revalidate)
+          fetch(targetUrl).then(r => r.text()).then(t => {
+            try { sessionStorage.setItem(cacheKey, t); } catch(e) {}
+          }).catch(() => {});
+        }
+        
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
         
