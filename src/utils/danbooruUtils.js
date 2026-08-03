@@ -266,7 +266,7 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass, f
   }
 
   const postsNeeded = page * limit;
-  const chunkLimit = 200;
+  const chunkLimit = 50;
   const chunksNeeded = Math.ceil((postsNeeded + limit) / chunkLimit);
   
   const maxChunks = 50; 
@@ -294,7 +294,7 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass, f
     }
   });
 
-  const batchSize = 5;
+  const batchSize = 10;
   for (let b = 0; b < networkTasks.length; b += batchSize) {
     const batch = networkTasks.slice(b, b + batchSize);
     await Promise.all(batch.map(fn => fn()));
