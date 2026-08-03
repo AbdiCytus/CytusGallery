@@ -727,7 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
     
-    fetch("/api/profil/preferences", {
+    return fetch("/api/profil/preferences", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ preferences: filters })
@@ -793,6 +793,9 @@ document.addEventListener("DOMContentLoaded", () => {
           wasMissing = true;
         }
 
+        // Hapus tanda centang di semua input rating terlebih dahulu
+        document.querySelectorAll('input[name="rating"]').forEach(el => el.checked = false);
+
         validRatings.forEach(actualRating => {
           const ratingInput = document.querySelector(`input[name="rating"][value="${actualRating}"]`);
           if (ratingInput) ratingInput.checked = true;
@@ -806,6 +809,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .getElementById("type-options")
         .classList.toggle("hidden", !typeToggle);
       if (type) {
+        document.querySelectorAll('input[name="type"]').forEach(el => el.checked = false);
         const typeInput = document.querySelector(
           `input[name="type"][value="${type}"]`
         );
@@ -1075,7 +1079,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Case 2: Mengaktifkan filter explicit
       else if (
         changedElement.name === "rating" &&
-        changedElement.value === "not_g" &&
+        changedElement.value === "e" &&
         changedElement.checked
       ) {
         // Cek apakah peringatan ini sudah pernah ditampilkan di sesi ini
@@ -1453,7 +1457,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Listener untuk semua form submit
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     
     if (e.target.id === "filter-form") {
@@ -1461,7 +1465,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const isMainPage = currentPath === '/' || currentPath.startsWith('/search');
       
       if (!isMainPage) {
-        saveFilters();
+        await saveFilters();
         closeAllOverlays();
         closeSidebar();
         
@@ -1479,6 +1483,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sessionStorage.setItem("isLoading", "true");
     
     if (e.target.id === "filter-form") {
+      await saveFilters();
       closeSidebar();
       sessionStorage.setItem("isLoadingMessage", "Menyimpan Pengaturan...");
       showLoader("Menyimpan Pengaturan...");

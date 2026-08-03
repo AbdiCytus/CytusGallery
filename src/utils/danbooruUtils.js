@@ -185,7 +185,12 @@ async function getTotalPosts(limit) {
 }
 
 async function getTotalPostsWithParams(tags, query, limit) {
-  const cacheKey = `totalPostsParams_${tags}_${query}_${limit}`;
+  const combinedTags = `${tags || ''} ${query || ''}`.trim();
+  if (!combinedTags) {
+    return getTotalPosts(limit);
+  }
+
+  const cacheKey = `totalPostsParams_${combinedTags}_${limit}`;
   if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
     return apiCache[cacheKey].data;
   }
@@ -194,15 +199,15 @@ async function getTotalPostsWithParams(tags, query, limit) {
   let fallbackResponse;
   const getCounts = await axios.get(baseCountsPostsURL, {
     params: {
-      tags: `${tags} ${query}`,
+      tags: combinedTags,
     },
     timeout: 8000
   }).catch(() => ({ data: { counts: { posts: null } } }));
   
   if (getCounts.data?.counts?.posts == null) {
-    if (tags)
+    if (combinedTags)
       fallbackResponse = await axios.get(baseCountsPostsURL, {
-        params: { tags: tags },
+        params: { tags: combinedTags },
         timeout: 8000
       }).catch(() => ({ data: { counts: { posts: 100 } } }));
     else fallbackResponse = await axios.get(baseCountsPostsURL, { timeout: 8000 }).catch(() => ({ data: { counts: { posts: 100 } } }));

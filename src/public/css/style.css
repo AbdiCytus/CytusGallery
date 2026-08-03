@@ -428,9 +428,6 @@
   .my-12 {
     margin-block: calc(var(--spacing) * 12);
   }
-  .\!mt-5 {
-    margin-top: calc(var(--spacing) * 5) !important;
-  }
   .-mt-2 {
     margin-top: calc(var(--spacing) * -2);
   }
@@ -2200,13 +2197,6 @@
     &:hover {
       @media (hover: hover) {
         scale: 1.02;
-      }
-    }
-  }
-  .hover\:border-cyan-700 {
-    &:hover {
-      @media (hover: hover) {
-        border-color: var(--color-cyan-700);
       }
     }
   }

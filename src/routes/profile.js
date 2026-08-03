@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const prisma = require('../lib/prisma');
-const { requireAuth } = require('../middlewares/authMiddleware');
+const { requireAuth, userCache } = require('../middlewares/authMiddleware');
 const { apiCache, getCachedDanbooru } = require('../utils/danbooruUtils');
 
 // =====================================================
@@ -294,6 +294,16 @@ router.post("/api/profil/preferences", requireAuth, async (req, res) => {
       where: { id: req.user.id },
       data: { preferences: typeof preferences === 'string' ? preferences : JSON.stringify(preferences) }
     });
+    
+    // Invalidate user cache to ensure the next page load gets the fresh preferences
+    const keysToClear = [];
+    userCache.forEach((value, key) => {
+       if (key.startsWith(req.user.id + '_')) {
+           keysToClear.push(key);
+       }
+    });
+    keysToClear.forEach(k => userCache.delete(k));
+    
     res.json({ success: true });
   } catch (error) {
     console.error('Update preferences error:', error);

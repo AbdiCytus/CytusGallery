@@ -75,4 +75,4 @@ const checkUser = async (req, res, next) => {
   next();
 };
 
-module.exports = { requireAuth, checkUser };
+module.exports = { requireAuth, checkUser, userCache };
