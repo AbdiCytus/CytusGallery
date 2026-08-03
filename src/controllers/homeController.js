@@ -189,14 +189,7 @@ const search = async (req, res) => {
 
   const allTags = `${userTags} ${filterQuery}`.trim();
 
-  if (!allTags) {
-    const validParams = new URLSearchParams();
-    allowedKeys.forEach(k => {
-      if (req.query[k] && k !== 'tags' && k !== 'query') validParams.set(k, req.query[k]);
-    });
-    const qs = validParams.toString();
-    return res.redirect(`/${qs ? '?' + qs : ''}`);
-  }
+  // Block dihapus agar `/search` bisa menangani tags kosong (menampilkan semua).
 
   try {
     const page = parseInt(req.query.page) || 1;
