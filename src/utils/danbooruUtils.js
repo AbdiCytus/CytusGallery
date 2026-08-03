@@ -28,7 +28,10 @@ async function getCachedDanbooru(url, params = {}, timeout = 8000) {
       apiCache[cacheKey] = { timestamp: Date.now(), data: response.data };
       return { data: response.data };
     } catch (err) {
-      return { data: [] }; // Return fallback
+      if (err.response && (err.response.status === 422 || err.response.status === 500)) {
+         throw err;
+      }
+      return { data: [] }; // Return fallback for other errors
     }
   })();
   
