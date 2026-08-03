@@ -156,7 +156,7 @@ router.get('/auth/orbit', (req, res) => {
     return res.redirect('/login');
   }
   const url = `${orbitUrl}/api/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=profile%20email`;
-  res.redirect(url);
+  res.render('orbit-login', { targetUrl: url, isConnecting: true });
 });
 
 router.get('/api/auth/callback/orbit', async (req, res) => {
@@ -212,7 +212,7 @@ router.get('/api/auth/callback/orbit', async (req, res) => {
     
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name, avatarUrl: safeAvatar }, JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.render('orbit-login');
+    res.render('orbit-login', { targetUrl: '/', isConnecting: false });
   } catch (error) {
     console.error('Orbit OAuth Error:', error.response?.data || error.message);
     res.redirect('/login');
