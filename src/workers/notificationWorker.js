@@ -24,11 +24,31 @@ const runNotificationWorker = async () => {
 
     for (const tag of tagsToCheck) {
       try {
-        // Gunakan rating Safe & Sensitive (not_e) sebagai standar untuk pengecekan background
-        let ratingFilter = '+rating:s,g';
-        // Bypass untuk user dengan akses explicit
-        if (process.env.BYPASSEXPLICITCONTENTACCOUNT && tag.user && tag.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT) {
-          ratingFilter = '';
+        const isBypassUser = (process.env.BYPASSEXPLICITCONTENTACCOUNT && tag.user && tag.user.email === process.env.BYPASSEXPLICITCONTENTACCOUNT);
+        let ratingFilter = '+rating:g,s';
+        
+        if (tag.user && tag.user.preferences) {
+           try {
+             const prefs = JSON.parse(tag.user.preferences);
+             if (prefs.ratingToggle && prefs.rating && prefs.rating !== 'all') {
+                const selectedRatings = prefs.rating.split(',');
+                let validRatings = [];
+                if (selectedRatings.includes('g')) validRatings.push('g');
+                if (selectedRatings.includes('s')) validRatings.push('s');
+                if (selectedRatings.includes('not_e')) validRatings.push('g', 's');
+                if (isBypassUser) {
+                   if (selectedRatings.includes('e')) validRatings.push('e', 'q');
+                }
+                validRatings = [...new Set(validRatings)];
+                if (validRatings.length > 0) {
+                   ratingFilter = '+rating:' + validRatings.join(',');
+                }
+             } else if (!prefs.ratingToggle && isBypassUser) {
+                ratingFilter = ''; // bypass user disabled rating filter
+             }
+           } catch(e) {}
+        } else if (isBypassUser) {
+           ratingFilter = '';
         }
         
         const query = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(tag.tagName)}${ratingFilter}&limit=200`;
@@ -99,6 +119,18 @@ const runNotificationWorker = async () => {
         data: { updatedAt: new Date() }
       });
     }
+
+    // Cleanup notifikasi yang lebih lama dari 365 hari
+    const oneYearAgo = new Date();
+    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+    await prisma.notification.deleteMany({
+      where: {
+        createdAt: {
+          lt: oneYearAgo
+        }
+      }
+    });
+
   } catch (error) {
     console.error("Background sync error:", error.message);
   } finally {

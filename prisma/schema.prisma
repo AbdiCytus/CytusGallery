@@ -21,6 +21,7 @@ model User {
   avatarUrl     String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  preferences   String?
   saves         SavedContent[]
   followedTags  FollowedTag[]
   notifications Notification[]

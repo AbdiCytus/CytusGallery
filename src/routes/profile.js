@@ -284,4 +284,21 @@ router.post("/api/save/:id", requireAuth, async (req, res) => {
   }
 });
 
+// =====================================================
+// API: Update User Preferences
+// =====================================================
+router.post("/api/profil/preferences", requireAuth, async (req, res) => {
+  try {
+    const { preferences } = req.body;
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { preferences: typeof preferences === 'string' ? preferences : JSON.stringify(preferences) }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Update preferences error:', error);
+    res.status(500).json({ error: "Gagal menyimpan pengaturan." });
+  }
+});
+
 module.exports = router;

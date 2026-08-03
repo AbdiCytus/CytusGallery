@@ -101,13 +101,34 @@ router.post("/api/notifications/read", requireAuth, async (req, res) => {
 // =====================================================
 router.get("/notifikasi", requireAuth, async (req, res) => {
   try {
-    const notifications = await prisma.notification.findMany({
+    const allDates = await prisma.notification.findMany({
       where: { userId: req.user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 200
+      select: { createdAt: true },
+      orderBy: { createdAt: 'desc' }
     });
     
-    res.render("notifications", { notifications: notifications, hideSearchbar: true });
+    const datesSet = new Set();
+    allDates.forEach(n => {
+       const dateStr = new Date(n.createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' });
+       datesSet.add(dateStr);
+    });
+    const dateChips = Array.from(datesSet);
+    
+    let notifications = [];
+    if (dateChips.length > 0) {
+       const selectedDate = dateChips[0];
+       // find first 100 items of that date
+       // Because it's hard to query by formatted string in prisma, we fetch a chunk and filter, OR we can use createdAt limits
+       // Simpler: fetch 1000, filter by date, take 100
+       const chunk = await prisma.notification.findMany({
+          where: { userId: req.user.id },
+          orderBy: { createdAt: 'desc' },
+          take: 1000
+       });
+       notifications = chunk.filter(n => new Date(n.createdAt).toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' }) === selectedDate).slice(0, 100);
+    }
+    
+    res.render("notifications", { notifications, dateChips, hideSearchbar: true });
   } catch (error) {
     console.error(error);
     if (error && error.message && error.message.includes('planLimitReached')) {
@@ -145,6 +166,43 @@ router.post("/api/notifications/delete", requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Gagal menghapus notifikasi." });
+  }
+});
+
+// =====================================================
+// API: Ambil Notifikasi Berdasarkan Tanggal
+// =====================================================
+router.get("/api/notifications/by-date", requireAuth, async (req, res) => {
+  try {
+    const { date, skip = 0, take = 100 } = req.query;
+    if (!date) return res.status(400).json({ error: "Date is required" });
+    
+    const limit = parseInt(take);
+    const offset = parseInt(skip);
+    
+    // Convert date string 'YYYY-MM-DD' to Start and End of that day in Asia/Makassar
+    // Simplest way is to fetch enough and filter in memory, but that's bad for offset.
+    // Let's create proper Date objects for query:
+    const startDate = new Date(`${date}T00:00:00.000+08:00`);
+    const endDate = new Date(`${date}T23:59:59.999+08:00`);
+    
+    const notifications = await prisma.notification.findMany({
+      where: { 
+        userId: req.user.id,
+        createdAt: {
+          gte: startDate,
+          lte: endDate
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset
+    });
+    
+    res.json(notifications);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Gagal memuat notifikasi." });
   }
 });
 

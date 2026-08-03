@@ -259,7 +259,6 @@
           textArea.select();
           try {
             document.execCommand('copy');
-            showSuccessModal(); // Tampilkan modal sukses
           } catch (err) {
             prompt('Salin link manual:', url);
           }
@@ -282,7 +281,6 @@
           // Coba cara modern dulu (Clipboard API)
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(url);
-            showSuccessModal(); // Tampilkan modal sukses
           } else {
             throw new Error("Clipboard API unavailable");
           }

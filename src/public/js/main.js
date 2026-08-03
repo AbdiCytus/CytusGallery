@@ -726,11 +726,30 @@ document.addEventListener("DOMContentLoaded", () => {
       themeToggle: document.getElementById("theme-toggle") ? document.getElementById("theme-toggle").checked : false,
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+    
+    fetch("/api/profil/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preferences: filters })
+    }).catch(() => {});
   };
 
   const loadFiltersToUI = () => {
     if (!filterForm) return;
-    let filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+    
+    let filters = null;
+    const headerConfig = document.getElementById('cytus-header-config');
+    if (headerConfig && headerConfig.dataset.preferences) {
+      try {
+        filters = JSON.parse(headerConfig.dataset.preferences);
+        localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+      } catch(e) {}
+    }
+    
+    if (!filters) {
+      filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+    }
+    
     let wasMissing = false;
     if (!filters) {
       filters = {
@@ -1050,22 +1069,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Case 1: Menonaktifkan filter rating
       if (changedElement.id === "rating-toggle" && !changedElement.checked) {
-        // Cek apakah peringatan ini sudah pernah ditampilkan di sesi ini
-        if (sessionStorage.getItem("ratingFilterWarningShown") === "true") {
-          saveFilters(); // Jika sudah, langsung simpan tanpa menampilkan alert
-        } else {
-          // Jika belum, tampilkan alert
-          const confirmAction = () => {
-            saveFilters();
-            // Tandai bahwa alert sudah ditampilkan untuk sesi ini
-            sessionStorage.setItem("ratingFilterWarningShown", "true");
-          };
-          showAlert(
-            "Nonaktifkan Filter Rating?",
-            "Ini akan menampilkan semua jenis konten, termasuk yang bersifat dewasa. Lanjutkan?",
-            confirmAction
-          );
-        }
+        saveFilters(); // Langsung simpan tanpa alert
       }
 
       // Case 2: Mengaktifkan filter explicit
