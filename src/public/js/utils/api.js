@@ -177,8 +177,11 @@ window.handleFollowBtnClick = function(btnEl) {
   const tagStates = tagStatesStr.split(',').map(s => s === 'true');
   
   if (!isCurrentlyFollowed) {
-    if (typeof window.showAlert === 'function') {
+    if (sessionStorage.getItem('followTagAlertShown')) {
+      window.toggleFollowSearchTags(btnEl, tagsStr, isCurrentlyFollowed, tagStates);
+    } else if (typeof window.showAlert === 'function') {
       window.showAlert("Ikuti Tag?", "Ketika mengikuti, Anda akan mendapatkan notifikasi jika ada konten terbaru pada tag ini", () => {
+        sessionStorage.setItem('followTagAlertShown', 'true');
         window.toggleFollowSearchTags(btnEl, tagsStr, isCurrentlyFollowed, tagStates);
       });
       const confirmBtn = document.getElementById("custom-alert-confirm");

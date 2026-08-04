@@ -36,16 +36,21 @@
 
     window.goToHome = function(e) {
       e.preventDefault();
-      const savedTab = localStorage.getItem("cytusGalleryActiveTab") || "contents";
-      let target = "/search";
-      if (savedTab !== "contents") target += "?tab=" + savedTab;
-      
-      const loader = document.getElementById('loading-overlay');
-      if (loader) {
-        loader.style.transitionDuration = '100ms';
-        loader.classList.remove('opacity-0', 'pointer-events-none');
+      if (typeof window.navigateWithFilters === 'function') {
+        const isSearchPage = window.location.pathname === '/' || window.location.pathname === '/search';
+        window.navigateWithFilters("", 1, null, isSearchPage);
+      } else {
+        const savedTab = localStorage.getItem("cytusGalleryActiveTab") || "contents";
+        let target = "/search";
+        if (savedTab !== "contents") target += "?tab=" + savedTab;
+        
+        const loader = document.getElementById('loading-overlay');
+        if (loader) {
+          loader.style.transitionDuration = '100ms';
+          loader.classList.remove('opacity-0', 'pointer-events-none');
+        }
+        window.location.href = target;
       }
-      window.location.href = target;
     };
 
     window.addEventListener('beforeunload', () => {

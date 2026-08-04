@@ -327,6 +327,19 @@
           <a href="/notifikasi" class="text-sm text-cyan-400 hover:text-cyan-300 font-bold block py-1">Lihat Semua Notifikasi</a>
         </div>
       </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const currentPath = window.location.pathname;
+          const navLinks = document.querySelectorAll('header nav a[href], #sidebar nav a[href]');
+          navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href === currentPath || (currentPath === '/' && href === '/search')) {
+              link.classList.remove('text-gray-300', 'text-gray-400');
+              link.classList.add('text-cyan-400', 'font-bold');
+            }
+          });
+        });
+      </script>
     </nav>
   </header>
   <% if (locals.hideSearchbar !== true) { %>

@@ -354,7 +354,7 @@ const search = async (req, res) => {
       const sliderFilter = tab === "followed" ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       if (actualUserTags) {
          const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
-         sliderTitle = tagsCount >= 2 ? "Trending Contents" : "Top Contents";
+         sliderTitle = tagsCount >= 2 ? "Best Recent Contents" : "Top Contents";
          sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);
       } else {
          sliderPosts = await getTopPostsThisMonth(15, sliderFilter);

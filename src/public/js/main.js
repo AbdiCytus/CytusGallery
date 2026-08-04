@@ -270,6 +270,10 @@ document.addEventListener("DOMContentLoaded", () => {
         iconWrapper.className = 'flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-green-900/50';
         icon.setAttribute('class', 'w-6 h-6 text-green-400');
         icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+      } else if (title.toLowerCase().includes('ikuti tag')) {
+        iconWrapper.className = 'flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-cyan-900/50';
+        icon.setAttribute('class', 'w-6 h-6 text-cyan-400');
+        icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>';
       } else {
         iconWrapper.className = 'flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-red-900/50';
         icon.setAttribute('class', 'w-6 h-6 text-red-400');
