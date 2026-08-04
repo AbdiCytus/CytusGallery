@@ -135,6 +135,7 @@ app.get("/bantuan", (req, res) => res.render("bantuan", { hideSearchbar: true })
 // =====================================================
 const { runNotificationWorker } = require('./workers/notificationWorker');
 const { getCachedDanbooru, getTotalPosts, getSliderTags, basePostsURL } = require('./utils/danbooruUtils');
+const { initRedis } = require('./lib/redis');
 
 runNotificationWorker();
 setInterval(runNotificationWorker, 5 * 60 * 1000); // setiap 5 menit
@@ -160,8 +161,10 @@ setInterval(warmUpCache, 8 * 60 * 1000);
 // =====================================================
 // Run Server
 // =====================================================
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server CytusGallery berjalan di http://[0.0.0.0]:${PORT}`);
+initRedis().then(() => {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server CytusGallery berjalan di http://[0.0.0.0]:${PORT}`);
+  });
 });
 
 module.exports = app;

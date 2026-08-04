@@ -3,7 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 const prisma = require('../lib/prisma');
 const { requireAuth } = require('../middlewares/authMiddleware');
-const { apiCache, getCachedDanbooru, baseTagURL } = require('../utils/danbooruUtils');
+const { deleteCacheData, getCachedDanbooru, baseTagURL } = require('../utils/danbooruUtils');
 
 // =====================================================
 // API: Follow / Unfollow Tag
@@ -21,7 +21,7 @@ router.post("/api/follow", requireAuth, async (req, res) => {
       await prisma.followedTag.delete({
         where: { id: existing.id }
       });
-      delete apiCache[`userAppData_${userId}`];
+      await deleteCacheData(`userAppData_${userId}`);
       res.json({ followed: false, message: "Berhasil unfollow tag." });
     } else {
       const currentCount = await prisma.followedTag.count({ where: { userId } });
@@ -42,7 +42,7 @@ router.post("/api/follow", requireAuth, async (req, res) => {
       await prisma.followedTag.create({
         data: { userId, tagName, tagType: parseInt(tagType), lastPostId }
       });
-      delete apiCache[`userAppData_${userId}`];
+      await deleteCacheData(`userAppData_${userId}`);
       res.json({ followed: true, message: "Berhasil follow tag." });
     }
   } catch (error) {

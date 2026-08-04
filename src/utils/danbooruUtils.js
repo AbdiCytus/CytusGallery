@@ -1,21 +1,63 @@
 const axios = require('axios');
 const prisma = require('../lib/prisma');
+const { getRedisClient, isConnected } = require('../lib/redis');
 
 //Base API URL
 const baseTagURL = "https://danbooru.donmai.us/tags.json";
 const basePostsURL = "https://danbooru.donmai.us/posts.json";
 const baseCountsPostsURL = "https://danbooru.donmai.us/counts/posts.json";
 
-const apiCache = {};
+const inMemoryCache = {}; // Fallback cache
 const CACHE_TTL = 10 * 60 * 1000; // 10 menit
 const USER_APP_DATA_TTL = 30 * 1000; // 30 seconds
+
+async function getCacheData(key) {
+  if (isConnected()) {
+    try {
+      const data = await getRedisClient().get(key);
+      if (data) return JSON.parse(data);
+    } catch (err) {
+      console.error("Redis GET error:", err);
+    }
+  } else {
+    const cached = inMemoryCache[key];
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      return cached.data;
+    }
+  }
+  return null;
+}
+
+async function setCacheData(key, data, ttlMs = CACHE_TTL) {
+  if (isConnected()) {
+    try {
+      await getRedisClient().setEx(key, Math.max(1, Math.ceil(ttlMs / 1000)), JSON.stringify(data));
+    } catch (err) {
+      console.error("Redis SET error:", err);
+    }
+  } else {
+    inMemoryCache[key] = { timestamp: Date.now(), data, ttl: ttlMs };
+  }
+}
+
+async function deleteCacheData(key) {
+  if (isConnected()) {
+    try {
+      await getRedisClient().del(key);
+    } catch (err) {
+      console.error("Redis DEL error:", err);
+    }
+  }
+  delete inMemoryCache[key];
+}
 
 const inFlightRequests = {};
 async function getCachedDanbooru(url, params = {}, timeout = 8000) {
   const cacheKey = `danbooru_${url}_${JSON.stringify(params)}`;
   
-  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-    return { data: apiCache[cacheKey].data };
+  const cachedData = await getCacheData(cacheKey);
+  if (cachedData) {
+    return { data: cachedData };
   }
   
   if (inFlightRequests[cacheKey]) {
@@ -25,7 +67,7 @@ async function getCachedDanbooru(url, params = {}, timeout = 8000) {
   const reqPromise = (async () => {
     try {
       const response = await axios.get(url, { params: params, timeout: timeout });
-      apiCache[cacheKey] = { timestamp: Date.now(), data: response.data };
+      await setCacheData(cacheKey, response.data, CACHE_TTL);
       return { data: response.data };
     } catch (err) {
       if (err.response && (err.response.status === 422 || err.response.status === 500)) {
@@ -80,10 +122,6 @@ async function getTopPostsThisMonth(limit, filter = "") {
 
 async function getTopPosts(tags, filter = "", limit) {
   try {
-    // The manual totalTags check has been removed.
-    // Danbooru allows up to 2 "General" tags. Metatags like rating:, order:, date: do NOT count.
-    // If the query exceeds the true limit, Danbooru will return 422, which is properly caught below and triggers the fallback.
-
     const query = `${tags} ${filter} order:score`.trim();
     const params = { tags: query, limit: limit };
     const response = await getCachedDanbooru(basePostsURL, params, 8000);
@@ -105,9 +143,14 @@ async function getTopPosts(tags, filter = "", limit) {
 
 async function getUserAppData(userId) {
   const cacheKey = `userAppData_${userId}`;
-  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < USER_APP_DATA_TTL) {
-    return apiCache[cacheKey].data;
+  const cachedData = await getCacheData(cacheKey);
+  if (cachedData) {
+    if (cachedData.savedPostIds && Array.isArray(cachedData.savedPostIds)) {
+      cachedData.savedPostIds = new Set(cachedData.savedPostIds);
+    }
+    return cachedData;
   }
+  
   let hasFollowedTags = false;
   let followedTags = [];
   let savedPostIds = new Set();
@@ -136,16 +179,15 @@ async function getUserAppData(userId) {
   } catch(e) {
     console.error("getUserAppData Prisma error:", e.message);
   }
-  const result = { hasFollowedTags, followedTags, savedPostIds };
-  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
-  return result;
+  const resultToCache = { hasFollowedTags, followedTags, savedPostIds: Array.from(savedPostIds) };
+  await setCacheData(cacheKey, resultToCache, USER_APP_DATA_TTL);
+  return { hasFollowedTags, followedTags, savedPostIds };
 }
 
 async function getSliderTags(category) {
   const cacheKey = `sliderTags_${category}`;
-  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-    return apiCache[cacheKey].data;
-  }
+  const cachedData = await getCacheData(cacheKey);
+  if (cachedData) return cachedData;
 
   const tagsResponse = await axios.get(baseTagURL, {
     params: {
@@ -161,21 +203,20 @@ async function getSliderTags(category) {
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   const result = pool.slice(0, 15);
-  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
+  await setCacheData(cacheKey, result, CACHE_TTL);
   return result;
 }
 
 async function getTotalPosts(limit) {
   const cacheKey = `totalPosts_${limit}`;
-  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-    return apiCache[cacheKey].data;
-  }
+  const cachedData = await getCacheData(cacheKey);
+  if (cachedData) return cachedData;
   
   const getCounts = await axios.get(baseCountsPostsURL, { timeout: 8000 }).catch(e => ({ data: { counts: { posts: 100 } } }));
   const totalPosts = getCounts.data?.counts?.posts || 100;
   const totalPages = Math.ceil(totalPosts / limit);
   const result = { totalPosts, totalPages };
-  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
+  await setCacheData(cacheKey, result, CACHE_TTL);
   return result;
 }
 
@@ -186,9 +227,8 @@ async function getTotalPostsWithParams(tags, query, limit) {
   }
 
   const cacheKey = `totalPostsParams_${combinedTags}_${limit}`;
-  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-    return apiCache[cacheKey].data;
-  }
+  const cachedData = await getCacheData(cacheKey);
+  if (cachedData) return cachedData;
 
   let totalPosts;
   let fallbackResponse;
@@ -215,26 +255,32 @@ async function getTotalPostsWithParams(tags, query, limit) {
     totalPosts,
     totalPages: Math.ceil(totalPosts / limit)
   };
-  apiCache[cacheKey] = { timestamp: Date.now(), data: result };
+  await setCacheData(cacheKey, result, CACHE_TTL);
   return result;
 }
 
 async function getCachedPosts(params) {
   const cacheKey = `posts_${params.tags || ''}_${params.page}_${params.limit}`;
-  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-    return apiCache[cacheKey].data;
+  const cachedData = await getCacheData(cacheKey);
+  if (cachedData) return cachedData;
+  
+  const response = await getCachedDanbooru(basePostsURL, params, 8000).catch(e => ({ data: [], error: true }));
+  
+  if (response.error || !response.data || response.data.length === 0) {
+    // Jangan cache hasil yang kosong akibat error terlalu lama
+    await setCacheData(cacheKey, response, 10000); // 10 detik saja
+  } else {
+    await setCacheData(cacheKey, response, CACHE_TTL);
   }
-  const response = await getCachedDanbooru(basePostsURL, params, 8000).catch(e => ({ data: [] }));
-  apiCache[cacheKey] = { timestamp: Date.now(), data: response };
+  
   return response;
 }
 
 async function getFollowedContents(userId, filterQuery, page, limit, isBypass, followedTagsFilter = null) {
   const filterKey = followedTagsFilter ? followedTagsFilter.join(',') : 'all';
   const cacheKey = `followedContents_${userId}_${filterQuery}_${page}_${limit}_${isBypass}_${filterKey}`;
-  if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-    return apiCache[cacheKey].data;
-  }
+  const cachedData = await getCacheData(cacheKey);
+  if (cachedData) return cachedData;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -277,15 +323,17 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass, f
       const tName = `${tag.tagName} ${baseTags}`.trim();
       const chunkCacheKey = `danbooruChunk_${tName}_${c}_${chunkLimit}`;
       
-      if (apiCache[chunkCacheKey] && Date.now() - apiCache[chunkCacheKey].timestamp < CACHE_TTL) {
-         results[idx] = apiCache[chunkCacheKey].data;
-      } else {
-         networkTasks.push(async () => {
-           const res = await getCachedDanbooru(basePostsURL, { tags: tName, page: c, limit: chunkLimit }, 12000);
-           const data = res.data || [];
-           results[idx] = data;
-         });
-      }
+      networkTasks.push(async () => {
+        const cData = await getCacheData(chunkCacheKey);
+        if (cData) {
+          results[idx] = cData;
+        } else {
+          const res = await getCachedDanbooru(basePostsURL, { tags: tName, page: c, limit: chunkLimit }, 12000);
+          const data = res.data || [];
+          results[idx] = data;
+          await setCacheData(chunkCacheKey, data, CACHE_TTL);
+        }
+      });
     }
   });
 
@@ -344,7 +392,7 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass, f
     totalPosts: uniquePosts.length,
     hasFollowedTags: true 
   };
-  apiCache[cacheKey] = { timestamp: Date.now(), data: finalResult };
+  await setCacheData(cacheKey, finalResult, CACHE_TTL);
   return finalResult;
 }
 
@@ -352,9 +400,11 @@ module.exports = {
   baseTagURL,
   basePostsURL,
   baseCountsPostsURL,
-  apiCache,
   CACHE_TTL,
   USER_APP_DATA_TTL,
+  getCacheData,
+  setCacheData,
+  deleteCacheData,
   getCachedDanbooru,
   getTopPostsThisMonth,
   getTopPosts,

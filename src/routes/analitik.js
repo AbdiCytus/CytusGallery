@@ -5,7 +5,7 @@ const axios = require('axios').create({
 });
 const prisma = require('../lib/prisma');
 const { requireAuth } = require('../middlewares/authMiddleware');
-const { apiCache, CACHE_TTL } = require('../utils/danbooruUtils');
+const { getCacheData, setCacheData, CACHE_TTL } = require('../utils/danbooruUtils');
 
 const ALLOWED_CATEGORIES = [1, 3, 4];
 const CAT_LABELS = { 1: 'Artist', 3: 'Copyright', 4: 'Character' };
@@ -20,7 +20,8 @@ router.get("/analitik", requireAuth, async (req, res) => {
 
     const getGlobalTags = async () => {
       const cacheKey = 'analitik_globalTags';
-      if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) return apiCache[cacheKey].data;
+      const cached = await getCacheData(cacheKey);
+      if (cached) return cached;
       const globalTags = { copyright: [], character: [], artist: [] };
       const catMap = { 3: 'copyright', 4: 'character', 1: 'artist' };
       try {
@@ -31,7 +32,7 @@ router.get("/analitik", requireAuth, async (req, res) => {
           });
           if (resp.data && Array.isArray(resp.data)) globalTags[catMap[cat]] = resp.data.map(t => ({ name: t.name, count: t.post_count, category: t.category }));
         }));
-        apiCache[cacheKey] = { timestamp: Date.now(), data: globalTags };
+        await setCacheData(cacheKey, globalTags, CACHE_TTL);
       } catch(e) {}
       return globalTags;
     };
@@ -51,7 +52,8 @@ router.get("/analitik", requireAuth, async (req, res) => {
       const qStr = lastQuarter.toISOString().split('T')[0];
 
       const cacheKey = 'analitik_trendingTags_' + yStr;
-      if (apiCache[cacheKey]) return apiCache[cacheKey].data;
+      const cached = await getCacheData(cacheKey);
+      if (cached) return cached;
       
       const trendingTags = { 
         day: { copyright: [], character: [], artist: [] }, 
@@ -104,7 +106,7 @@ router.get("/analitik", requireAuth, async (req, res) => {
             }
           } catch(e) {}
         }));
-        apiCache[cacheKey] = { timestamp: Date.now(), data: trendingTags };
+        await setCacheData(cacheKey, trendingTags, CACHE_TTL);
       } catch(e) {}
       return trendingTags;
     };
@@ -162,8 +164,9 @@ router.get("/analitik", requireAuth, async (req, res) => {
       if (topRaw.length > 0) {
         try {
           const cacheKey = 'analitik_collectionTags_v2_' + userId;
-          if (apiCache[cacheKey] && Date.now() - apiCache[cacheKey].timestamp < CACHE_TTL) {
-            topCollectionTags = apiCache[cacheKey].data;
+          const cached = await getCacheData(cacheKey);
+          if (cached) {
+            topCollectionTags = cached;
           } else {
             const names = topRaw.map(t => t[0]).join(',');
             const resp = await axios.get('https://danbooru.donmai.us/tags.json', { params: { 'search[name_comma]': names, 'limit': 50 }, timeout: 5000 });
@@ -172,7 +175,7 @@ router.get("/analitik", requireAuth, async (req, res) => {
               resp.data.forEach(t => { catLookup[t.name] = t.category; });
               topCollectionTags = topRaw.filter(([name]) => ALLOWED_CATEGORIES.includes(catLookup[name]))
                 .slice(0, 3).map(([name, count]) => ({ name, count, category: catLookup[name], categoryLabel: CAT_LABELS[catLookup[name]] }));
-              apiCache[cacheKey] = { timestamp: Date.now(), data: topCollectionTags };
+              await setCacheData(cacheKey, topCollectionTags, CACHE_TTL);
             }
           }
         } catch(e) {}

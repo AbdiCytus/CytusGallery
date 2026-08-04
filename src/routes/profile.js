@@ -3,7 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 const prisma = require('../lib/prisma');
 const { requireAuth, userCache } = require('../middlewares/authMiddleware');
-const { apiCache, getCachedDanbooru } = require('../utils/danbooruUtils');
+const { deleteCacheData, getCachedDanbooru } = require('../utils/danbooruUtils');
 
 // =====================================================
 // Halaman Profil
@@ -253,7 +253,7 @@ router.post("/api/save/:id", requireAuth, async (req, res) => {
       await prisma.savedContent.delete({
         where: { id: existingSave.id }
       });
-      delete apiCache[`userAppData_${userId}`];
+      await deleteCacheData(`userAppData_${userId}`);
       res.json({ saved: false, message: "Berhasil dihapus dari koleksi." });
     } else {
       let imageUrl = null, fileUrl = null, extension = null, rating = null, score = null, size = null, uploadedAt = null, source = null, tags = null;
@@ -275,7 +275,7 @@ router.post("/api/save/:id", requireAuth, async (req, res) => {
       await prisma.savedContent.create({
         data: { userId, postId, imageUrl, fileUrl, extension, rating, score, size, uploadedAt, source, tags }
       });
-      delete apiCache[`userAppData_${userId}`];
+      await deleteCacheData(`userAppData_${userId}`);
       res.json({ saved: true, message: "Berhasil disimpan ke koleksi." });
     }
   } catch (error) {
