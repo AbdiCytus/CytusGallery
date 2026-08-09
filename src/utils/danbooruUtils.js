@@ -18,6 +18,11 @@ async function getCacheData(key) {
       if (data) return JSON.parse(data);
     } catch (err) {
       console.error("Redis GET error:", err);
+      // Fallback ke in-memory jika Redis konek tapi command gagal (misal rate limit)
+      const cached = inMemoryCache[key];
+      if (cached && Date.now() - cached.timestamp < cached.ttl) {
+        return cached.data;
+      }
     }
   } else {
     const cached = inMemoryCache[key];
