@@ -1176,6 +1176,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (searchForm) {
     searchForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      document.activeElement?.blur();
       
       // Process any remaining text in visual input as a chip before submitting
       if (searchInputVisual && searchInputVisual.value.trim()) {
