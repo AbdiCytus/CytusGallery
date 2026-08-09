@@ -142,6 +142,13 @@ const root = async (req, res) => {
       posts = contents.data || [];
       totalPosts = stats.totalPosts;
       totalPages = stats.totalPages;
+
+      // Pre-fetch halaman berikutnya di background
+      if (posts.length > 0 && page < totalPages) {
+        setImmediate(() => {
+          getCachedPosts({ tags: baseTags, page: page + 1, limit: limit }).catch(() => {});
+        });
+      }
     }
 
     let sliderPosts = [];
@@ -326,6 +333,13 @@ const search = async (req, res) => {
       posts = contents.data || [];
       totalPages = stats.totalPages;
       totalPosts = stats.totalPosts;
+
+      // Pre-fetch halaman berikutnya di background
+      if (posts.length > 0 && page < totalPages) {
+        setImmediate(() => {
+          getCachedPosts({ tags: allTags, page: page + 1, limit: limit }).catch(() => {});
+        });
+      }
     }
 
     let smartSearchTags = [];
