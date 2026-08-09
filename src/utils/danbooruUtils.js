@@ -342,7 +342,7 @@ async function getFollowedContents(userId, filterQuery, page, limit, isBypass, f
     }
   });
 
-  const batchSize = 10;
+  const batchSize = 15;
   for (let b = 0; b < networkTasks.length; b += batchSize) {
     const batch = networkTasks.slice(b, b + batchSize);
     await Promise.all(batch.map(fn => fn()));

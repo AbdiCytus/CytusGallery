@@ -119,6 +119,14 @@ const root = async (req, res) => {
       totalPosts = result.totalPosts;
       totalPages = result.totalPages;
       hasFollowedTags = result.hasFollowedTags;
+
+      // Pre-fetch halaman berikutnya di background agar navigasi next terasa instan
+      if (page < result.totalPages) {
+        setImmediate(() => {
+          getFollowedContents(res.locals.user.id, "", page + 1, limit, res.locals.isBypass, followedTagsFilter)
+            .catch(() => {});
+        });
+      }
     } else {
       let baseTags = "";
       if (!res.locals.isBypass) {
@@ -301,6 +309,14 @@ const search = async (req, res) => {
       totalPosts = result.totalPosts;
       totalPages = result.totalPages;
       hasFollowedTags = result.hasFollowedTags;
+
+      // Pre-fetch halaman berikutnya di background agar navigasi next terasa instan
+      if (page < result.totalPages) {
+        setImmediate(() => {
+          getFollowedContents(res.locals.user.id, filterQuery, page + 1, limit, res.locals.isBypass, followedTagsFilter)
+            .catch(() => {});
+        });
+      }
     } else {
       const contentsParams = { tags: allTags, page: page, limit: limit };
       const [contents, stats] = await Promise.all([
