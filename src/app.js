@@ -138,7 +138,7 @@ const { getCachedDanbooru, getTotalPosts, getSliderTags, basePostsURL } = requir
 const { initRedis } = require('./lib/redis');
 
 runNotificationWorker();
-setInterval(runNotificationWorker, 5 * 60 * 1000); // setiap 5 menit
+setInterval(runNotificationWorker, 30 * 60 * 1000); // [S2] setiap 30 menit
 
 async function warmUpCache() {
   try {

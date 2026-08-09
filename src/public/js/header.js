@@ -211,6 +211,8 @@
         });
 
         async function fetchNotifications() {
+          // [Fix #4] Skip polling jika tab tidak aktif/di-minimize
+          if (document.visibilityState === 'hidden') return;
           try {
             const filters = JSON.parse(localStorage.getItem('cytusGalleryFilters') || '{}');
             let ratingParam = filters.rating || 'not_e'; // default
@@ -284,5 +286,12 @@
         
         fetchNotifications();
         setInterval(fetchNotifications, 120 * 1000); // 2 menit
+
+        // [Fix #4] Langsung fetch saat user kembali ke tab setelah lama pergi
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            fetchNotifications();
+          }
+        });
       }
     });

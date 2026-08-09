@@ -72,4 +72,6 @@ model Notification {
   extension   String?
   rating      String?
   createdAt   DateTime @default(now())
+
+  @@unique([userId, link])
 }
