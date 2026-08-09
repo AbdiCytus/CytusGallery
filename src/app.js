@@ -41,8 +41,27 @@ app.set("trust proxy", 1);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Static Files
-app.use(express.static(path.join(__dirname, "public")));
+// Static Files — dengan Cache-Control eksplisit per tipe file
+app.use(express.static(path.join(__dirname, "public"), {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (/\.(js|css)$/.test(filePath)) {
+      // JS & CSS: cache 1 jam, revalidasi dengan ETag
+      // → Saat deploy update, ETag berubah → browser fetch versi baru
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    } else if (/\.(png|jpg|jpeg|gif|svg|ico|webp)$/.test(filePath)) {
+      // Gambar/ikon statis milik kita: cache 1 hari
+      res.setHeader('Cache-Control', 'public, max-age=86400, must-revalidate');
+    } else if (/\.(woff2?|ttf|eot|otf)$/.test(filePath)) {
+      // Font: cache 1 minggu (sangat jarang berubah)
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    } else {
+      // File lain (json, txt, dll): cache 1 jam
+      res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    }
+  }
+}));
 
 // Core Middleware
 app.use(express.urlencoded({ extended: true }));
@@ -52,6 +71,8 @@ app.use(checkUser);
 
 app.use((req, res, next) => {
   res.locals.tags = req.query.tags || "";
+  // no-store hanya berlaku untuk halaman dinamis (HTML server-rendered).
+  // Static assets sudah ditangani oleh express.static di atas middleware ini.
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   next();
 });
