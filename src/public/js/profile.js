@@ -379,6 +379,14 @@
             const doc = parser.parseFromString(text, 'text/html');
             const newContent = doc.getElementById('koleksi-results');
             if (newContent && koleksiResults) {
+               // [Fix #4] Simpan state tampilan (masonry/data) sebelum konten diganti
+               const isDataViewActive = (() => {
+                 const data = document.getElementById('koleksi-data');
+                 const masonry = document.getElementById('koleksi-masonry');
+                 if (!data || !masonry) return false;
+                 return !data.classList.contains('hidden') && masonry.classList.contains('hidden');
+               })();
+
                koleksiResults.innerHTML = newContent.innerHTML;
                window.history.replaceState({}, '', url.toString());
                currentPage = 1;
@@ -388,24 +396,37 @@
                const ratingSelect = profilForm.querySelector('select[name="rating"]');
                currentRating = ratingSelect ? ratingSelect.value : '';
               
-              const newInput = document.getElementById('koleksi-search-input');
-              if (newInput) {
-                newInput.focus();
-                const valLen = newInput.value.length;
-                newInput.setSelectionRange(valLen, valLen);
-              }
+               // [Fix #2] Tidak memanggil .focus() agar keyboard mobile tidak muncul kembali
               
-              if (typeof window.initializeMasonry === 'function') {
-                window.initializeMasonry();
-              }
+               if (typeof window.initializeMasonry === 'function') {
+                 window.initializeMasonry();
+               }
               
-              // Update jumlah koleksi di tab
-              const newTabBtn = doc.getElementById('tab-koleksi-btn');
-              const tabBtn = document.getElementById('tab-koleksi-btn');
-              if (newTabBtn && tabBtn) {
-                tabBtn.textContent = newTabBtn.textContent;
-              }
-            }
+               // [Fix #4] Kembalikan state tampilan setelah konten diganti
+               if (isDataViewActive) {
+                 const viewMasonry = document.getElementById('koleksi-masonry');
+                 const viewData = document.getElementById('koleksi-data');
+                 const btnMasonry = document.getElementById('view-masonry-btn');
+                 const btnData = document.getElementById('view-data-btn');
+                 if (viewMasonry) viewMasonry.classList.add('hidden');
+                 if (viewData) viewData.classList.remove('hidden');
+                 if (btnMasonry) {
+                   btnMasonry.classList.replace('bg-cyan-600', 'bg-gray-700');
+                   btnMasonry.classList.replace('text-white', 'text-gray-400');
+                 }
+                 if (btnData) {
+                   btnData.classList.replace('bg-gray-700', 'bg-cyan-600');
+                   btnData.classList.replace('text-gray-400', 'text-white');
+                 }
+               }
+
+               // Update jumlah koleksi di tab
+               const newTabBtn = doc.getElementById('tab-koleksi-btn');
+               const tabBtn = document.getElementById('tab-koleksi-btn');
+               if (newTabBtn && tabBtn) {
+                 tabBtn.textContent = newTabBtn.textContent;
+               }
+             }
          } catch(err) {
             profilForm.submit();
          }

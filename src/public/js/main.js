@@ -1422,6 +1422,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const searchInput = document.getElementById("search-input");
     if (searchInput) searchInput.value = "";
+    // [Fix #3] Bersihkan juga elemen visual input dan chip tags agar UI benar-benar bersih
+    const searchInputVisualEl = document.getElementById("search-input-visual");
+    const searchChipsEl = document.getElementById("search-chips");
+    if (searchInputVisualEl) searchInputVisualEl.value = "";
+    if (searchChipsEl) searchChipsEl.innerHTML = "";
     sessionStorage.removeItem("lastSearchTags");
 
     const currentPath = window.location.pathname;
@@ -1497,6 +1502,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       showLoader("Memuat...");
     }
+    
+    // [Fix #1] Sembunyikan keyboard mobile setelah user tekan Enter di search
+    document.activeElement?.blur();
     
     navigateWithFilters(document.getElementById("search-input").value, 1);
   };
