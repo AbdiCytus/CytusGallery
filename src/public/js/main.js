@@ -819,7 +819,26 @@ document.addEventListener("DOMContentLoaded", () => {
       themeToggle: document.getElementById("theme-toggle") ? document.getElementById("theme-toggle").checked : false,
     };
     localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+    
+    // Save to cookie so server can read it for SSR (like related posts)
+    let ratingCookieVal = "";
+    if (filters.ratingToggle && filters.rating) {
+      ratingCookieVal = filters.rating;
+    }
+    document.cookie = "cytusGalleryRatingFilter=" + encodeURIComponent(ratingCookieVal) + "; path=/; max-age=31536000";
   };
+
+  const syncCookieFilter = () => {
+    let filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
+    if (filters) {
+      let ratingCookieVal = "";
+      if (filters.ratingToggle && filters.rating) {
+        ratingCookieVal = filters.rating;
+      }
+      document.cookie = "cytusGalleryRatingFilter=" + encodeURIComponent(ratingCookieVal) + "; path=/; max-age=31536000";
+    }
+  };
+  syncCookieFilter(); // Run on every page load to ensure cookie matches localStorage
 
   const loadFiltersToUI = () => {
     if (!filterForm) return;
@@ -837,6 +856,7 @@ document.addEventListener("DOMContentLoaded", () => {
         lazyloadToggle: true,
       };
       localStorage.setItem("cytusGalleryFilters", JSON.stringify(filters));
+      document.cookie = "cytusGalleryRatingFilter=g; path=/; max-age=31536000";
       wasMissing = true;
     }
     const {
@@ -850,6 +870,14 @@ document.addEventListener("DOMContentLoaded", () => {
       scrollToggle,
       themeToggle,
     } = filters;
+    
+    // Sync cookie
+    let ratingCookieVal = "";
+    if (ratingToggle && rating) {
+      ratingCookieVal = rating;
+    }
+    document.cookie = "cytusGalleryRatingFilter=" + encodeURIComponent(ratingCookieVal) + "; path=/; max-age=31536000";
+
     const ratingToggleEl = document.getElementById("rating-toggle");
     if (ratingToggleEl) {
       ratingToggleEl.checked = ratingToggle;

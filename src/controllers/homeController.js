@@ -503,7 +503,70 @@ const detail = async (req, res) => {
       followedTags = follows.map(f => f.tagName);
     }
 
-    res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags });
+    let relatedPosts = [];
+    try {
+      let searchTags = [];
+      if (post.tag_string_character) {
+        searchTags = post.tag_string_character.split(' ').slice(0, 1);
+      } else if (post.tag_string_copyright) {
+        searchTags = post.tag_string_copyright.split(' ').slice(0, 1);
+      } else if (post.tag_string_artist) {
+        searchTags = post.tag_string_artist.split(' ').slice(0, 1);
+      } else if (post.tag_string_general) {
+        searchTags = post.tag_string_general.split(' ').slice(0, 1);
+      }
+      
+      if (searchTags.length > 0) {
+         let filterStr = searchTags.join(' ');
+         
+         const activeRatingFilter = req.cookies?.cytusGalleryRatingFilter;
+         
+         let requestedRatings = [];
+         if (activeRatingFilter !== undefined && activeRatingFilter !== "") {
+            requestedRatings = decodeURIComponent(activeRatingFilter).split(',');
+         } else {
+            requestedRatings = ['g', 's'];
+         }
+         
+         let allowedRatings = [];
+         if (!res.locals.isBypass) {
+            // Non-bypass users can only request 'g' or 's'
+            allowedRatings = requestedRatings.filter(r => r === 'g' || r === 's');
+            if (allowedRatings.length === 0) {
+               allowedRatings = ['g', 's']; // Fallback
+            }
+         } else {
+            allowedRatings = requestedRatings;
+         }
+         
+         filterStr += " rating:" + allowedRatings.join(',');
+         
+         const relatedRes = await getCachedPosts({ tags: filterStr, page: 1, limit: 50 });
+         let fetchedPosts = (relatedRes.data || []).filter(p => p.id !== post.id);
+         
+         // Strict manual filtering to ensure API quirks don't leak unselected ratings
+         if (allowedRatings.length > 0) {
+             fetchedPosts = fetchedPosts.filter(p => allowedRatings.includes(p.rating));
+         }
+         
+         // Fisher-Yates shuffle
+         for (let i = fetchedPosts.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [fetchedPosts[i], fetchedPosts[j]] = [fetchedPosts[j], fetchedPosts[i]];
+         }
+         relatedPosts = fetchedPosts.slice(0, 25);
+      }
+    } catch (e) {
+      console.error("Error fetching related posts:", e.message);
+    }
+    
+    let savedPostIds = new Set();
+    if (res.locals.user) {
+      const appData = await getUserAppData(res.locals.user.id);
+      savedPostIds = appData.savedPostIds;
+    }
+
+    res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags, relatedPosts: relatedPosts, savedPostIds: savedPostIds });
   } catch (error) {
     console.error("Error fetching post details:", error);
     if (error && error.message && error.message.includes('planLimitReached')) {

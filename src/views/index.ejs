@@ -145,7 +145,8 @@
     <% if (post.large_file_url) { %>
     <% const isVideo = post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm'); %>
     <% const previewUrl = isVideo ? (post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
-    <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
+    <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
+    <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden <%= isSaved ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
       <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
         <%= ((currentPage - 1) * limit) + validIndex + 1 %>
       </div>
@@ -193,7 +194,6 @@
           <div class="flex gap-2 mt-2">
             <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
             <% if (locals.user) { %>
-            <% const isSaved = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
             <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSaved ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">
               <% if (isSaved) { %>
                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
