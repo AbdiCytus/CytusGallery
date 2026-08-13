@@ -533,6 +533,60 @@ document.addEventListener("DOMContentLoaded", () => {
              params.set("query", currentQuery);
           }
         }
+      } else if (activeTab === 'collection') {
+        const collectionTagsFilter = JSON.parse(localStorage.getItem('cytusGalleryCollectionTagsFilter') || '[]');
+        if (collectionTagsFilter.length > 0) {
+          params.append("followedTags", collectionTagsFilter.join(","));
+        }
+        
+        const collectionDateFilter = JSON.parse(localStorage.getItem('cytusGalleryCollectionDateFilter') || 'null');
+        if (collectionDateFilter && collectionDateFilter.enabled) {
+          let dateFilter = "";
+          const d = collectionDateFilter;
+          if (d.mode === 'spesifik' && d.specYear) {
+             let specMonth = d.specMonth;
+             let specDay = d.specDay;
+             let specYear = d.specYear;
+             if (specMonth && specDay) {
+                let m = specMonth.padStart(2, '0');
+                let day = specDay.padStart(2, '0');
+                dateFilter = `date:${specYear}-${m}-${day}`;
+             } else if (specMonth) {
+                let m = specMonth.padStart(2, '0');
+                let lastDay = new Date(specYear, parseInt(m), 0).getDate();
+                dateFilter = `date:${specYear}-${m}-01..${specYear}-${m}-${lastDay}`;
+             } else {
+                dateFilter = `date:${specYear}-01-01..${specYear}-12-31`;
+             }
+          } else if (d.mode === 'rentang' && d.rsYear && d.reYear) {
+             let rangeStartStr = "";
+             if (d.rsMonth && d.rsDay) {
+                rangeStartStr = `${d.rsYear}-${d.rsMonth.padStart(2, '0')}-${d.rsDay.padStart(2, '0')}`;
+             } else if (d.rsMonth) {
+                rangeStartStr = `${d.rsYear}-${d.rsMonth.padStart(2, '0')}-01`;
+             } else {
+                rangeStartStr = `${d.rsYear}-01-01`;
+             }
+
+             let rangeEndStr = "";
+             if (d.reMonth && d.reDay) {
+                rangeEndStr = `${d.reYear}-${d.reMonth.padStart(2, '0')}-${d.reDay.padStart(2, '0')}`;
+             } else if (d.reMonth) {
+                let lastDay = new Date(d.reYear, parseInt(d.reMonth), 0).getDate();
+                rangeEndStr = `${d.reYear}-${d.reMonth.padStart(2, '0')}-${lastDay}`;
+             } else {
+                rangeEndStr = `${d.reYear}-12-31`;
+             }
+             dateFilter = `date:${rangeStartStr}..${rangeEndStr}`;
+          }
+          
+          if (dateFilter) {
+             let currentQuery = params.get("query") || "";
+             currentQuery = currentQuery.replace(/date:[^\s]+/g, '').trim();
+             currentQuery = (currentQuery + " " + dateFilter).trim();
+             params.set("query", currentQuery);
+          }
+        }
       }
     }
     
@@ -737,6 +791,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (tab === currentTab) {
         if (tab === 'followed' && typeof window.openFollowedTagsModal === 'function') {
           window.openFollowedTagsModal();
+        }
+        if (tab === 'collection' && typeof window.openCollectionFilterModal === 'function') {
+          window.openCollectionFilterModal();
         }
         return; // Do not reload if already active
       }

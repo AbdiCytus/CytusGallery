@@ -353,7 +353,12 @@
 <% } %>
 <% if (locals.user && locals.hasFollowedTags && locals.followedTagsList) { %>
 <%- include('partials/modals/followedTagsModal') %>
-  <script src="/js/search.js?v=2"></script>
+<% } %>
+<% if (locals.user && locals.savedPostIds && locals.savedPostIds.size > 0) { %>
+<%- include('partials/modals/collectionFilterModal') %>
+<% } %>
+<% if (locals.user) { %>
+  <script src="/js/search.js?v=<%= Date.now() %>"></script>
 <% } %>
 
 <%- include('partials/footer') %>

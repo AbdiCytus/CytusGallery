@@ -1,0 +1,189 @@
+<div id="collection-filter-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-gray-900 border border-gray-800 rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div class="p-4 flex justify-between items-center bg-cyan-900/20 border-b border-gray-800 shrink-0">
+      <h3 class="text-lg font-bold text-cyan-400">Filter Spesifik Tab Koleksi</h3>
+      <button onclick="document.getElementById('collection-filter-modal').classList.add('hidden'); if(typeof window.hideLoader === 'function') window.hideLoader();" class="text-gray-400 hover:text-white transition-colors focus:outline-none">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    
+    <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
+      <!-- KOLOM KIRI: TAGS -->
+      <div class="w-full md:w-1/2 md:border-r border-gray-800 flex flex-col hide-scrollbar bg-gray-900 md:bg-transparent">
+        <button type="button" class="md:hidden flex justify-between items-center w-full p-4 bg-gray-800 text-white font-bold border-b border-gray-700" onclick="toggleMobileAccordionCollection('tags')">
+          <span>Pilih Tag</span>
+          <svg id="c-accordion-icon-tags" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div id="c-accordion-content-tags" class="p-5 flex-col flex hide-scrollbar max-h-[50vh] md:max-h-none overflow-y-auto w-full">
+          <h4 class="font-bold text-white mb-1 hidden md:block">Pilih Tag</h4>
+          <p class="text-xs text-gray-400 mb-2 hidden md:block">Centang tag yang ingin ditampilkan. Jika kosong, semua tag ditampilkan.</p>
+          <div class="flex gap-3 mb-4">
+             <button type="button" onclick="document.querySelectorAll('.collection-tag-filter').forEach(e => e.checked = true)" class="text-xs bg-gray-800 hover:bg-gray-700 text-cyan-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Pilih Semua</button>
+             <button type="button" onclick="document.querySelectorAll('.collection-tag-filter').forEach(e => e.checked = false)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Batal Pilih</button>
+          </div>
+          <style>
+            .c-custom-checkbox:checked + .c-custom-box {
+              background-color: #06b6d4;
+              border-color: #06b6d4;
+            }
+            .c-custom-checkbox:checked + .c-custom-box > svg {
+              display: block !important;
+            }
+            .c-custom-checkbox:checked ~ span {
+              color: #22d3ee;
+            }
+          </style>
+          <div id="collection-tags-checkboxes" class="space-y-2 flex-grow">
+            <% locals.followedTagsList.forEach(tag => { %>
+              <label class="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-md cursor-pointer transition-colors group">
+                <input type="checkbox" value="<%= tag %>" class="hidden c-custom-checkbox collection-tag-filter">
+                <div class="w-5 h-5 shrink-0 rounded bg-gray-800 border border-gray-600 flex items-center justify-center transition-colors c-custom-box">
+                   <svg class="w-3.5 h-3.5 text-white hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                   </svg>
+                </div>
+                <span class="text-gray-300 text-sm font-medium group-hover:text-white transition-colors"><%= tag %></span>
+              </label>
+            <% }) %>
+          </div>
+        </div>
+      </div>
+      
+      <!-- KOLOM KANAN: WAKTU -->
+      <div class="w-full md:w-1/2 flex flex-col hide-scrollbar bg-gray-900/50">
+        <button type="button" class="md:hidden flex justify-between items-center w-full p-4 bg-gray-800 text-white font-bold border-b border-gray-700" onclick="toggleMobileAccordionCollection('time')">
+          <span>Filter Waktu</span>
+          <svg id="c-accordion-icon-time" class="w-5 h-5 transform transition-transform -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </button>
+        <div id="c-accordion-content-time" class="p-5 flex-col hidden md:flex hide-scrollbar max-h-[50vh] md:max-h-none overflow-y-auto w-full">
+          <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-800">
+             <div>
+               <h4 class="font-bold text-white hidden md:block">Filter Waktu</h4>
+               <p class="text-xs text-gray-400 hidden md:block">Berdasarkan tanggal konten diunggah ke Danbooru.</p>
+               <span class="font-bold text-white block md:hidden text-sm">Aktifkan Filter Waktu</span>
+             </div>
+             <label class="flex items-center cursor-pointer">
+                <input type="checkbox" id="c-enable-time-filter" class="sr-only peer" onchange="toggleTimeFilterCollection()">
+                <div class="w-10 h-5 bg-gray-700 rounded-full peer peer-checked:after:translate-x-5 after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500 relative"></div>
+             </label>
+          </div>
+        
+        <div id="c-time-filter-content" class="opacity-50 pointer-events-none transition-opacity flex flex-col gap-4">
+           <div id="c-filter-error-msg" class="hidden p-3 bg-red-900/30 border border-red-800 rounded-lg text-xs text-red-400 mb-1 flex items-start gap-2">
+             <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+             <span id="c-filter-error-text" class="leading-relaxed"></span>
+           </div>
+           
+           <div class="flex bg-gray-800 p-1 rounded-lg">
+             <button id="c-tab-btn-spesifik" onclick="switchTimeTabCollection('spesifik')" class="flex-1 py-1.5 text-sm font-medium rounded-md bg-gray-700 text-white shadow-sm transition-all">Spesifik</button>
+             <button id="c-tab-btn-rentang" onclick="switchTimeTabCollection('rentang')" class="flex-1 py-1.5 text-sm font-medium rounded-md text-gray-400 hover:text-white transition-all">Rentang Waktu</button>
+           </div>
+           
+           <input type="hidden" id="c-time-mode" value="spesifik">
+           
+           <!-- Tab Spesifik -->
+           <div id="c-tab-spesifik" class="flex flex-col gap-3">
+             <div>
+               <label class="text-xs text-cyan-400 mb-1 block font-medium">Tahun</label>
+               <input type="number" id="c-spec-year" oninput="validateTimeInputsCollection('c-spec')" placeholder="Misal: 2024" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none" min="2000" max="2100">
+             </div>
+             <div class="flex gap-3">
+               <div class="w-1/2">
+                 <label class="text-xs text-cyan-400 mb-1 block font-medium">Bulan (Opsional)</label>
+                 <select id="c-spec-month" onchange="validateTimeInputsCollection('c-spec')" disabled class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none opacity-50 cursor-not-allowed disabled:bg-gray-800">
+                   <option value="">-- Semua --</option>
+                   <option value="01">Januari</option><option value="02">Februari</option>
+                   <option value="03">Maret</option><option value="04">April</option>
+                   <option value="05">Mei</option><option value="06">Juni</option>
+                   <option value="07">Juli</option><option value="08">Agustus</option>
+                   <option value="09">September</option><option value="10">Oktober</option>
+                   <option value="11">November</option><option value="12">Desember</option>
+                 </select>
+               </div>
+               <div class="w-1/2">
+                 <label class="text-xs text-cyan-400 mb-1 block font-medium">Tanggal (Opsional)</label>
+                 <input type="number" id="c-spec-day" disabled placeholder="DD (1-31)" class="w-full bg-gray-800 border border-gray-700 rounded-md p-2 text-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none opacity-50 cursor-not-allowed disabled:bg-gray-800" min="1" max="31">
+               </div>
+             </div>
+           </div>
+           
+           <!-- Tab Rentang Waktu -->
+           <div id="c-tab-rentang" class="hidden flex flex-col gap-4">
+             <div class="p-3 bg-cyan-900/20 border border-cyan-800/40 rounded-lg">
+               <p class="text-xs text-cyan-400 leading-relaxed">Isi tanggal <b>Mulai</b> dan <b>Selesai</b>. Minimal wajib mengisi <b>Tahun</b> pada keduanya.</p>
+             </div>
+             
+             <!-- Rentang Mulai -->
+             <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+               <h5 class="text-xs font-bold text-gray-300 mb-2">Dimulai dari:</h5>
+               <div class="flex flex-col gap-2">
+                 <div>
+                   <label class="text-[11px] text-cyan-400 mb-1 block">Tahun (Mulai)</label>
+                   <input type="number" id="c-range-start-year" oninput="validateTimeInputsCollection('c-range-start')" placeholder="YYYY" class="w-full bg-gray-800 border border-gray-700 rounded-md p-1.5 text-white text-sm focus:border-cyan-500 outline-none" min="2000" max="2100">
+                 </div>
+                 <div class="flex gap-2">
+                   <div class="w-1/2">
+                     <label class="text-[11px] text-cyan-400 mb-1 block">Bulan (Opsional)</label>
+                     <select id="c-range-start-month" onchange="validateTimeInputsCollection('c-range-start')" disabled class="w-full bg-gray-800 border border-gray-700 rounded-md p-1.5 text-white text-sm focus:border-cyan-500 outline-none opacity-50 cursor-not-allowed disabled:bg-gray-800">
+                       <option value="">-- Semua --</option>
+                       <option value="01">Januari</option><option value="02">Februari</option>
+                       <option value="03">Maret</option><option value="04">April</option>
+                       <option value="05">Mei</option><option value="06">Juni</option>
+                       <option value="07">Juli</option><option value="08">Agustus</option>
+                       <option value="09">September</option><option value="10">Oktober</option>
+                       <option value="11">November</option><option value="12">Desember</option>
+                     </select>
+                   </div>
+                   <div class="w-1/2">
+                     <label class="text-[11px] text-cyan-400 mb-1 block">Tanggal</label>
+                     <input type="number" id="c-range-start-day" disabled placeholder="DD" class="w-full bg-gray-800 border border-gray-700 rounded-md p-1.5 text-white text-sm focus:border-cyan-500 outline-none opacity-50 cursor-not-allowed disabled:bg-gray-800" min="1" max="31">
+                   </div>
+                 </div>
+               </div>
+             </div>
+             
+             <!-- Rentang Selesai -->
+             <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+               <h5 class="text-xs font-bold text-gray-300 mb-2">Sampai dengan:</h5>
+               <div class="flex flex-col gap-2">
+                 <div>
+                   <label class="text-[11px] text-cyan-400 mb-1 block">Tahun (Selesai)</label>
+                   <input type="number" id="c-range-end-year" oninput="validateTimeInputsCollection('c-range-end')" placeholder="YYYY" class="w-full bg-gray-800 border border-gray-700 rounded-md p-1.5 text-white text-sm focus:border-cyan-500 outline-none" min="2000" max="2100">
+                 </div>
+                 <div class="flex gap-2">
+                   <div class="w-1/2">
+                     <label class="text-[11px] text-cyan-400 mb-1 block">Bulan (Opsional)</label>
+                     <select id="c-range-end-month" onchange="validateTimeInputsCollection('c-range-end')" disabled class="w-full bg-gray-800 border border-gray-700 rounded-md p-1.5 text-white text-sm focus:border-cyan-500 outline-none opacity-50 cursor-not-allowed disabled:bg-gray-800">
+                       <option value="">-- Semua --</option>
+                       <option value="01">Januari</option><option value="02">Februari</option>
+                       <option value="03">Maret</option><option value="04">April</option>
+                       <option value="05">Mei</option><option value="06">Juni</option>
+                       <option value="07">Juli</option><option value="08">Agustus</option>
+                       <option value="09">September</option><option value="10">Oktober</option>
+                       <option value="11">November</option><option value="12">Desember</option>
+                     </select>
+                   </div>
+                   <div class="w-1/2">
+                     <label class="text-[11px] text-cyan-400 mb-1 block">Tanggal</label>
+                     <input type="number" id="c-range-end-day" disabled placeholder="DD" class="w-full bg-gray-800 border border-gray-700 rounded-md p-1.5 text-white text-sm focus:border-cyan-500 outline-none opacity-50 cursor-not-allowed disabled:bg-gray-800" min="1" max="31">
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </div>
+        </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- FOOTER -->
+    <div class="p-4 bg-gray-900 border-t border-gray-800 flex justify-between gap-3 shrink-0">
+      <button onclick="resetCollectionFilter()" class="flex-1 md:flex-none px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white transition-colors bg-gray-800 border border-gray-700 md:border-transparent md:bg-gray-800 hover:bg-gray-700 rounded-lg md:rounded-md">
+        <span class="hidden md:inline">Reset Semua Filter</span><span class="md:hidden">Reset</span>
+      </button>
+      <button onclick="applyCollectionFilter()" class="flex-1 md:flex-none px-6 py-2.5 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 rounded-lg md:rounded-md shadow-md shadow-cyan-900/20 transition-colors">
+        <span class="hidden md:inline">Terapkan Filter</span><span class="md:hidden">Filter</span>
+      </button>
+    </div>
+  </div>
+</div>

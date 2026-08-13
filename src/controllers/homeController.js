@@ -35,9 +35,11 @@ const root = async (req, res) => {
     let hasFollowedTags = false;
     let savedPostIds = new Set();
 
+    let followedTagsList = [];
     if (res.locals.user) {
       const appData = await getUserAppData(res.locals.user.id);
       hasFollowedTags = appData.hasFollowedTags;
+      followedTagsList = appData.followedTags || [];
       savedPostIds = appData.savedPostIds;
     }
 
@@ -257,6 +259,24 @@ const search = async (req, res) => {
             ratingIn = ratingIn.concat(t.split(":")[1].split(","));
          } else if (t.startsWith("filetype:")) {
             extensionIn = extensionIn.concat(t.split(":")[1].split(","));
+         } else if (t.startsWith("date:")) {
+            const dateVal = t.split(":")[1];
+            if (dateVal.includes("..")) {
+               const [start, end] = dateVal.split("..");
+               const startDate = new Date(start);
+               const endDate = new Date(end);
+               endDate.setHours(23, 59, 59, 999);
+               if (!isNaN(startDate) && !isNaN(endDate)) {
+                  andConditions.push({ uploadedAt: { gte: startDate, lte: endDate } });
+               }
+            } else {
+               const specificDate = new Date(dateVal);
+               const nextDate = new Date(specificDate);
+               nextDate.setDate(nextDate.getDate() + 1);
+               if (!isNaN(specificDate)) {
+                  andConditions.push({ uploadedAt: { gte: specificDate, lt: nextDate } });
+               }
+            }
          }
       });
       
@@ -264,9 +284,29 @@ const search = async (req, res) => {
       if (ratingIn.length > 0) andConditions.push({ rating: { in: ratingIn } });
       if (extensionIn.length > 0) andConditions.push({ extension: { in: extensionIn } });
       
+      let tagsToFilter = [];
+      if (req.query.followedTags) {
+         tagsToFilter = req.query.followedTags.split(',');
+      } else if (hasFollowedTags && followedTagsList.length > 0) {
+         tagsToFilter = followedTagsList;
+      }
+
+      if (tagsToFilter.length > 0) {
+         let tagOrConditions = [];
+         tagsToFilter.forEach(tag => {
+            // Ensure precise matching for tags to prevent partial matches if any exist
+            tagOrConditions.push({ tags: { contains: tag } });
+         });
+         andConditions.push({ OR: tagOrConditions });
+      }
+      
       if (andConditions.length > 0) {
          whereClause.AND = andConditions;
       }
+      
+      console.log("[DEBUG] req.query.followedTags:", req.query.followedTags);
+      console.log("[DEBUG] tagsToFilter length:", tagsToFilter.length);
+      console.log("[DEBUG] whereClause:", JSON.stringify(whereClause));
       
       const skip = (page - 1) * limit;
       const saves = await prisma.savedContent.findMany({
@@ -381,7 +421,7 @@ const search = async (req, res) => {
 
     let sliderTitle = "Contents of the Month";
     if (page === 1) {
-      const sliderFilter = tab === "followed" ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
+      const sliderFilter = (tab === "followed" || tab === "collection") ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       if (actualUserTags) {
          const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
          sliderTitle = tagsCount >= 2 ? "Best Recent Contents" : "Top Contents";
