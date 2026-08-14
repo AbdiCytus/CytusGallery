@@ -36,10 +36,12 @@ const root = async (req, res) => {
     let savedPostIds = new Set();
 
     let followedTagsList = [];
+    let followedTagsDetailed = [];
     if (res.locals.user) {
       const appData = await getUserAppData(res.locals.user.id);
       hasFollowedTags = appData.hasFollowedTags;
       followedTagsList = appData.followedTags || [];
+      followedTagsDetailed = appData.followedTagsDetailed || [];
       savedPostIds = appData.savedPostIds;
     }
 
@@ -170,7 +172,9 @@ const root = async (req, res) => {
       isLazyLoadEnabled: isLazyLoadEnabled,
       currentTab: tab,
       followedTagsQuery: req.query.followedTags,
-      hasFollowedTags: hasFollowedTags
+      hasFollowedTags: hasFollowedTags,
+      followedTagsList: followedTagsList,
+      followedTagsDetailed: followedTagsDetailed
     });
   } catch (error) {
     console.error("Error fetching homepage data:", error);
@@ -222,6 +226,7 @@ const search = async (req, res) => {
     let totalPosts = 0;
     let hasFollowedTags = false;
     let followedTagsList = [];
+    let followedTagsDetailed = [];
     let savedPostIds = new Set();
     let sliderPosts = [];
     let popularTags = [];
@@ -233,6 +238,7 @@ const search = async (req, res) => {
       const appData = await getUserAppData(res.locals.user.id);
       hasFollowedTags = appData.hasFollowedTags;
       followedTagsList = appData.followedTags || [];
+      followedTagsDetailed = appData.followedTagsDetailed || [];
       savedPostIds = appData.savedPostIds;
     }
 
@@ -303,10 +309,6 @@ const search = async (req, res) => {
       if (andConditions.length > 0) {
          whereClause.AND = andConditions;
       }
-      
-      console.log("[DEBUG] req.query.followedTags:", req.query.followedTags);
-      console.log("[DEBUG] tagsToFilter length:", tagsToFilter.length);
-      console.log("[DEBUG] whereClause:", JSON.stringify(whereClause));
       
       const skip = (page - 1) * limit;
       const saves = await prisma.savedContent.findMany({
@@ -458,6 +460,7 @@ const search = async (req, res) => {
       followedTagsQuery: req.query.followedTags,
       hasFollowedTags: hasFollowedTags,
       followedTagsList: followedTagsList,
+      followedTagsDetailed: followedTagsDetailed,
       filterQuery: filterQuery
     });
   } catch (error) {
@@ -507,9 +510,9 @@ const detail = async (req, res) => {
     try {
       let searchTags = [];
       if (post.tag_string_character) {
-        searchTags = post.tag_string_character.split(' ').slice(0, 1);
+        searchTags = post.tag_string_character.split(' ').slice(0, 5); // Limit to 5 characters max
       } else if (post.tag_string_copyright) {
-        searchTags = post.tag_string_copyright.split(' ').slice(0, 1);
+        searchTags = post.tag_string_copyright.split(' ').slice(0, 2);
       } else if (post.tag_string_artist) {
         searchTags = post.tag_string_artist.split(' ').slice(0, 1);
       } else if (post.tag_string_general) {
@@ -517,8 +520,6 @@ const detail = async (req, res) => {
       }
       
       if (searchTags.length > 0) {
-         let filterStr = searchTags.join(' ');
-         
          const activeRatingFilter = req.cookies?.cytusGalleryRatingFilter;
          
          let requestedRatings = [];
@@ -530,31 +531,40 @@ const detail = async (req, res) => {
          
          let allowedRatings = [];
          if (!res.locals.isBypass) {
-            // Non-bypass users can only request 'g' or 's'
             allowedRatings = requestedRatings.filter(r => r === 'g' || r === 's');
-            if (allowedRatings.length === 0) {
-               allowedRatings = ['g', 's']; // Fallback
-            }
+            if (allowedRatings.length === 0) allowedRatings = ['g', 's'];
          } else {
             allowedRatings = requestedRatings;
          }
          
-         filterStr += " rating:" + allowedRatings.join(',');
+         const ratingFilterStr = " rating:" + allowedRatings.join(',');
          
-         const relatedRes = await getCachedPosts({ tags: filterStr, page: 1, limit: 50 });
-         let fetchedPosts = (relatedRes.data || []).filter(p => p.id !== post.id);
+         // Ambil posts dari masing-masing tag character
+         const promises = searchTags.map(tag => {
+            return getCachedPosts({ tags: tag + ratingFilterStr, page: 1, limit: 100 });
+         });
          
-         // Strict manual filtering to ensure API quirks don't leak unselected ratings
-         if (allowedRatings.length > 0) {
-             fetchedPosts = fetchedPosts.filter(p => allowedRatings.includes(p.rating));
-         }
+         const results = await Promise.all(promises);
+         
+         let fetchedPostsMap = new Map();
+         results.forEach(res => {
+            if (res.data) {
+               res.data.forEach(p => {
+                  if (p.id !== post.id && allowedRatings.includes(p.rating)) {
+                     fetchedPostsMap.set(p.id, p);
+                  }
+               });
+            }
+         });
+         
+         let fetchedPosts = Array.from(fetchedPostsMap.values());
          
          // Fisher-Yates shuffle
          for (let i = fetchedPosts.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [fetchedPosts[i], fetchedPosts[j]] = [fetchedPosts[j], fetchedPosts[i]];
          }
-         relatedPosts = fetchedPosts.slice(0, 25);
+         relatedPosts = fetchedPosts.slice(0, 100);
       }
     } catch (e) {
       console.error("Error fetching related posts:", e.message);

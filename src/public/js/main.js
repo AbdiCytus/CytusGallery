@@ -1763,9 +1763,13 @@ document.addEventListener("DOMContentLoaded", () => {
                    const newItems = doc.querySelectorAll('#main-gallery .gallery-item');
                    
                    if (newItems.length === 0) {
-                      loaderDiv.innerHTML = '<span class="text-cyan-400 font-bold">Semua konten dimuat.</span>';
-                      observer.disconnect();
-                      return;
+                      if (nextPage <= totalPages) {
+                         throw new Error('Halaman kosong dari server (rate limit)');
+                      } else {
+                         loaderDiv.innerHTML = '<span class="text-cyan-400 font-bold">Semua konten dimuat.</span>';
+                         observer.disconnect();
+                         return;
+                      }
                    }
                    
                    if (mainGallery.appendMasonryItems) {
@@ -1781,14 +1785,18 @@ document.addEventListener("DOMContentLoaded", () => {
                       loaderDiv.innerHTML = '<span class="text-cyan-400 font-bold">Semua konten dimuat.</span>';
                       observer.disconnect();
                    } else {
+                      // Reset spinner just in case it was showing an error earlier
+                      loaderDiv.innerHTML = '<div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>';
                       isFetching = false;
                       observer.unobserve(loaderDiv);
                       observer.observe(loaderDiv);
                    }
                 } catch (e) {
                    console.error('Infinite scroll fetch error:', e);
-                   loaderDiv.innerHTML = '<span class="text-red-400 font-bold">Gagal memuat konten selanjutnya.</span>';
-                   observer.disconnect();
+                   loaderDiv.innerHTML = '<span class="text-yellow-400 font-bold">Gagal memuat, scroll ke atas dan bawah sedikit untuk mencoba lagi.</span>';
+                   isFetching = false;
+                   // Kita sengaja TIDAK observer.disconnect() agar user bisa mencoba lagi
+                   // dengan cara scroll menjauh dan mendekat ke bawah layar.
                 }
              }
           }, { rootMargin: '800px' });
@@ -1798,6 +1806,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
   
+  // Keyboard Shortcut Ctrl+K to focus searchbar
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      const searchInput = document.getElementById('search-input-visual');
+      if (searchInput) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Jika navbar mobile tertutup, kita tidak bisa fokus elemen tersembunyi
+        // tapi secara umum desktop header yang memiliki shortcut ini berguna.
+        setTimeout(() => {
+          searchInput.focus();
+        }, window.scrollY > 300 ? 400 : 0); // Wait for scroll if needed
+      }
+    }
+  });
+
   initInfiniteScroll();
 });
 

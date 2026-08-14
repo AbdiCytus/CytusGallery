@@ -17,10 +17,26 @@
         <div id="accordion-content-tags" class="p-5 flex-col flex hide-scrollbar max-h-[50vh] md:max-h-none overflow-y-auto w-full">
           <h4 class="font-bold text-white mb-1 hidden md:block">Pilih Tag</h4>
           <p class="text-xs text-gray-400 mb-2 hidden md:block">Centang tag yang ingin ditampilkan. Jika kosong, semua tag ditampilkan.</p>
-          <div class="flex gap-3 mb-4">
-             <button type="button" onclick="document.querySelectorAll('.followed-tag-filter').forEach(e => e.checked = true)" class="text-xs bg-gray-800 hover:bg-gray-700 text-cyan-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Pilih Semua</button>
-             <button type="button" onclick="document.querySelectorAll('.followed-tag-filter').forEach(e => e.checked = false)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Batal Pilih</button>
+          <!-- Search Bar -->
+          <div class="mb-3 relative">
+            <input type="text" id="followed-tag-search" oninput="filterFollowedTags(this.value)" placeholder="Cari tag..." class="w-full bg-gray-800 border border-gray-700 rounded-md py-1.5 pl-3 pr-8 text-white text-sm focus:border-cyan-500 outline-none">
+            <svg class="w-4 h-4 text-gray-500 absolute right-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
+          
+          <div class="flex gap-3 mb-4">
+             <button type="button" onclick="document.querySelectorAll('.followed-tag-filter').forEach(e => e.closest('label').style.display !== 'none' ? e.checked = true : null)" class="text-xs bg-gray-800 hover:bg-gray-700 text-cyan-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Pilih Semua</button>
+             <button type="button" onclick="document.querySelectorAll('.followed-tag-filter').forEach(e => e.closest('label').style.display !== 'none' ? e.checked = false : null)" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 font-medium py-1 px-3 rounded border border-gray-700 transition-colors">Batal Pilih</button>
+          </div>
+          
+          <script>
+             function filterFollowedTags(query) {
+                 const q = query.toLowerCase();
+                 document.querySelectorAll('.followed-tag-label').forEach(label => {
+                     const name = label.dataset.tagname;
+                     label.style.display = name.includes(q) ? 'flex' : 'none';
+                 });
+             }
+          </script>
           <style>
             .custom-checkbox:checked + .custom-box {
               background-color: #06b6d4;
@@ -34,15 +50,21 @@
             }
           </style>
           <div id="followed-tags-checkboxes" class="space-y-2 flex-grow">
-            <% locals.followedTagsList.forEach(tag => { %>
-              <label class="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-md cursor-pointer transition-colors group">
-                <input type="checkbox" value="<%= tag %>" class="hidden custom-checkbox followed-tag-filter">
+            <% (locals.followedTagsDetailed || []).forEach(tag => { 
+                  let textColor = "text-blue-400"; // default
+                  if (tag.tagType === 1) textColor = "text-red-400";
+                  else if (tag.tagType === 3) textColor = "text-purple-400";
+                  else if (tag.tagType === 4) textColor = "text-green-400";
+                  else if (tag.tagType === 5) textColor = "text-orange-400";
+            %>
+              <label class="flex items-center gap-3 p-2 hover:bg-gray-800 rounded-md cursor-pointer transition-colors group followed-tag-label" data-tagname="<%= tag.tagName.toLowerCase() %>">
+                <input type="checkbox" value="<%= tag.tagName %>" class="hidden custom-checkbox followed-tag-filter">
                 <div class="w-5 h-5 shrink-0 rounded bg-gray-800 border border-gray-600 flex items-center justify-center transition-colors custom-box">
                    <svg class="w-3.5 h-3.5 text-white hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                    </svg>
                 </div>
-                <span class="text-gray-300 text-sm font-medium group-hover:text-white transition-colors"><%= tag %></span>
+                <span class="<%= textColor %> text-sm font-medium transition-colors"><%= tag.tagName %></span>
               </label>
             <% }) %>
           </div>

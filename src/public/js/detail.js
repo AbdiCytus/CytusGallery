@@ -281,15 +281,20 @@
           // Coba cara modern dulu (Clipboard API)
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(url);
+            showSuccessModal();
           } else {
             throw new Error("Clipboard API unavailable");
           }
         } catch (err) {
           // Jika gagal (misal karena belum HTTPS), pakai cara manual
           manualCopy();
+          showSuccessModal();
         }
       });
     }
+
+    // IG Share dihilangkan sesuai permintaan
+
 
     // Logika untuk tombol Simpan
     const saveButton = document.getElementById('save-button');
@@ -342,5 +347,25 @@
           saveButton.disabled = false;
         }
       });
+    }
+    // Related Posts Infinite Scroll Logic
+    const relatedLoader = document.getElementById('related-loader');
+    const hiddenItems = Array.from(document.querySelectorAll('.related-hidden-item'));
+    if (relatedLoader && hiddenItems.length > 0) {
+      const observer = new IntersectionObserver((entries) => {
+         if (entries[0].isIntersecting) {
+            // Take up to 25 items and reveal them
+            const itemsToReveal = hiddenItems.splice(0, 25);
+            itemsToReveal.forEach(item => {
+               item.classList.remove('hidden', 'related-hidden-item');
+            });
+            
+            if (hiddenItems.length === 0) {
+               relatedLoader.classList.add('hidden');
+               observer.disconnect();
+            }
+         }
+      }, { rootMargin: '300px' });
+      observer.observe(relatedLoader);
     }
   });

@@ -33,6 +33,27 @@ router.get("/profil", requireAuth, async (req, res) => {
       orderBy: { savedAt: 'desc' },
       take: 25
     });
+    const postIds = saves.map(s => s.postId);
+    let fetchedPosts = {};
+    if (postIds.length > 0) {
+       try {
+          const dRes = await getCachedDanbooru(`https://danbooru.donmai.us/posts.json`, { tags: `id:${postIds.join(',')}`, limit: 25 });
+          const fetched = dRes.data || [];
+          fetched.forEach(p => { fetchedPosts[p.id.toString()] = p; });
+       } catch (e) {}
+    }
+    
+    saves.forEach(s => {
+       const p = fetchedPosts[s.postId.toString()];
+       if (p) {
+          s.character = p.tag_string_character ? p.tag_string_character.split(' ')[0].replace(/_/g, ' ') : 'Original';
+          s.copyright = p.tag_string_copyright ? p.tag_string_copyright.split(' ')[0].replace(/_/g, ' ') : 'Unknown';
+       } else {
+          s.character = 'Original';
+          s.copyright = 'Unknown';
+       }
+    });
+
     user.saves = saves;
     
     const totalSaves = await prisma.savedContent.count({ where: whereClause });
@@ -74,6 +95,27 @@ router.get("/api/profil/saves", requireAuth, async (req, res) => {
       take,
       skip
     });
+    const postIds = saves.map(s => s.postId);
+    let fetchedPosts = {};
+    if (postIds.length > 0) {
+       try {
+          const dRes = await getCachedDanbooru(`https://danbooru.donmai.us/posts.json`, { tags: `id:${postIds.join(',')}`, limit: 25 });
+          const fetched = dRes.data || [];
+          fetched.forEach(p => { fetchedPosts[p.id.toString()] = p; });
+       } catch (e) {}
+    }
+    
+    saves.forEach(s => {
+       const p = fetchedPosts[s.postId.toString()];
+       if (p) {
+          s.character = p.tag_string_character ? p.tag_string_character.split(' ')[0].replace(/_/g, ' ') : 'Original';
+          s.copyright = p.tag_string_copyright ? p.tag_string_copyright.split(' ')[0].replace(/_/g, ' ') : 'Unknown';
+       } else {
+          s.character = 'Original';
+          s.copyright = 'Unknown';
+       }
+    });
+
     res.json(saves);
   } catch (error) {
     res.status(500).json({ error: "Gagal memuat" });

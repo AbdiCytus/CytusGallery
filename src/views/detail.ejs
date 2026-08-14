@@ -138,15 +138,20 @@
   <% if (locals.relatedPosts && locals.relatedPosts.length > 0) { %>
   <div class="mt-16 mb-8">
     <h2 class="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">Konten Terkait</h2>
-    <div class="grid grid-cols-2 sm:grid-cols-3 cytus-grid-5 gap-4">
-      <% relatedPosts.forEach(post => { %>
+    <div class="grid grid-cols-2 sm:grid-cols-3 cytus-grid-5 gap-4" id="related-posts-grid">
+      <% relatedPosts.forEach((post, index) => { %>
         <% if(post.large_file_url) { %>
         <% const isVideo = post.file_ext === 'mp4' || post.file_ext === 'webm'; %>
-        <% const previewUrl = isVideo ? (post.media_asset?.variants?.find(v => v.type === '720x720')?.url || post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
+        <% const isZip = post.file_ext === 'zip'; %>
+        <% const previewUrl = (isVideo || isZip) ? (post.media_asset?.variants?.find(v => v.type === '720x720')?.url || post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
+        <% const videoUrl = isVideo ? post.large_file_url : (isZip ? (post.media_asset?.variants?.find(v => v.file_ext === 'webm' || v.file_ext === 'mp4')?.url || '') : ''); %>
         <% const isSavedRelated = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
-        <div class="group gallery-item relative bg-gray-800 rounded-lg overflow-hidden aspect-[3/4] shadow-md hover:shadow-cyan-500/20 transition-all duration-300 <%= isSavedRelated ? 'border-4 border-yellow-500' : '' %>">
-          <div class="absolute top-0 right-0 z-20 flex pointer-events-none transition-opacity duration-300 group-hover:opacity-0">
-            <% if (isVideo && post.media_asset && post.media_asset.duration) { %>
+        <div class="group gallery-item relative bg-gray-800 rounded-lg overflow-hidden aspect-[3/4] shadow-md hover:shadow-cyan-500/20 transition-all duration-300 <%= isSavedRelated ? 'border-4 border-yellow-500' : '' %> <%= index >= 25 ? 'hidden related-hidden-item' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= !!(isVideo || (isZip && videoUrl)) %>" data-video-url="<%= videoUrl %>" data-preview-url="<%= previewUrl %>">
+          <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
+            <%= index + 1 %>
+          </div>
+          <div class="absolute top-0 right-0 z-20 flex pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0 drop-shadow-md">
+            <% if ((isVideo || isZip) && post.media_asset && post.media_asset.duration) { %>
               <% 
                 const durationSec = Math.floor(post.media_asset.duration);
                 const m = Math.floor(durationSec / 60).toString().padStart(2, '0');
@@ -169,36 +174,44 @@
             <% } %>
           </div>
 
-          <div class="w-full h-full bg-black">
-            <% if (isVideo) { %>
-            <img src="<%= previewUrl %>" alt="Video preview" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+          <div class="media-container relative w-full h-full bg-black">
+            <% if (isVideo || isZip) { %>
+            <img src="<%= previewUrl %>" alt="Preview" class="video-preview absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy">
+            <% if (isVideo || (isZip && videoUrl)) { %>
+            <video class="video-playback hidden absolute inset-0 w-full h-full object-cover" preload="none" loop muted playsinline></video>
+            <% } %>
             <% } else { %>
-            <img src="<%= post.large_file_url %>" alt="Related content" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy">
+            <img src="<%= post.large_file_url %>" alt="Related content" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy">
             <% } %>
           </div>
 
-          <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <% const displayTags = getDisplayTags(post); %>
-            <h4 class="text-sm font-bold truncate"><%= displayTags.title %></h4>
-            <p class="text-xs text-gray-300 truncate"><%= displayTags.subtitle %></p>
-            
-            <div class="flex gap-2 mt-2 pointer-events-none group-hover:pointer-events-auto">
-              <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
-              <% if (locals.user) { %>
-              <% const isSavedRelated = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
-              <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSavedRelated ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">
-                <% if (isSavedRelated) { %>
-                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                <% } else { %>
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+          <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto [.mobile-active_&]:opacity-100 [.mobile-active_&]:pointer-events-auto">
+            <div class="overlay-content">
+              <% const displayTags = getDisplayTags(post); %>
+              <h4 class="text-sm font-bold truncate"><%= displayTags.title %></h4>
+              <p class="text-xs text-gray-300 truncate"><%= displayTags.subtitle %></p>
+              
+              <div class="flex gap-2 mt-2">
+                <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
+                <% if (locals.user) { %>
+                <% const isSavedRelated = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
+                <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSavedRelated ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">
+                  <% if (isSavedRelated) { %>
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                  <% } else { %>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
+                  <% } %>
+                </button>
                 <% } %>
-              </button>
-              <% } %>
+              </div>
             </div>
           </div>
         </div>
         <% } %>
       <% }); %>
+    </div>
+    <div id="related-loader" class="w-full flex justify-center py-6 <%= relatedPosts.length <= 25 ? 'hidden' : '' %>">
+      <div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>
     </div>
   </div>
   <% } %>

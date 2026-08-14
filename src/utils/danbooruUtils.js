@@ -158,9 +158,10 @@ async function getUserAppData(userId) {
   
   let hasFollowedTags = false;
   let followedTags = [];
+  let follows = [];
   let savedPostIds = new Set();
   try {
-    const follows = await prisma.followedTag.findMany({ where: { userId }, select: { tagName: true, tagType: true } });
+    follows = await prisma.followedTag.findMany({ where: { userId }, select: { tagName: true, tagType: true } });
     hasFollowedTags = follows.length > 0;
     follows.sort((a, b) => {
       const aMatch = a.tagName.match(/\(([^)]+)\)$/);
@@ -184,9 +185,9 @@ async function getUserAppData(userId) {
   } catch(e) {
     console.error("getUserAppData Prisma error:", e.message);
   }
-  const resultToCache = { hasFollowedTags, followedTags, savedPostIds: Array.from(savedPostIds) };
+  const resultToCache = { hasFollowedTags, followedTags, followedTagsDetailed: follows, savedPostIds: Array.from(savedPostIds) };
   await setCacheData(cacheKey, resultToCache, USER_APP_DATA_TTL);
-  return { hasFollowedTags, followedTags, savedPostIds };
+  return { hasFollowedTags, followedTags, followedTagsDetailed: follows, savedPostIds };
 }
 
 async function getSliderTags(category) {
@@ -271,9 +272,11 @@ async function getCachedPosts(params) {
   
   const response = await getCachedDanbooru(basePostsURL, params, 8000).catch(e => ({ data: [], error: true }));
   
-  if (response.error || !response.data || response.data.length === 0) {
-    // Jangan cache hasil yang kosong akibat error terlalu lama
-    await setCacheData(cacheKey, response, 10000); // 10 detik saja
+  if (response.error) {
+    // Do not cache at all if there was an error (like timeout or rate limit)
+  } else if (!response.data || response.data.length === 0) {
+    // Cache empty results (not caused by error) briefly
+    await setCacheData(cacheKey, response, 10000); 
   } else {
     await setCacheData(cacheKey, response, CACHE_TTL);
   }

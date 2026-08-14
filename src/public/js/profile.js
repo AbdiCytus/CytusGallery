@@ -22,9 +22,9 @@
 
       // View toggle logic
       document.addEventListener('click', (e) => {
-        const btnMasonry = e.target.closest('#view-masonry-btn');
+        const btnMasonry = e.target.closest('#view-grid-btn');
         if (btnMasonry) {
-          const viewMasonry = document.getElementById('koleksi-masonry');
+          const viewMasonry = document.getElementById('koleksi-grid');
           const viewData = document.getElementById('koleksi-data');
           const btnData = document.getElementById('view-data-btn');
           if (viewMasonry && viewData && btnData) {
@@ -39,9 +39,9 @@
 
         const btnData = e.target.closest('#view-data-btn');
         if (btnData) {
-          const viewMasonry = document.getElementById('koleksi-masonry');
+          const viewMasonry = document.getElementById('koleksi-grid');
           const viewData = document.getElementById('koleksi-data');
-          const btnMasonry = document.getElementById('view-masonry-btn');
+          const btnMasonry = document.getElementById('view-grid-btn');
           if (viewMasonry && viewData && btnMasonry) {
             viewData.classList.remove('hidden');
             viewMasonry.classList.add('hidden');
@@ -180,7 +180,7 @@
       let currentPage = 1;
       let isFetching = false;
       let hasMore = (document.getElementById("cytus-profile-config")?.dataset.hasMore === "true") || false;;
-      let masonryContainer = document.getElementById('koleksi-masonry');
+      let masonryContainer = document.getElementById('koleksi-grid');
       let dataContainer = document.getElementById('koleksi-data');
 
       let currentSearch = document.getElementById("cytus-profile-config")?.dataset.currentSearch || "";;
@@ -191,7 +191,7 @@
 
         isFetching = true;
         const loader = document.getElementById('koleksi-loader');
-        masonryContainer = document.getElementById('koleksi-masonry');
+        masonryContainer = document.getElementById('koleksi-grid');
         dataContainer = document.getElementById('koleksi-data');
         if (loader) loader.classList.remove('hidden');
 
@@ -209,36 +209,53 @@
           let newMasonryElements = [];
           saves.forEach((save, index) => {
             const isVideo = (save.extension === 'mp4' || save.extension === 'webm');
+            const isZip = (save.extension === 'zip');
+            const videoUrl = isVideo ? save.fileUrl : (isZip && save.fileUrl ? save.fileUrl.replace(/\.zip$/i, '.webm') : '');
             let currentItemCount = masonryContainer._masonryItems ? masonryContainer._masonryItems.length : masonryContainer.querySelectorAll('.gallery-item').length;
+            
+            let ratingColor = '';
+            if (save.rating) {
+                switch (save.rating) {
+                    case 'g': ratingColor = 'bg-green-600'; break;
+                    case 's': ratingColor = 'bg-yellow-600'; break;
+                    case 'q': ratingColor = 'bg-purple-600'; break;
+                    case 'e': ratingColor = 'bg-red-600'; break;
+                }
+            }
+            
             let masonryItem = `
-              <div class="relative z-0 group bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 break-inside-avoid gallery-item cursor-pointer group-hover:z-10" data-post-url="/posts/${save.postId}" ${isVideo ? 'data-is-video="true"' : ''} data-video-url="${isVideo ? save.fileUrl : ''}">
+              <div class="group gallery-item relative bg-gray-900 rounded-lg overflow-hidden aspect-[3/4] border border-gray-700 shadow-md hover:shadow-cyan-900/30 transition-all duration-300 cursor-pointer" data-post-url="/posts/${save.postId}" data-is-video="${!!(isVideo || (isZip && videoUrl))}" data-video-url="${videoUrl}">
                   <div class="absolute top-0 left-0 z-30 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
                     ${currentItemCount + index + 1}
                   </div>
-                  ${isVideo && save.fileUrl ? `
-                    <div class="media-container relative w-full pb-[100%] bg-black">
-                      <img src="${save.imageUrl}" class="absolute inset-0 w-full h-full object-cover video-preview transition-transform duration-300 group-hover:scale-105" alt="Saved Post ${save.postId}" loading="lazy">
-                      <video src="${save.fileUrl}" class="absolute inset-0 w-full h-full object-cover video-playback hidden" muted loop playsinline></video>
+                  <div class="absolute top-0 right-0 z-30 flex pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
+                    <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-md shadow-sm">${(save.extension || 'unk').toUpperCase()}</span>
+                    ${save.rating ? `<span class="${ratingColor} text-white text-[10px] font-bold px-2 py-1 shadow-sm">${save.rating.toUpperCase()}</span>` : ''}
+                  </div>
+                  ${(isVideo || isZip) && videoUrl ? `
+                    <div class="media-container relative w-full h-full bg-black">
+                      <img src="${save.imageUrl}" class="absolute inset-0 w-full h-full object-cover video-preview transition-transform duration-500 group-hover:scale-110" alt="Saved Post ${save.postId}" loading="lazy">
+                      <video src="${videoUrl}" class="absolute inset-0 w-full h-full object-cover video-playback hidden" muted loop playsinline></video>
                       <div class="absolute top-2 left-2 bg-black/60 rounded-full p-1 video-indicator z-20">
                         <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg>
                       </div>
                     </div>
                   ` : save.imageUrl ? `
-                    <div class="media-container relative w-full h-auto bg-black">
-                       <img src="${save.imageUrl}" class="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105" alt="Saved Post ${save.postId}" loading="lazy">
+                    <div class="media-container relative w-full h-full bg-black">
+                       <img src="${save.imageUrl}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Saved Post ${save.postId}" loading="lazy">
                     </div>
                   ` : `
-                    <div class="media-container w-full aspect-[3/4] bg-gray-800 flex items-center justify-center p-4 text-center">
+                    <div class="media-container relative w-full h-full bg-gray-800 flex items-center justify-center p-4 text-center">
                       <span class="text-sm font-medium text-cyan-400 break-all">ID: ${save.postId}</span>
                     </div>
                   `}
-                  <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+                  <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto [.mobile-active_&]:opacity-100 [.mobile-active_&]:pointer-events-auto">
                     <div class="overlay-content">
-                      <h4 class="font-bold truncate text-sm">Post ID: ${save.postId}</h4>
-                      <p class="text-xs text-gray-400">Score: ${save.score || 0}</p>
+                      <h4 class="font-bold truncate text-sm capitalize">${save.character || 'Original'}</h4>
+                      <p class="text-xs text-gray-400 truncate capitalize">${save.copyright || 'Unknown'}</p>
                       <div class="flex gap-2 mt-2">
-                        <a href="/posts/${save.postId}" class="detail-button flex-grow bg-cyan-600 hover:bg-cyan-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Lihat Detail">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        <a href="/posts/${save.postId}" class="detail-button flex-grow bg-cyan-600 hover:bg-cyan-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm text-xs font-semibold" title="Lihat Detail">
+                          Lihat Detail
                         </a>
                         <button onclick="removeSave('${save.postId}', this, false)" class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Hapus dari Koleksi">
                           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
@@ -373,7 +390,7 @@
          // [Fix #4] Simpan state tampilan (masonry/data) SEBELUM konten diganti spinner
          const isDataViewActive = (() => {
            const data = document.getElementById('koleksi-data');
-           const masonry = document.getElementById('koleksi-masonry');
+           const masonry = document.getElementById('koleksi-grid');
            if (!data || !masonry) return false;
            return !data.classList.contains('hidden') && masonry.classList.contains('hidden');
          })();
@@ -406,9 +423,9 @@
               
                // [Fix #4] Kembalikan state tampilan setelah konten diganti
                if (isDataViewActive) {
-                 const viewMasonry = document.getElementById('koleksi-masonry');
+                 const viewMasonry = document.getElementById('koleksi-grid');
                  const viewData = document.getElementById('koleksi-data');
-                 const btnMasonry = document.getElementById('view-masonry-btn');
+                 const btnMasonry = document.getElementById('view-grid-btn');
                  const btnData = document.getElementById('view-data-btn');
                  if (viewMasonry) viewMasonry.classList.add('hidden');
                  if (viewData) viewData.classList.remove('hidden');

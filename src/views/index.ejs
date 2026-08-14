@@ -41,8 +41,10 @@
         <% sliderPosts.forEach((post, index) => { %>
         <% if(post.large_file_url) { %>
         <% const isVideo = post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm'); %>
-        <% const previewUrl = isVideo ? (post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
-        <div class="swiper-slide group gallery-item relative z-0 bg-gray-800 rounded-lg overflow-hidden group-hover:z-10" data-post-url="/posts/<%= post.id %>" data-is-video="<%= isVideo %>" data-video-url="<%= isVideo ? post.large_file_url : '' %>" data-preview-url="<%= previewUrl %>">
+        <% const isZip = post.large_file_url.endsWith('.zip'); %>
+        <% const previewUrl = (isVideo || isZip) ? (post.media_asset?.variants?.find(v => v.type === '720x720')?.url || post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
+        <% const videoUrl = isVideo ? post.large_file_url : (isZip ? (post.media_asset?.variants?.find(v => v.file_ext === 'webm' || v.file_ext === 'mp4')?.url || '') : ''); %>
+        <div class="swiper-slide group gallery-item relative z-0 bg-gray-800 rounded-lg overflow-hidden group-hover:z-10" data-post-url="/posts/<%= post.id %>" data-is-video="<%= !!(isVideo || (isZip && videoUrl)) %>" data-video-url="<%= videoUrl %>" data-preview-url="<%= previewUrl %>">
           
           <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
             <%= validSliderIndex + 1 %>
@@ -61,9 +63,11 @@
           </div>
 
           <div class="media-container relative w-full h-auto aspect-video bg-black">
-            <% if (post.large_file_url.endsWith('.mp4') || post.large_file_url.endsWith('.webm')) { %>
-            <img src="<%= post.media_asset?.variants.find(v => v.type === '720x720')?.url || post.media_asset?.variants.find(v => v.type === '360x360')?.url || post.preview_file_url %>" alt="Video preview" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+            <% if (isVideo || isZip) { %>
+            <img src="<%= previewUrl %>" alt="<%= isZip ? 'Zip preview' : 'Video preview' %>" class="video-preview absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="<%= isLazyLoadEnabled ? 'lazy' : 'eager' %>">
+            <% if (isVideo || (isZip && videoUrl)) { %>
             <video class="video-playback hidden absolute inset-0 w-full h-full object-cover" preload="none" loop muted playsinline></video>
+            <% } %>
             <% } else { %>
             <img src="<%= post.large_file_url %>" alt="Konten oleh: <%= post.tag_string_artist %>" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="<%= isLazyLoadEnabled ? 'lazy' : 'eager' %>">
             <% } %>
