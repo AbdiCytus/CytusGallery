@@ -19,10 +19,38 @@
 %>
 <%- include('partials/header', { tags: '' }) %>
 
-<main id="main-content" class="container mx-auto p-4">
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<main id="main-content" class="container mx-auto p-4 flex flex-col md:flex-row gap-8 items-start transition-all duration-500 ease-in-out">
+  
+  <!-- Left Side: Related Content -->
+  <div id="left-panel" class="w-full md:w-3/5 lg:w-2/3 order-2 md:order-1 flex-grow min-w-0 transition-all duration-500 ease-in-out overflow-hidden md:opacity-100">
+    <% if (locals.hasRelatedTags) { %>
+    <div class="mb-8" id="related-posts-section">
+      <h2 class="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">Konten Terkait</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" id="related-posts-grid">
+        <!-- Related items di-load via API -->
+      </div>
+      <div id="related-loader" class="w-full flex justify-center py-6 hidden">
+        <div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>
+      </div>
+    </div>
+    <% } %>
+  </div>
 
-    <div class="md:col-span-2 bg-gray-800 rounded-lg p-2 flex flex-col justify-center items-center">
+  <!-- Right Side: Details & Image -->
+  <!-- Right Side: Details & Image -->
+  <div id="right-panel" class="w-full md:w-2/5 lg:w-1/3 order-1 md:order-2 shrink-0 md:sticky md:top-24 md:h-[calc(100vh-7rem)] md:overflow-y-auto hide-scrollbar pb-4 space-y-6 transition-all duration-500 ease-in-out">
+    
+    <div id="detail-header" class="items-center justify-between border-b border-gray-700 pb-2 hidden md:flex transition-all duration-300">
+      <h2 id="detail-title" class="text-2xl font-bold text-white transition-opacity duration-300">Detail Konten</h2>
+      <button id="toggle-related-btn" class="text-gray-400 hover:text-white transition-colors bg-gray-800 hover:bg-gray-700 p-1 rounded-md" title="Sembunyikan/Tampilkan Konten Terkait">
+        <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 transform transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="right-panel-inner" class="flex flex-col gap-6 w-full">
+      <div id="detail-image-container" class="bg-gray-800 rounded-lg p-2 flex flex-col justify-center items-center">
       <% if (post.file_ext === 'mp4' || post.file_ext === 'webm' || post.file_ext === "zip") { %>
       <video src="<%= post.large_file_url %>" class="max-w-full max-h-[90vh] rounded-md" controls autoplay loop muted></video>
       <% } else { %>
@@ -40,7 +68,7 @@
       </div>
     </div>
 
-    <div class="md:col-span-1">
+    <div id="detail-info-container">
       <h2 class="text-2xl font-bold mb-4">Informasi & Tag</h2>
       <div class="space-y-4">
 
@@ -133,88 +161,8 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <% if (locals.relatedPosts && locals.relatedPosts.length > 0) { %>
-  <div class="mt-16 mb-8">
-    <h2 class="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">Konten Terkait</h2>
-    <div class="grid grid-cols-2 sm:grid-cols-3 cytus-grid-5 gap-4" id="related-posts-grid">
-      <% relatedPosts.forEach((post, index) => { %>
-        <% if(post.large_file_url) { %>
-        <% const isVideo = post.file_ext === 'mp4' || post.file_ext === 'webm'; %>
-        <% const isZip = post.file_ext === 'zip'; %>
-        <% const previewUrl = (isVideo || isZip) ? (post.media_asset?.variants?.find(v => v.type === '720x720')?.url || post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
-        <% const videoUrl = isVideo ? post.large_file_url : (isZip ? (post.media_asset?.variants?.find(v => v.file_ext === 'webm' || v.file_ext === 'mp4')?.url || '') : ''); %>
-        <% const isSavedRelated = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
-        <div class="group gallery-item relative bg-gray-800 rounded-lg overflow-hidden aspect-[3/4] shadow-md hover:shadow-cyan-500/20 transition-all duration-300 <%= isSavedRelated ? 'border-4 border-yellow-500' : '' %> <%= index >= 25 ? 'hidden related-hidden-item' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= !!(isVideo || (isZip && videoUrl)) %>" data-video-url="<%= videoUrl %>" data-preview-url="<%= previewUrl %>">
-          <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
-            <%= index + 1 %>
-          </div>
-          <div class="absolute top-0 right-0 z-20 flex pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0 drop-shadow-md">
-            <% if ((isVideo || isZip) && post.media_asset && post.media_asset.duration) { %>
-              <% 
-                const durationSec = Math.floor(post.media_asset.duration);
-                const m = Math.floor(durationSec / 60).toString().padStart(2, '0');
-                const s = (durationSec % 60).toString().padStart(2, '0');
-              %>
-              <span class="bg-gray-800/80 text-white text-[10px] font-bold px-2 py-1 shadow-sm"><%= m %>:<%= s %></span>
-            <% } %>
-            <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-md shadow-sm"><%= post.file_ext.toUpperCase() %></span>
-            <% if (post.rating) { %>
-              <% 
-                let ratingColor = '';
-                switch (post.rating) {
-                    case 'g': ratingColor = 'bg-green-600'; break;
-                    case 's': ratingColor = 'bg-yellow-600'; break;
-                    case 'q': ratingColor = 'bg-purple-600'; break;
-                    case 'e': ratingColor = 'bg-red-600'; break;
-                }
-              %>
-              <span class="<%= ratingColor %> text-white text-[10px] font-bold px-2 py-1 shadow-sm"><%= post.rating.toUpperCase() %></span>
-            <% } %>
-          </div>
-
-          <div class="media-container relative w-full h-full bg-black">
-            <% if (isVideo || isZip) { %>
-            <img src="<%= previewUrl %>" alt="Preview" class="video-preview absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy">
-            <% if (isVideo || (isZip && videoUrl)) { %>
-            <video class="video-playback hidden absolute inset-0 w-full h-full object-cover" preload="none" loop muted playsinline></video>
-            <% } %>
-            <% } else { %>
-            <img src="<%= post.large_file_url %>" alt="Related content" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy">
-            <% } %>
-          </div>
-
-          <div class="overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 flex flex-col justify-end text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto [.mobile-active_&]:opacity-100 [.mobile-active_&]:pointer-events-auto">
-            <div class="overlay-content">
-              <% const displayTags = getDisplayTags(post); %>
-              <h4 class="text-sm font-bold truncate"><%= displayTags.title %></h4>
-              <p class="text-xs text-gray-300 truncate"><%= displayTags.subtitle %></p>
-              
-              <div class="flex gap-2 mt-2">
-                <a href="/posts/<%= post.id %>" class="detail-button flex-grow text-center bg-cyan-600 text-xs py-1.5 rounded-md hover:bg-cyan-700 transition-colors">Lihat Detail</a>
-                <% if (locals.user) { %>
-                <% const isSavedRelated = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
-                <button onclick="savePostOverlay(event, '<%= post.id %>', this)" class="<%= isSavedRelated ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-700 hover:bg-gray-600' %> text-white px-3 py-1.5 rounded-md transition-colors flex items-center justify-center shadow-sm" title="Simpan ke Koleksi">
-                  <% if (isSavedRelated) { %>
-                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                  <% } else { %>
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path></svg>
-                  <% } %>
-                </button>
-                <% } %>
-              </div>
-            </div>
-          </div>
-        </div>
-        <% } %>
-      <% }); %>
-    </div>
-    <div id="related-loader" class="w-full flex justify-center py-6 <%= relatedPosts.length <= 25 ? 'hidden' : '' %>">
-      <div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>
     </div>
   </div>
-  <% } %>
 </main>
 
 <div id="success-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
@@ -273,6 +221,135 @@
         }
       }
     });
+    const mainContent = document.getElementById('main-content');
+    const leftPanel = document.getElementById('left-panel');
+    const rightPanel = document.getElementById('right-panel');
+    const toggleBtn = document.getElementById('toggle-related-btn');
+    const toggleIcon = document.getElementById('toggle-icon');
+    
+    let isCollapsed = false;
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        if (toggleBtn.disabled) return;
+        
+        const performToggle = () => {
+          isCollapsed = !isCollapsed;
+          
+          if (isCollapsed) {
+            mainContent.classList.add('md:gap-0');
+            leftPanel.classList.remove('md:w-3/5', 'lg:w-2/3', 'md:opacity-100');
+            leftPanel.classList.add('md:w-0', 'md:opacity-0', 'pointer-events-none');
+            rightPanel.classList.remove('md:w-2/5', 'lg:w-1/3', 'md:sticky', 'md:top-24', 'md:h-[calc(100vh-7rem)]', 'md:overflow-y-auto');
+            rightPanel.classList.add('md:w-full', 'lg:w-full');
+            
+            const detailHeader = document.getElementById('detail-header');
+            const detailTitle = document.getElementById('detail-title');
+            if (detailHeader && detailTitle) {
+              detailTitle.style.display = 'none';
+              detailHeader.classList.remove('border-b', 'border-gray-700', 'pb-2', 'justify-between');
+              detailHeader.classList.add('justify-end', 'pb-0');
+            }
+
+            const rightInner = document.getElementById('right-panel-inner');
+            const imgContainer = document.getElementById('detail-image-container');
+            const infoContainer = document.getElementById('detail-info-container');
+            if (rightInner && imgContainer && infoContainer) {
+              rightInner.classList.add('md:grid', 'md:grid-cols-3', 'md:gap-8');
+              imgContainer.classList.add('md:col-span-2');
+              infoContainer.classList.add('md:col-span-1');
+            }
+            
+            toggleIcon.style.transform = 'rotate(180deg)';
+          } else {
+            mainContent.classList.remove('md:gap-0');
+            leftPanel.classList.remove('md:w-0', 'md:opacity-0', 'pointer-events-none');
+            leftPanel.classList.add('md:w-3/5', 'lg:w-2/3', 'md:opacity-100');
+            rightPanel.classList.remove('md:w-full', 'lg:w-full');
+            rightPanel.classList.add('md:w-2/5', 'lg:w-1/3', 'md:sticky', 'md:top-24', 'md:h-[calc(100vh-7rem)]', 'md:overflow-y-auto');
+            
+            const detailHeader = document.getElementById('detail-header');
+            const detailTitle = document.getElementById('detail-title');
+            if (detailHeader && detailTitle) {
+              detailTitle.style.display = 'block';
+              detailHeader.classList.add('border-b', 'border-gray-700', 'pb-2', 'justify-between');
+              detailHeader.classList.remove('justify-end', 'pb-0');
+            }
+
+            const rightInner = document.getElementById('right-panel-inner');
+            const imgContainer = document.getElementById('detail-image-container');
+            const infoContainer = document.getElementById('detail-info-container');
+            if (rightInner && imgContainer && infoContainer) {
+              rightInner.classList.remove('md:grid', 'md:grid-cols-3', 'md:gap-8');
+              imgContainer.classList.remove('md:col-span-2');
+              infoContainer.classList.remove('md:col-span-1');
+            }
+
+            toggleIcon.style.transform = 'rotate(0deg)';
+          }
+          
+          toggleBtn.disabled = false;
+        };
+
+        if (window.scrollY === 0) {
+          performToggle();
+        } else {
+          toggleBtn.disabled = true;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          let isDone = false;
+          const onDone = () => {
+            if (isDone) return;
+            isDone = true;
+            window.removeEventListener('scrollend', onDone);
+            performToggle();
+          };
+          
+          window.addEventListener('scrollend', onDone);
+          // Fallback timeout untuk browser lama
+          setTimeout(onDone, 600);
+        }
+      });
+    }
+    // Fallback scroll dari Kiri (window) ke Kanan (right-panel)
+    window.addEventListener('wheel', (e) => {
+      const rightPanel = document.getElementById('right-panel');
+      if (!rightPanel) return;
+      
+      // Hanya aktif jika layout desktop (ada overflow-y-auto) & tidak sedang di-collapse
+      const isDesktopSplit = window.getComputedStyle(rightPanel).overflowY === 'auto' && !rightPanel.classList.contains('md:w-full');
+      if (!isDesktopSplit) return;
+
+      const mainContentObj = document.getElementById('main-content');
+      if (!mainContentObj) return;
+
+      const atTop = window.scrollY <= 0;
+      
+      // Cek apakah bagian bawah dari konten utama (termasuk related content) sudah mencapai dasar layar
+      // Ini berarti pengguna sudah mentok me-scroll seluruh grid related content dan footer akan mulai terlihat
+      const mainBottom = mainContentObj.getBoundingClientRect().bottom;
+      const reachingFooter = mainBottom <= window.innerHeight + 2;
+
+      if (atTop && e.deltaY < 0) {
+        if (rightPanel.scrollTop > 0) {
+          rightPanel.scrollTop += e.deltaY;
+          e.preventDefault();
+        }
+      } else if (reachingFooter && e.deltaY > 0) {
+        // Hanya oper ke panel kanan JIKA related content sudah selesai dimuat sepenuhnya (sampai mentok)
+        const relatedLoader = document.getElementById('related-loader');
+        const isRelatedDone = !relatedLoader || relatedLoader.classList.contains('hidden');
+        
+        if (isRelatedDone) {
+          const rpAtBottom = Math.ceil(rightPanel.clientHeight + rightPanel.scrollTop) >= rightPanel.scrollHeight - 1;
+          if (!rpAtBottom) {
+            // Tahan window agar tidak scroll lebih jauh (menyembunyikan footer) dan oper ke kanan
+            rightPanel.scrollTop += e.deltaY;
+            e.preventDefault();
+          }
+        }
+      }
+    }, { passive: false });
   });
 </script>
 

@@ -57,9 +57,92 @@
 
 <body class="bg-gray-900 text-white min-h-screen overflow-x-hidden flex flex-col">
 
-  <div id="loading-overlay" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-all duration-700 ease-out">
-    <div class="w-16 h-16 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>
-    <p id="loading-text" class="text-lg text-white mt-4 animate-pulse">Memuat Konten...</p>
+  <div id="loading-overlay" class="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-start opacity-0 pointer-events-none transition-all duration-700 ease-out">
+    <div id="loader-spinner" class="flex flex-col items-center justify-center h-full w-full absolute inset-0">
+      <div class="w-16 h-16 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>
+      <p class="text-lg text-white mt-4 animate-pulse">Memuat Konten...</p>
+    </div>
+    
+    <div id="loader-skeleton-navbar" class="hidden w-full bg-gray-800/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
+      <div class="container mx-auto p-4 flex justify-between items-center">
+         <div class="flex items-center gap-3">
+           <div class="w-[30px] h-[30px] bg-gray-700 rounded-full animate-pulse flex-shrink-0"></div>
+           <div class="w-32 h-8 bg-gray-700 rounded animate-pulse"></div>
+         </div>
+         <div class="flex items-center gap-6">
+           <div class="hidden md:flex items-center gap-6">
+             <div class="w-12 h-4 bg-cyan-900 rounded animate-pulse"></div>
+             <div class="w-16 h-4 bg-gray-700 rounded animate-pulse"></div>
+             <div class="w-16 h-4 bg-gray-700 rounded animate-pulse"></div>
+             <div class="w-16 h-4 bg-gray-700 rounded animate-pulse"></div>
+             
+             <!-- Pill -->
+             <div class="flex items-center gap-4 bg-gray-700/50 px-3 py-2 rounded-full border border-gray-600/50 ml-2">
+               <div class="w-6 h-6 bg-gray-600 rounded-full animate-pulse"></div>
+               <div class="h-6 w-px bg-gray-600"></div>
+               <div class="w-24 h-4 bg-gray-600 rounded animate-pulse"></div>
+               <div class="w-8 h-8 bg-gray-600 rounded-full animate-pulse"></div>
+             </div>
+           </div>
+           <!-- Hamburger -->
+           <div class="space-y-2">
+             <div class="w-8 h-0.5 bg-gray-600 animate-pulse"></div>
+             <div class="w-8 h-0.5 bg-gray-600 animate-pulse"></div>
+             <div class="w-8 h-0.5 bg-gray-600 animate-pulse"></div>
+           </div>
+         </div>
+      </div>
+    </div>
+    
+    <div id="loader-skeleton-search" class="hidden w-full flex-shrink-0 z-10 bg-gray-900/95 backdrop-blur-sm">
+      <div class="container mx-auto px-4 py-2">
+        <div class="w-full h-[50px] bg-gray-700 border border-gray-600 rounded-md animate-pulse"></div>
+      </div>
+    </div>
+    
+    <div id="loader-skeleton-grid" class="hidden w-full h-full container mx-auto p-4 flex flex-col flex-grow overflow-hidden">
+       
+       <div class="my-8 hidden md:block">
+         <div class="w-64 h-8 bg-gray-800 rounded animate-pulse mb-4"></div>
+         <div class="flex gap-4">
+           <% for(let i=0; i<5; i++) { %>
+             <div class="flex-1 h-32 md:h-40 lg:h-48 bg-gray-800 rounded-lg animate-pulse"></div>
+           <% } %>
+         </div>
+       </div>
+       
+       <div class="mb-6 flex items-center gap-4 border-b border-gray-700 pb-2 overflow-x-hidden">
+         <div class="w-32 h-8 bg-gray-800 rounded animate-pulse"></div>
+         <div class="w-24 h-8 bg-gray-800 rounded animate-pulse"></div>
+         <div class="w-24 h-8 bg-gray-800 rounded animate-pulse"></div>
+       </div>
+
+      <div class="columns-2 md:columns-5 gap-4">
+         <% const heights = [150, 220, 180, 250, 200, 280, 170, 210, 260, 190]; %>
+         <% for(let i=0; i<15; i++) { %>
+            <div class="relative overflow-hidden rounded-md animate-pulse bg-gray-800 mb-4" <%- `style="height: ${heights[i % heights.length]}px"` %>></div>
+         <% } %>
+      </div>
+    </div>
+    
+    <div id="loader-skeleton-list" class="hidden w-full h-full container mx-auto p-4 flex flex-col flex-grow overflow-hidden max-w-4xl">
+      <!-- Title skeleton -->
+      <div class="w-48 h-8 bg-gray-800 rounded animate-pulse mb-6 mt-4"></div>
+      
+      <!-- Date picker button skeleton -->
+      <div class="w-full h-12 bg-gray-800 rounded-lg animate-pulse mb-6"></div>
+      
+      <% for(let i=0; i<5; i++) { %>
+       <div class="flex p-4 bg-gray-800 border border-gray-700 rounded-lg shadow-sm mb-3 animate-pulse">
+         <div class="w-24 h-24 bg-gray-700 rounded-md mr-4 flex-shrink-0"></div>
+         <div class="flex-grow space-y-3 py-2">
+           <div class="h-4 bg-gray-700 rounded w-1/3"></div>
+           <div class="h-3 bg-gray-700 rounded w-3/4"></div>
+           <div class="h-3 bg-gray-700 rounded w-1/2"></div>
+         </div>
+       </div>
+      <% } %>
+    </div>
   </div>
   <div id="custom-alert" class="fixed flex inset-0 z-50 items-center justify-center p-4 transition-opacity duration-300 ease-in-out hidden opacity-0">
     <div id="custom-alert-overlay" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
@@ -343,7 +426,7 @@
     </nav>
   </header>
   <% if (locals.hideSearchbar !== true) { %>
-  <section class="container mx-auto px-4 py-2 z-20 bg-gray-900/95 backdrop-blur-sm">
+  <section class="container mx-auto px-4 py-2 relative z-40 bg-gray-900/95 backdrop-blur-sm">
     <div class="relative">
       <form action="/search" method="GET" id="search-form">
         <div class="relative bg-gray-700 border border-gray-600 rounded-md pr-12 focus-within:ring-2 focus-within:ring-cyan-500 flex min-h-[50px]">

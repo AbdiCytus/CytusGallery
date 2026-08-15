@@ -348,24 +348,58 @@
         }
       });
     }
-    // Related Posts Infinite Scroll Logic
+    // Related Posts Infinite Scroll Logic via API
     const relatedLoader = document.getElementById('related-loader');
-    const hiddenItems = Array.from(document.querySelectorAll('.related-hidden-item'));
-    if (relatedLoader && hiddenItems.length > 0) {
-      const observer = new IntersectionObserver((entries) => {
-         if (entries[0].isIntersecting) {
-            // Take up to 25 items and reveal them
-            const itemsToReveal = hiddenItems.splice(0, 25);
-            itemsToReveal.forEach(item => {
-               item.classList.remove('hidden', 'related-hidden-item');
-            });
-            
-            if (hiddenItems.length === 0) {
+    const relatedGrid = document.getElementById('related-posts-grid');
+    const postId = window.location.pathname.split('/').pop();
+    
+    if (relatedLoader && relatedGrid) {
+      let currentPage = 1;
+      let isFetching = false;
+      let hasMore = true;
+      
+      // Tampilkan loader saat pertama kali karena kita tidak mengambil data dari server-side rendering
+      relatedLoader.classList.remove('hidden');
+
+      const observer = new IntersectionObserver(async (entries) => {
+         if (entries[0].isIntersecting && !isFetching && hasMore) {
+            isFetching = true;
+            try {
+               const res = await fetch(`/api/related/${postId}?page=${currentPage}`);
+               if (!res.ok) throw new Error('Response tidak ok');
+               
+               const html = await res.text();
+               
+               if (html.trim() === '') {
+                  // Tidak ada data lagi
+                  hasMore = false;
+                  relatedLoader.classList.add('hidden');
+                  observer.disconnect();
+               } else {
+                  // Cek jumlah item baru, jika < 25 berarti halaman terakhir
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = html;
+                  const newItemsCount = tempDiv.querySelectorAll('.gallery-item').length;
+                  
+                  relatedGrid.insertAdjacentHTML('beforeend', html);
+                  currentPage++;
+                  
+                  if (newItemsCount === 0 || currentPage > 4) { // Max 100 items (4 pages)
+                     hasMore = false;
+                     relatedLoader.classList.add('hidden');
+                     observer.disconnect();
+                  }
+               }
+            } catch (error) {
+               console.error("Gagal memuat konten terkait:", error);
+               hasMore = false;
                relatedLoader.classList.add('hidden');
-               observer.disconnect();
+            } finally {
+               isFetching = false;
             }
          }
       }, { rootMargin: '300px' });
+      
       observer.observe(relatedLoader);
     }
   });

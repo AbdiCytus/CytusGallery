@@ -12,36 +12,40 @@ const CACHE_TTL = 10 * 60 * 1000; // 10 menit
 const USER_APP_DATA_TTL = 30 * 1000; // 30 seconds
 
 async function getCacheData(key) {
+  // L1 Check (In-Memory)
+  const cached = inMemoryCache[key];
+  if (cached && Date.now() - cached.timestamp < cached.ttl) {
+    return cached.data;
+  }
+  
+  // L2 Check (Redis)
   if (isConnected()) {
     try {
       const data = await getRedisClient().get(key);
-      if (data) return JSON.parse(data);
-    } catch (err) {
-      console.error("Redis GET error:", err);
-      // Fallback ke in-memory jika Redis konek tapi command gagal (misal rate limit)
-      const cached = inMemoryCache[key];
-      if (cached && Date.now() - cached.timestamp < cached.ttl) {
-        return cached.data;
+      if (data) {
+        const parsedData = JSON.parse(data);
+        // Save to L1 for future instant access
+        inMemoryCache[key] = { timestamp: Date.now(), data: parsedData, ttl: CACHE_TTL };
+        return parsedData;
       }
-    }
-  } else {
-    const cached = inMemoryCache[key];
-    if (cached && Date.now() - cached.timestamp < cached.ttl) {
-      return cached.data;
+    } catch (err) {
+      console.error("Redis GET error:", err.message);
     }
   }
+  
   return null;
 }
 
 async function setCacheData(key, data, ttlMs = CACHE_TTL) {
+  // Always save to L1 (In-Memory) as fallback and to reduce Redis requests
+  inMemoryCache[key] = { timestamp: Date.now(), data, ttl: ttlMs };
+  
   if (isConnected()) {
     try {
       await getRedisClient().setEx(key, Math.max(1, Math.ceil(ttlMs / 1000)), JSON.stringify(data));
     } catch (err) {
-      console.error("Redis SET error:", err);
+      console.error("Redis SET error:", err.message);
     }
-  } else {
-    inMemoryCache[key] = { timestamp: Date.now(), data, ttl: ttlMs };
   }
 }
 
@@ -72,8 +76,12 @@ async function getCachedDanbooru(url, params = {}, timeout = 8000) {
   const reqPromise = (async () => {
     try {
       const response = await axios.get(url, { params: params, timeout: timeout });
-      await setCacheData(cacheKey, response.data, CACHE_TTL);
-      return { data: response.data };
+      let finalData = response.data;
+      if (Array.isArray(finalData)) {
+         finalData = finalData.filter(p => !p.is_banned && !p.is_deleted && !p.is_pending && p.large_file_url);
+      }
+      await setCacheData(cacheKey, finalData, CACHE_TTL);
+      return { data: finalData };
     } catch (err) {
       if (err.response && (err.response.status === 422 || err.response.status === 500)) {
          throw err;

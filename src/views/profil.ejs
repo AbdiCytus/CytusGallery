@@ -450,12 +450,12 @@
       <% if (followed.length > 0) { %>
       <% if (copyrights.length > 0) { %>
       <div class="mb-6">
-        <h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">Copyright <span class="text-gray-500 text-sm font-normal">(<%= copyrights.length %>)</span></h3>
+        <h3 class="text-lg font-bold text-white mb-3 pb-1">Copyright <span class="text-gray-500 text-sm font-normal">(<%= copyrights.length %>)</span></h3>
         <div class="flex flex-wrap gap-2">
           <% copyrights.forEach(item => { %>
           <div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-purple-400 pl-3 pr-3 py-1 rounded-full text-sm transition-colors flex items-center shadow-sm">
             <a href="/search?tags=<%= encodeURIComponent(item.tagName) %>" class="font-medium hover:underline py-0.5"><%= item.tagName.replace(/_/g, ' ') %></a>
-            <button data-tagname="<%= item.tagName %>" data-tagtype="<%= item.tagType %>" onclick="unfollowTag(this.dataset.tagname, parseInt(this.dataset.tagtype), this)" class="text-gray-500 hover:text-red-400 hover:bg-red-500/20 focus:outline-none transition-colors mr-3 rounded-full ml-1" title="Unfollow">
+            <button data-tagname="<%= item.tagName %>" data-tagtype="<%= item.tagType %>" onclick="unfollowTag(this.dataset.tagname, parseInt(this.dataset.tagtype), this)" class="text-gray-500 hover:text-red-400 hover:bg-red-500/20 focus:outline-none transition-colors rounded-full ml-1" title="Unfollow">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
@@ -468,12 +468,12 @@
 
       <% if (characters.length > 0) { %>
       <div class="mb-6">
-        <h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">Character <span class="text-gray-500 text-sm font-normal">(<%= characters.length %>)</span></h3>
+        <h3 class="text-lg font-bold text-white mb-3 pb-1">Character <span class="text-gray-500 text-sm font-normal">(<%= characters.length %>)</span></h3>
         <div class="flex flex-wrap gap-2">
           <% characters.forEach(item => { %>
           <div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-green-400 pl-3 pr-3 py-1 rounded-full text-sm transition-colors flex items-center shadow-sm">
             <a href="/search?tags=<%= encodeURIComponent(item.tagName) %>" class="font-medium hover:underline py-0.5"><%= item.tagName.replace(/_/g, ' ') %></a>
-            <button data-tagname="<%= item.tagName %>" data-tagtype="<%= item.tagType %>" onclick="unfollowTag(this.dataset.tagname, parseInt(this.dataset.tagtype), this)" class="text-gray-500 hover:text-red-400 hover:bg-red-500/20 focus:outline-none transition-colors mr-3 rounded-full ml-1" title="Unfollow">
+            <button data-tagname="<%= item.tagName %>" data-tagtype="<%= item.tagType %>" onclick="unfollowTag(this.dataset.tagname, parseInt(this.dataset.tagtype), this)" class="text-gray-500 hover:text-red-400 hover:bg-red-500/20 focus:outline-none transition-colors rounded-full ml-1" title="Unfollow">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>
@@ -486,12 +486,12 @@
 
       <% if (artists.length > 0) { %>
       <div class="mb-6">
-        <h3 class="text-lg font-bold text-white mb-3 border-b border-gray-700 pb-1">Artist <span class="text-gray-500 text-sm font-normal">(<%= artists.length %>)</span></h3>
+        <h3 class="text-lg font-bold text-white mb-3 pb-1">Artist <span class="text-gray-500 text-sm font-normal">(<%= artists.length %>)</span></h3>
         <div class="flex flex-wrap gap-2">
           <% artists.forEach(item => { %>
           <div class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-red-400 pl-3 pr-3 py-1 rounded-full text-sm transition-colors flex items-center shadow-sm">
             <a href="/search?tags=<%= encodeURIComponent(item.tagName) %>" class="font-medium hover:underline py-0.5"><%= item.tagName.replace(/_/g, ' ') %></a>
-            <button data-tagname="<%= item.tagName %>" data-tagtype="<%= item.tagType %>" onclick="unfollowTag(this.dataset.tagname, parseInt(this.dataset.tagtype), this)" class="text-gray-500 hover:text-red-400 hover:bg-red-500/20 focus:outline-none transition-colors mr-3 rounded-full ml-1" title="Unfollow">
+            <button data-tagname="<%= item.tagName %>" data-tagtype="<%= item.tagType %>" onclick="unfollowTag(this.dataset.tagname, parseInt(this.dataset.tagtype), this)" class="text-gray-500 hover:text-red-400 hover:bg-red-500/20 focus:outline-none transition-colors rounded-full ml-1" title="Unfollow">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
               </svg>

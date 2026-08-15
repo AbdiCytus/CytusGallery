@@ -3,7 +3,48 @@
     const isHome = window.location.pathname === '/' || window.location.pathname === '/search';
     const isDetail = window.location.pathname.startsWith('/posts/');
     
+    window.setupLoaderContent = (targetPath) => {
+        const spinner = document.getElementById('loader-spinner');
+        const gridSkel = document.getElementById('loader-skeleton-grid');
+        const listSkel = document.getElementById('loader-skeleton-list');
+        const navbarSkel = document.getElementById('loader-skeleton-navbar');
+        const searchSkel = document.getElementById('loader-skeleton-search');
+        
+        if (spinner) spinner.classList.add('hidden');
+        if (gridSkel) gridSkel.classList.add('hidden');
+        if (listSkel) listSkel.classList.add('hidden');
+        if (navbarSkel) navbarSkel.classList.add('hidden');
+        if (searchSkel) searchSkel.classList.add('hidden');
+        
+        const isGrid = targetPath === '/' || targetPath.startsWith('/search');
+        const isList = targetPath.startsWith('/notifications');
+        
+        if (isGrid && gridSkel) {
+           gridSkel.classList.remove('hidden');
+           if (navbarSkel) navbarSkel.classList.remove('hidden');
+           if (searchSkel) searchSkel.classList.remove('hidden');
+        } else if (isList && listSkel) {
+           listSkel.classList.remove('hidden');
+           if (navbarSkel) navbarSkel.classList.remove('hidden');
+        } else if (spinner) {
+           spinner.classList.remove('hidden');
+        }
+    };
+
+    let nextPath = null;
+    document.addEventListener('click', (e) => {
+       const a = e.target.closest('a');
+       if (a && a.href && !a.target && !a.hasAttribute('download')) {
+          try {
+             nextPath = new URL(a.href).pathname;
+          } catch(err) {}
+       }
+    });
+
     if (!sessionStorage.getItem('cytus_first_visit') || (isReload && isHome) || isDetail) {
+      if (typeof window.setupLoaderContent === 'function') {
+         window.setupLoaderContent(window.location.pathname);
+      }
       document.getElementById('loading-overlay').classList.remove('opacity-0', 'pointer-events-none');
       document.addEventListener('DOMContentLoaded', () => {
         let isFirstSplash = false;
@@ -26,11 +67,20 @@
           setTimeout(() => {
             const loader = document.getElementById('loading-overlay');
             if (loader) {
-              loader.style.transitionDuration = '';
+              loader.style.transitionDuration = '300ms';
               loader.classList.add('opacity-0', 'pointer-events-none');
             }
           }, delay); 
         }
+      });
+    } else {
+      // Pastikan loader langsung hilang jika halaman di-load tanpa splash screen
+      document.addEventListener('DOMContentLoaded', () => {
+         const loader = document.getElementById('loading-overlay');
+         if (loader) {
+            loader.style.transitionDuration = '0ms';
+            loader.classList.add('opacity-0', 'pointer-events-none');
+         }
       });
     }
 
@@ -46,6 +96,9 @@
         
         const loader = document.getElementById('loading-overlay');
         if (loader) {
+          if (typeof window.setupLoaderContent === 'function') {
+             window.setupLoaderContent(target);
+          }
           loader.style.transitionDuration = '100ms';
           loader.classList.remove('opacity-0', 'pointer-events-none');
         }
@@ -56,18 +109,61 @@
     window.addEventListener('beforeunload', () => {
        const loader = document.getElementById('loading-overlay');
        if (loader) {
+         if (typeof window.setupLoaderContent === 'function') {
+            window.setupLoaderContent(nextPath || window.location.pathname);
+         }
          loader.style.transitionDuration = '100ms';
          loader.classList.remove('opacity-0', 'pointer-events-none');
        }
     });
+    
+    const hideLoaderForcefully = () => {
+       const loader = document.getElementById('loading-overlay');
+       if (loader && !loader.classList.contains('opacity-0')) {
+          loader.style.transitionDuration = '300ms';
+          loader.classList.add('opacity-0', 'pointer-events-none');
+       }
+    };
 
     window.addEventListener('pageshow', (event) => {
-       if (event.persisted) {
-          const loader = document.getElementById('loading-overlay');
-          if (loader) {
-             loader.style.transitionDuration = '700ms';
-             loader.classList.add('opacity-0', 'pointer-events-none');
-          }
+       setTimeout(hideLoaderForcefully, 50);
+       if (event.persisted) setTimeout(hideLoaderForcefully, 300);
+    });
+    
+    document.addEventListener('visibilitychange', () => {
+       if (document.visibilityState === 'visible') hideLoaderForcefully();
+    });
+
+    // Tampilkan animasi loading saat mengklik post/detail untuk UX yang lebih baik
+    document.addEventListener('click', (e) => {
+       const link = e.target.closest('a');
+       if (link && link.href && link.getAttribute('href').startsWith('/posts/')) {
+           const isInfiniteScrollMode = window.location.pathname === '/' || window.location.pathname === '/search';
+           const loader = document.getElementById('loading-overlay');
+           
+           if (isInfiniteScrollMode) {
+              // Minta browser membuka di tab baru
+              link.setAttribute('target', '_blank');
+              
+              // Tampilkan loader sementara di tab saat ini agar pengguna tahu proses sedang berjalan
+              if (loader) {
+                loader.style.transitionDuration = '100ms';
+                loader.classList.remove('opacity-0', 'pointer-events-none');
+                
+                // Sembunyikan loader di tab saat ini lebih cepat karena halaman utama tidak berpindah
+                setTimeout(hideLoaderForcefully, 1500);
+              }
+              return; // Biarkan default action (buka tab baru) berjalan
+           }
+           
+           // Mode standar (bukan infinite scroll), pindah halaman di tab yang sama
+           if (loader && link.getAttribute('target') !== '_blank') {
+             loader.style.transitionDuration = '100ms';
+             loader.classList.remove('opacity-0', 'pointer-events-none');
+             
+             // Failsafe: Sembunyikan kembali setelah 4 detik jika gagal pindah
+             setTimeout(hideLoaderForcefully, 4000);
+           }
        }
     });
     (function() {
