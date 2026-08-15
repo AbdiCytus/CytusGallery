@@ -384,7 +384,7 @@
                   relatedGrid.insertAdjacentHTML('beforeend', html);
                   currentPage++;
                   
-                  if (newItemsCount < 25 || currentPage > 4) { // Max 100 items (4 pages)
+                  if (newItemsCount === 0 || currentPage > 4) { // Max 100 items (4 pages)
                      hasMore = false;
                      relatedLoader.classList.add('hidden');
                      observer.disconnect();

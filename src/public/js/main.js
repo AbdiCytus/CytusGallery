@@ -375,15 +375,23 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    scrollToTopBtn.addEventListener("click", () =>
-      window.scrollTo({ top: 0, behavior: "smooth" })
-    );
+    scrollToTopBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      const rightPanel = document.getElementById('right-panel');
+      if (rightPanel && window.getComputedStyle(rightPanel).overflowY === 'auto') {
+         rightPanel.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
   }
   
   if (scrollToBottomBtn) {
-    scrollToBottomBtn.addEventListener("click", () =>
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
-    );
+    scrollToBottomBtn.addEventListener("click", () => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      const rightPanel = document.getElementById('right-panel');
+      if (rightPanel && window.getComputedStyle(rightPanel).overflowY === 'auto') {
+         rightPanel.scrollTo({ top: rightPanel.scrollHeight, behavior: 'smooth' });
+      }
+    });
   }
   
   window.dispatchEvent(new Event("scroll"));
