@@ -232,7 +232,8 @@ const search = async (req, res) => {
     let popularTags = [];
     let popularCharacters = [];
 
-    const sliderTagsPromise = !userTags ? Promise.all([getSliderTags(3), getSliderTags(4)]) : Promise.resolve([[], []]);
+    const isMainSearch = userTags && tab === 'contents';
+    const sliderTagsPromise = !isMainSearch ? Promise.all([getSliderTags(3), getSliderTags(4)]) : Promise.resolve([[], []]);
 
     if (res.locals.user) {
       const appData = await getUserAppData(res.locals.user.id);
@@ -389,7 +390,7 @@ const search = async (req, res) => {
     let actualUserTags = userTags;
     let allTagsFinal = allTags;
 
-    if (posts.length === 0 && userTags) {
+    if (posts.length === 0 && actualUserTags && isMainSearch) {
       try {
         const tagSuggestRes = await axios.get("https://danbooru.donmai.us/tags.json", {
           params: {
@@ -424,16 +425,17 @@ const search = async (req, res) => {
     let sliderTitle = "Contents of the Month";
     if (page === 1) {
       const sliderFilter = (tab === "followed" || tab === "collection") ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
-      if (actualUserTags) {
+      if (actualUserTags && isMainSearch) {
          const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
          sliderTitle = tagsCount >= 2 ? "Best Recent Contents" : "Top Contents";
          sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);
       } else {
+         sliderTitle = "Contents of the Month";
          sliderPosts = await getTopPostsThisMonth(15, sliderFilter);
       }
     }
 
-    if (!userTags) {
+    if (!isMainSearch) {
       const [pt, pc] = await sliderTagsPromise;
       popularTags = pt;
       popularCharacters = pc;
@@ -477,6 +479,12 @@ const search = async (req, res) => {
 const detail = async (req, res) => {
   try {
     const postId = req.params.id;
+    
+    // Tampilkan halaman loading sementara (interstitial) secara instan jika belum ada query load=true
+    if (req.query.load !== 'true') {
+      return res.render('interstitial', { postId: postId });
+    }
+    
     const response = await getCachedDanbooru(`https://danbooru.donmai.us/posts/${postId}.json`);
     const post = response.data;
     
@@ -506,68 +514,9 @@ const detail = async (req, res) => {
       followedTags = follows.map(f => f.tagName);
     }
 
-    let relatedPosts = [];
-    try {
-      let searchTags = [];
-      if (post.tag_string_character) {
-        searchTags = post.tag_string_character.split(' ').slice(0, 5); // Limit to 5 characters max
-      } else if (post.tag_string_copyright) {
-        searchTags = post.tag_string_copyright.split(' ').slice(0, 2);
-      } else if (post.tag_string_artist) {
-        searchTags = post.tag_string_artist.split(' ').slice(0, 1);
-      } else if (post.tag_string_general) {
-        searchTags = post.tag_string_general.split(' ').slice(0, 1);
-      }
-      
-      if (searchTags.length > 0) {
-         const activeRatingFilter = req.cookies?.cytusGalleryRatingFilter;
-         
-         let requestedRatings = [];
-         if (activeRatingFilter !== undefined && activeRatingFilter !== "") {
-            requestedRatings = decodeURIComponent(activeRatingFilter).split(',');
-         } else {
-            requestedRatings = ['g', 's'];
-         }
-         
-         let allowedRatings = [];
-         if (!res.locals.isBypass) {
-            allowedRatings = requestedRatings.filter(r => r === 'g' || r === 's');
-            if (allowedRatings.length === 0) allowedRatings = ['g', 's'];
-         } else {
-            allowedRatings = requestedRatings;
-         }
-         
-         const ratingFilterStr = " rating:" + allowedRatings.join(',');
-         
-         // Ambil posts dari masing-masing tag character
-         const promises = searchTags.map(tag => {
-            return getCachedPosts({ tags: tag + ratingFilterStr, page: 1, limit: 100 });
-         });
-         
-         const results = await Promise.all(promises);
-         
-         let fetchedPostsMap = new Map();
-         results.forEach(res => {
-            if (res.data) {
-               res.data.forEach(p => {
-                  if (p.id !== post.id && allowedRatings.includes(p.rating)) {
-                     fetchedPostsMap.set(p.id, p);
-                  }
-               });
-            }
-         });
-         
-         let fetchedPosts = Array.from(fetchedPostsMap.values());
-         
-         // Fisher-Yates shuffle
-         for (let i = fetchedPosts.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [fetchedPosts[i], fetchedPosts[j]] = [fetchedPosts[j], fetchedPosts[i]];
-         }
-         relatedPosts = fetchedPosts.slice(0, 100);
-      }
-    } catch (e) {
-      console.error("Error fetching related posts:", e.message);
+    let hasRelatedTags = false;
+    if (post.tag_string_character || post.tag_string_copyright || post.tag_string_artist || post.tag_string_general) {
+      hasRelatedTags = true;
     }
     
     let savedPostIds = new Set();
@@ -576,7 +525,7 @@ const detail = async (req, res) => {
       savedPostIds = appData.savedPostIds;
     }
 
-    res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags, relatedPosts: relatedPosts, savedPostIds: savedPostIds });
+    res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags, relatedPosts: [], savedPostIds: savedPostIds, hasRelatedTags: hasRelatedTags });
   } catch (error) {
     console.error("Error fetching post details:", error);
     if (error && error.message && error.message.includes('planLimitReached')) {
@@ -586,4 +535,78 @@ const detail = async (req, res) => {
   }
 };
 
-module.exports = { root, search, detail };
+const related = async (req, res) => {
+  try {
+    const postId = req.params.id;
+    const page = parseInt(req.query.page) || 1;
+    
+    const response = await getCachedDanbooru(`https://danbooru.donmai.us/posts/${postId}.json`);
+    const post = response.data;
+    
+    let searchTags = [];
+    if (post.tag_string_character) {
+      searchTags = post.tag_string_character.split(' ').slice(0, 5);
+    } else if (post.tag_string_copyright) {
+      searchTags = post.tag_string_copyright.split(' ').slice(0, 2);
+    } else if (post.tag_string_artist) {
+      searchTags = post.tag_string_artist.split(' ').slice(0, 1);
+    } else if (post.tag_string_general) {
+      searchTags = post.tag_string_general.split(' ').slice(0, 1);
+    }
+    
+    let relatedPosts = [];
+    if (searchTags.length > 0) {
+       const activeRatingFilter = req.cookies?.cytusGalleryRatingFilter;
+       let requestedRatings = [];
+       if (activeRatingFilter !== undefined && activeRatingFilter !== "") {
+          requestedRatings = decodeURIComponent(activeRatingFilter).split(',');
+       } else {
+          requestedRatings = ['g', 's'];
+       }
+       let allowedRatings = [];
+       if (!res.locals.isBypass) {
+          allowedRatings = requestedRatings.filter(r => r === 'g' || r === 's');
+          if (allowedRatings.length === 0) allowedRatings = ['g', 's'];
+       } else {
+          allowedRatings = requestedRatings;
+       }
+       const ratingFilterStr = " rating:" + allowedRatings.join(',');
+       
+       const promises = searchTags.map(tag => {
+          return getCachedPosts({ tags: tag + ratingFilterStr, page: page, limit: 25 });
+       });
+       
+       const results = await Promise.all(promises);
+       let fetchedPostsMap = new Map();
+       results.forEach(result => {
+          if (result.data) {
+             result.data.forEach(p => {
+                if (p.id !== post.id && allowedRatings.includes(p.rating) && p.large_file_url && !p.is_banned && !p.is_deleted && !p.is_pending) {
+                   fetchedPostsMap.set(p.id, p);
+                }
+             });
+          }
+       });
+       
+       let fetchedPosts = Array.from(fetchedPostsMap.values());
+       for (let i = fetchedPosts.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [fetchedPosts[i], fetchedPosts[j]] = [fetchedPosts[j], fetchedPosts[i]];
+       }
+       relatedPosts = fetchedPosts.slice(0, 25); // Ambil 25 per request
+    }
+    
+    let savedPostIds = new Set();
+    if (res.locals.user) {
+      const appData = await getUserAppData(res.locals.user.id);
+      savedPostIds = appData.savedPostIds;
+    }
+    
+    res.render("partials/related-items", { relatedPosts, savedPostIds, user: req.user, post, page });
+  } catch (e) {
+    console.error("Error fetching related API:", e.message);
+    res.status(500).send("");
+  }
+};
+
+module.exports = { root, search, detail, related };

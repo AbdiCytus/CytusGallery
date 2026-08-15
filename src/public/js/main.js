@@ -414,7 +414,9 @@ document.addEventListener("DOMContentLoaded", () => {
        document.cookie = "cytusGalleryActiveTab=" + activeTab + "; path=/; max-age=31536000";
     }
 
-    sessionStorage.setItem("lastSearchTags", userTypedTags.trim());
+    if (activeTab === 'contents') {
+       sessionStorage.setItem("lastSearchTags", userTypedTags.trim());
+    }
 
     const params = new URLSearchParams();
     const filters = JSON.parse(localStorage.getItem("cytusGalleryFilters"));
@@ -620,7 +622,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isAutoSearch) {
           const mainGallery = document.getElementById('main-gallery');
           if (mainGallery) {
-             mainGallery.innerHTML = '<div class="col-span-full w-full flex justify-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent"></div></div>';
+             let skeletonHtml = '';
+             for(let i=0; i<15; i++) {
+                const h = 150 + Math.random() * 150;
+                skeletonHtml += `<div class="relative overflow-hidden rounded-lg animate-pulse bg-gray-800" style="height: ${h}px"></div>`;
+             }
+             mainGallery.innerHTML = `<div class="col-span-full w-full columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">${skeletonHtml}</div>`;
           }
         } else if (progressContainer && progressBar) {
            progressContainer.style.opacity = '1';
@@ -1786,6 +1793,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       observer.disconnect();
                    } else {
                       // Reset spinner just in case it was showing an error earlier
+                      loaderDiv.className = 'w-full flex justify-center py-8 mt-4';
                       loaderDiv.innerHTML = '<div class="w-8 h-8 border-4 border-t-cyan-500 border-gray-600 rounded-full animate-spin"></div>';
                       isFetching = false;
                       observer.unobserve(loaderDiv);
@@ -1823,6 +1831,34 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   initInfiniteScroll();
+});
+
+// Debounce for Collection Search Bar in search.ejs
+let koleksiSearchTimeout;
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'koleksi-search-input') {
+    const koleksiForm = document.getElementById('koleksi-search-form');
+    if (!koleksiForm) return;
+
+    clearTimeout(koleksiSearchTimeout);
+    koleksiSearchTimeout = setTimeout(() => {
+      if (typeof navigateWithFilters === 'function') {
+        navigateWithFilters(e.target.value, 1, 'collection', true, true);
+      } else {
+        koleksiForm.submit();
+      }
+    }, 500);
+  }
+});
+
+document.addEventListener('submit', (e) => {
+  if (e.target && e.target.id === 'koleksi-search-form') {
+    e.preventDefault();
+    const input = document.getElementById('koleksi-search-input');
+    if (input && typeof navigateWithFilters === 'function') {
+      navigateWithFilters(input.value, 1, 'collection', true, true);
+    }
+  }
 });
 
 document.addEventListener("DOMContentLoaded", () => {

@@ -142,11 +142,12 @@ app.use('/', require('./routes/notifications'));
 // =====================================================
 // Page Routes
 // =====================================================
-const { root, search, detail } = require('./controllers/homeController');
+const { root, search, detail, related } = require('./controllers/homeController');
 
 app.get("/", root);
 app.get("/search", search);
 app.get("/posts/:id", detail);
+app.get("/api/related/:id", related);
 
 app.get("/tentang", (req, res) => res.render("tentang", { hideSearchbar: true }));
 app.get("/bantuan", (req, res) => res.render("bantuan", { hideSearchbar: true }));

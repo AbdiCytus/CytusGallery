@@ -4,20 +4,71 @@
   <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-6">
     <h1 class="text-2xl md:text-3xl font-bold text-white md:self-center">Daftar Notifikasi</h1>
     <% if (notifications && notifications.length > 0) { %>
-      <button onclick="deleteNotification('all')" class="text-sm bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded transition-colors font-bold flex justify-center items-center gap-1 border border-red-900/50">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        Hapus Semua
-      </button>
+    <button onclick="deleteNotification('all')" class="text-sm bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded transition-colors font-bold flex justify-center items-center gap-1 border border-red-900/50">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+      </svg>
+      Hapus Semua
+    </button>
     <% } %>
   </div>
   <% if (typeof dateChips !== 'undefined' && dateChips.length > 0) { %>
-    <div class="flex overflow-x-auto gap-2 mb-6 pb-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent" id="date-chips-container">
-      <% dateChips.forEach((d, idx) => { %>
-         <button onclick="loadNotifsByDate('<%= d %>', this)" class="date-chip flex-shrink-0 px-4 py-1.5 rounded-full border border-gray-600 text-sm font-bold transition-colors <%= idx === 0 ? 'bg-cyan-600 text-white border-cyan-500 active-chip' : 'bg-gray-800 text-gray-300 hover:bg-gray-700' %>">
-           <span class="local-date-chip" data-time="<%= d %>T00:00:00Z"><%= d %></span>
-         </button>
-      <% }); %>
+  <div class="mb-6 w-full">
+    <label class="block text-sm font-bold text-gray-300 mb-2">Pilih Tanggal Notifikasi:</label>
+    <div class="relative w-full">
+      <button id="custom-date-picker-btn" class="w-full flex items-center justify-between bg-gray-800 border border-gray-600 text-white rounded-lg p-3 hover:bg-gray-700 hover:border-cyan-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors font-semibold" onclick="openCalendarModal()">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 text-cyan-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+          </svg>
+          <span id="custom-date-display">--/--/----</span>
+        </div>
+        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
     </div>
+  </div>
+
+  <!-- Custom Calendar Modal -->
+  <div id="calendar-modal" data-chips="<%= JSON.stringify(typeof dateChips !== 'undefined' ? dateChips : []) %>" data-joined="<%= typeof user !== 'undefined' && user.createdAt ? user.createdAt : '' %>" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+    <div class="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-[90%] max-w-sm transform scale-95 transition-transform duration-300" id="calendar-modal-content">
+      <!-- Header -->
+      <div class="flex justify-between items-center p-4 border-b border-gray-800">
+        <button id="calendar-prev-btn" onclick="changeCalendarMonth(-1)" class="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+        <h3 id="calendar-month-year" class="text-lg font-bold text-white"></h3>
+        <button id="calendar-next-btn" onclick="changeCalendarMonth(1)" class="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Days -->
+      <div class="p-4">
+        <div class="grid grid-cols-7 gap-1 mb-2">
+          <div class="text-center text-xs font-bold text-gray-500">M</div>
+          <div class="text-center text-xs font-bold text-gray-500">S</div>
+          <div class="text-center text-xs font-bold text-gray-500">S</div>
+          <div class="text-center text-xs font-bold text-gray-500">R</div>
+          <div class="text-center text-xs font-bold text-gray-500">K</div>
+          <div class="text-center text-xs font-bold text-gray-500">J</div>
+          <div class="text-center text-xs font-bold text-gray-500">S</div>
+        </div>
+        <div id="calendar-days" class="grid grid-cols-7 gap-1">
+          <!-- Days injected via JS -->
+        </div>
+      </div>
+      <!-- Footer -->
+      <div class="flex justify-between items-center p-3 border-t border-gray-800 bg-gray-800/50 rounded-b-xl">
+        <button onclick="closeCalendarModal()" class="text-sm font-semibold text-gray-400 hover:text-white px-3 py-1.5 transition-colors">Tutup</button>
+        <button onclick="selectToday()" class="text-sm font-bold text-cyan-400 hover:text-cyan-300 px-3 py-1.5 transition-colors">Hari Ini</button>
+      </div>
+    </div>
+  </div>
   <% } %>
 
   <div id="notifications-container">
@@ -32,52 +83,56 @@
            grouped[date].items.push(n);
         });
     %>
-      
-      <% for (const [date, group] of Object.entries(grouped)) { %>
-        <div class="mb-8 notif-group" data-date="<%= date %>">
-          <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
-            <button onclick="toggleNotifGroup(this)" class="flex items-center gap-2 flex-grow text-left group">
-              <svg class="w-5 h-5 text-gray-500 transform transition-transform group-open-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-              <div class="flex items-center gap-2">
-                <h2 class="text-xl font-bold text-gray-300 local-date" data-time="<%= group.dateStr %>"><%= date %></h2>
-                <span class="bg-gray-700 text-xs text-gray-300 font-bold px-2 py-0.5 rounded-full notif-count"><%= group.totalCount %></span>
-              </div>
-            </button>
-            <button onclick="deleteNotification('day', this)" class="text-xs text-gray-400 hover:text-red-400 transition-colors flex items-center gap-1 ml-4 flex-shrink-0">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-              Hapus Hari Ini
-            </button>
+
+    <% for (const [date, group] of Object.entries(grouped)) { %>
+    <div class="mb-8 notif-group" data-date="<%= date %>">
+      <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
+        <button onclick="toggleNotifGroup(this)" class="flex items-center gap-2 flex-grow text-left group">
+          <svg class="w-5 h-5 text-gray-500 transform transition-transform group-open-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-bold text-gray-300 local-date" data-time="<%= group.dateStr %>"><%= date %></h2>
+            <span class="bg-gray-700 text-xs text-gray-300 font-bold px-2 py-0.5 rounded-full notif-count"><%= group.totalCount %></span>
           </div>
-          <div class="space-y-3 notif-list">
-            <% group.items.forEach((n, index) => { %>
-              <div class="relative group notif-item <%= !n.isRead ? 'unread-notif' : '' %>" id="notif-<%= n.id %>">
-                <div class="flex p-4 bg-gray-800 border <%= !n.isRead ? 'border-blue-500' : 'border-gray-700' %> rounded-lg shadow-sm">
-                  <% if (n.imageUrl) { %>
-                    <a href="<%= n.link %>" class="block flex-shrink-0 relative mr-4">
-                      <span class="notif-index absolute top-0 left-0 bg-gray-900/80 text-cyan-400 text-[10px] font-bold px-1.5 py-0.5 rounded-tl-md rounded-br-md z-10 border-r border-b border-gray-700 backdrop-blur-sm"><%= index + 1 %></span>
-                      <img src="<%= n.imageUrl %>" class="w-24 h-24 object-cover rounded-md hover:opacity-80 transition-opacity" alt="Thumbnail">
-                    </a>
-                  <% } %>
-                  <div class="flex-grow flex flex-col justify-center">
-                    <div class="flex items-center flex-wrap gap-2 mb-1 pr-16">
-                      <div class="font-semibold text-white text-base md:text-lg"><%= n.title %></div>
-                      <% if (n.extension) { %>
-                        <span class="hidden sm:inline-block bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5"><%= n.extension.toUpperCase() %></span>
-                      <% } %>
-                      <% if (n.rating) { %>
-                        <% 
+        </button>
+        <button onclick="deleteNotification('day', this)" class="text-xs text-gray-400 hover:text-red-400 transition-colors flex items-center gap-1 ml-4 flex-shrink-0">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+          Hapus Hari Ini
+        </button>
+      </div>
+      <div class="space-y-3 notif-list">
+        <% group.items.forEach((n, index) => { %>
+        <div class="relative group notif-item <%= !n.isRead ? 'unread-notif' : '' %>" id="notif-<%= n.id %>">
+          <div class="flex p-4 bg-gray-800 border <%= !n.isRead ? 'border-blue-500' : 'border-gray-700' %> rounded-lg shadow-sm">
+            <% if (n.imageUrl) { %>
+            <a href="<%= n.link %>" class="block flex-shrink-0 relative mr-4">
+              <span class="notif-index absolute top-0 left-0 bg-gray-900/80 text-cyan-400 text-[10px] font-bold px-1.5 py-0.5 rounded-tl-md rounded-br-md z-10 border-r border-b border-gray-700 backdrop-blur-sm"><%= index + 1 %></span>
+              <img src="<%= n.imageUrl %>" class="w-24 h-24 object-cover rounded-md hover:opacity-80 transition-opacity" alt="Thumbnail">
+            </a>
+            <% } %>
+            <div class="flex-grow flex flex-col justify-center">
+              <div class="flex items-center flex-wrap gap-2 mb-1 pr-16">
+                <div class="font-semibold text-white text-base md:text-lg"><%= n.title %></div>
+                <% if (n.extension) { %>
+                <span class="hidden sm:inline-block bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded mt-0.5"><%= n.extension.toUpperCase() %></span>
+                <% } %>
+                <% if (n.rating) { %>
+                <% 
                           let rBg = 'bg-gray-600';
                           if (n.rating === 'g') rBg = 'bg-green-600';
                           if (n.rating === 's') rBg = 'bg-yellow-600';
                           if (n.rating === 'q') rBg = 'bg-purple-600';
                           if (n.rating === 'e') rBg = 'bg-red-600';
                         %>
-                        <span class="<%= rBg %> text-white text-[8px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded mt-0.5"><%= n.rating.toUpperCase() %></span>
-                      <% } %>
-                    </div>
-                    <div class="text-xs md:text-sm text-gray-300 mb-1 md:mb-1.5 leading-snug md:leading-normal"><%- n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') %></div>
+                <span class="<%= rBg %> text-white text-[8px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded mt-0.5"><%= n.rating.toUpperCase() %></span>
+                <% } %>
+              </div>
+              <div class="text-xs md:text-sm text-gray-300 mb-1 md:mb-1.5 leading-snug md:leading-normal"><%- n.message.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') %></div>
 
-                    <% 
+              <% 
                       let tagName = '';
                       if (n.title.startsWith('Post Baru: ')) tagName = n.title.substring(11);
                       else if (n.title.startsWith('Update Tag: ')) tagName = n.title.substring(12);
@@ -86,32 +141,34 @@
         if (m) tagName = m[1].toLowerCase().replace(/ /g, '_');
       }
                     %>
-                    <div class="flex flex-nowrap gap-1.5 md:gap-2 mt-1.5 md:mt-1 w-full md:w-auto">
-                      <a href="<%= n.link %>" class="flex-1 md:flex-initial bg-cyan-600 hover:bg-cyan-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-colors whitespace-nowrap text-center">Lihat Detail</a>
-                      <% if (tagName) { %>
-                        <a href="/search?tags=<%= encodeURIComponent(tagName) %>" class="flex-1 md:flex-initial bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-colors whitespace-nowrap text-center">Kunjungi Tag</a>
-                      <% } %>
-                    </div>
-                  </div>
-                </div>
-                <div class="absolute top-3 right-3 flex items-center gap-1 bg-gray-800/80 backdrop-blur-sm p-1 rounded-md">
-                  <span class="text-[10px] sm:text-xs text-gray-400 local-time transition-opacity" data-time="<%= n.createdAt %>"></span>
-                  <button onclick="deleteNotification('single', '<%= n.id %>')" class="p-1 text-gray-400 hover:text-white hover:bg-red-600 rounded-md transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100" title="Hapus Notifikasi">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  </button>
-                </div>
+              <div class="flex flex-nowrap gap-1.5 md:gap-2 mt-1.5 md:mt-1 w-full md:w-auto">
+                <a href="<%= n.link %>" class="flex-1 md:flex-initial bg-cyan-600 hover:bg-cyan-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-colors whitespace-nowrap text-center">Lihat Detail</a>
+                <% if (tagName) { %>
+                <a href="/search?tags=<%= encodeURIComponent(tagName) %>" class="flex-1 md:flex-initial bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-md text-[10px] md:text-xs font-bold transition-colors whitespace-nowrap text-center">Kunjungi Tag</a>
+                <% } %>
               </div>
-            <% }); %>
+            </div>
+          </div>
+          <div class="absolute top-3 right-3 flex items-center gap-1 bg-gray-800/80 backdrop-blur-sm p-1 rounded-md">
+            <span class="text-[10px] sm:text-xs text-gray-400 local-time transition-opacity" data-time="<%= n.createdAt %>"></span>
+            <button onclick="deleteNotification('single', '<%= n.id %>')" class="p-1 text-gray-400 hover:text-white hover:bg-red-600 rounded-md transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100" title="Hapus Notifikasi">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
           </div>
         </div>
-      <% } %>
-    <% } else { %>
-      <div id="no-notif-msg" class="text-center py-16 bg-gray-800 rounded-lg border border-gray-700">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
-        <p class="text-gray-400 text-lg">Belum ada notifikasi.</p>
+        <% }); %>
       </div>
+    </div>
+    <% } %>
+    <% } else { %>
+    <div id="no-notif-msg" class="text-center py-16 bg-gray-800 rounded-lg border border-gray-700">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+      <p class="text-gray-400 text-lg">Belum ada notifikasi.</p>
+    </div>
     <% } %>
   </div>
 </main>
@@ -120,16 +177,212 @@
   // Ubah semua format tanggal/waktu ke zona waktu lokal pengguna
   document.querySelectorAll('.local-time').forEach(el => {
     const d = new Date(el.getAttribute('data-time'));
-    el.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    el.textContent = d.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   });
   document.querySelectorAll('.local-date').forEach(el => {
     const d = new Date(el.getAttribute('data-time'));
-    el.textContent = d.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
+    el.textContent = d.toLocaleDateString([], {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   });
 
-  // Fungsi loadMoreLocal dihapus.
+  // === Custom Calendar Logic ===
+  let selectedDate = new Date();
+  let currentMonth = new Date();
+  let availableDatesStr = [];
+  try {
+     const modalEl = document.getElementById('calendar-modal');
+     availableDatesStr = JSON.parse(modalEl.getAttribute('data-chips') || "[]");
+  } catch(e) {
+     availableDatesStr = [];
+  }
+  const availableDates = new Set(availableDatesStr); // Set of 'YYYY-MM-DD'
+
+  if (availableDatesStr.length > 0) {
+    selectedDate = new Date(availableDatesStr[0]);
+    currentMonth = new Date(availableDatesStr[0]);
+  }
+
+  function updateDateDisplay() {
+    const display = document.getElementById('custom-date-display');
+    if (display) {
+      display.textContent = selectedDate.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+  }
+
+  function openCalendarModal() {
+    const modal = document.getElementById('calendar-modal');
+    const content = document.getElementById('calendar-modal-content');
+    renderCalendar();
+
+    modal.classList.remove('hidden');
+    // Allow display:flex to apply before animating opacity
+    setTimeout(() => {
+      modal.classList.remove('opacity-0');
+      content.classList.remove('scale-95');
+    }, 10);
+  }
+
+  function closeCalendarModal() {
+    const modal = document.getElementById('calendar-modal');
+    const content = document.getElementById('calendar-modal-content');
+
+    modal.classList.add('opacity-0');
+    content.classList.add('scale-95');
+
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 300);
+  }
+
+  function changeCalendarMonth(offset) {
+    const newMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offset, 1);
+    
+    const modalEl = document.getElementById('calendar-modal');
+    const joinedAttr = modalEl.getAttribute('data-joined');
+    const joinedDateObj = joinedAttr ? new Date(joinedAttr) : new Date(0);
+    
+    const minMonth = new Date(joinedDateObj.getFullYear(), joinedDateObj.getMonth(), 1);
+    const maxMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    
+    if (newMonth < minMonth || newMonth > maxMonth) return;
+    
+    currentMonth.setMonth(currentMonth.getMonth() + offset);
+    renderCalendar();
+  }
+
+  function selectToday() {
+    const today = new Date();
+    const tz = today.toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Makassar'
+    });
+    selectDate(tz);
+  }
+
+  function selectDate(dateStr) {
+    selectedDate = new Date(dateStr);
+    currentMonth = new Date(dateStr);
+    updateDateDisplay();
+    closeCalendarModal();
+    loadNotifsByDate(dateStr);
+  }
+
+  function renderCalendar() {
+    const modalEl = document.getElementById('calendar-modal');
+    const monthYearLabel = document.getElementById('calendar-month-year');
+    const daysContainer = document.getElementById('calendar-days');
+    const prevBtn = document.getElementById('calendar-prev-btn');
+    const nextBtn = document.getElementById('calendar-next-btn');
+
+    monthYearLabel.textContent = currentMonth.toLocaleDateString('id-ID', {
+      month: 'long',
+      year: 'numeric'
+    });
+    daysContainer.innerHTML = '';
+
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+
+    const firstDay = new Date(year, month, 1).getDay(); // 0 is Sunday
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const todayObj = new Date();
+    const todayStr = todayObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' });
+    
+    const joinedAttr = modalEl.getAttribute('data-joined');
+    const joinedDateObj = joinedAttr ? new Date(joinedAttr) : new Date(0);
+    const joinedStr = joinedDateObj.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' });
+
+    const selectedStr = selectedDate.toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Makassar'
+    });
+
+    // Disable month navigation if out of bounds
+    const minMonth = new Date(joinedDateObj.getFullYear(), joinedDateObj.getMonth(), 1);
+    const maxMonth = new Date(todayObj.getFullYear(), todayObj.getMonth(), 1);
+    const currentMonthStart = new Date(year, month, 1);
+    
+    if (prevBtn) prevBtn.disabled = currentMonthStart <= minMonth;
+    if (nextBtn) nextBtn.disabled = currentMonthStart >= maxMonth;
+
+    // Empty slots before 1st day
+    for (let i = 0; i < firstDay; i++) {
+      const emptyDiv = document.createElement('div');
+      daysContainer.appendChild(emptyDiv);
+    }
+
+    // Days
+    for (let d = 1; d <= daysInMonth; d++) {
+      // Format to YYYY-MM-DD robustly without local timezone shifting
+      const dateStr = `${year}-${(month+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+
+      const btn = document.createElement('button');
+      btn.textContent = d;
+      
+      const isPastLimit = dateStr < joinedStr;
+      const isFutureLimit = dateStr > todayStr;
+      
+      if (isPastLimit || isFutureLimit) {
+        btn.disabled = true;
+        btn.className = 'w-full h-10 flex items-center justify-center rounded-lg text-sm font-semibold opacity-20 cursor-not-allowed text-gray-500';
+        daysContainer.appendChild(btn);
+        continue;
+      }
+
+      btn.onclick = () => selectDate(dateStr);
+
+      let classes = 'w-full h-10 flex items-center justify-center rounded-lg text-sm font-semibold transition-all relative group ';
+
+      const hasNotifs = availableDates.has(dateStr);
+      const isSelected = dateStr === selectedStr;
+      const isToday = dateStr === todayStr;
+
+      if (isSelected) {
+        classes += 'bg-cyan-600 text-white shadow-md shadow-cyan-500/30';
+      } else if (hasNotifs) {
+        classes += 'bg-gray-800 text-cyan-400 hover:bg-gray-700 border border-gray-700';
+      } else {
+        classes += 'text-gray-400 hover:bg-gray-800 hover:text-white';
+      }
+
+      if (isToday && !isSelected) {
+        classes += ' border border-cyan-700';
+      }
+
+      btn.className = classes;
+
+      if (hasNotifs && !isSelected) {
+        const dot = document.createElement('div');
+        dot.className = 'absolute top-1 right-1 w-1.5 h-1.5 bg-cyan-500 rounded-full';
+        btn.appendChild(dot);
+      }
+
+      daysContainer.appendChild(btn);
+    }
+  }
+
+  // Close modal when clicking outside
+  document.getElementById('calendar-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeCalendarModal();
+  });
+
+  // Initialize date display on load
+  document.addEventListener('DOMContentLoaded', () => {
+    updateDateDisplay();
+  });
 
   let notifAction = null;
+
   function deleteNotification(action, idOrEl, date = null) {
 
     if (action === 'single') {
@@ -160,8 +413,13 @@
       try {
         fetch('/api/notifications/delete', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, id: idOrEl })
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action,
+            id: idOrEl
+          })
         });
       } catch (e) {
         console.error(e);
@@ -170,18 +428,25 @@
     }
 
     if (action === 'day' && typeof idOrEl === 'object') {
-       const group = idOrEl.closest('.notif-group');
-       const items = group.querySelectorAll('.notif-item');
-       const ids = Array.from(items).map(item => item.id.replace('notif-', ''));
-       notifAction = { action: 'day', id: ids.join(',') };
+      const group = idOrEl.closest('.notif-group');
+      const items = group.querySelectorAll('.notif-item');
+      const ids = Array.from(items).map(item => item.id.replace('notif-', ''));
+      notifAction = {
+        action: 'day',
+        id: ids.join(',')
+      };
     } else {
-       notifAction = { action, id: idOrEl, date };
+      notifAction = {
+        action,
+        id: idOrEl,
+        date
+      };
     }
-    
+
     let msg = "Apakah Anda yakin ingin menghapus notifikasi ini?";
     if (action === 'all') msg = "Apakah Anda yakin ingin menghapus SEMUA notifikasi?";
     if (action === 'day') msg = "Apakah Anda yakin ingin menghapus SEMUA notifikasi pada hari tersebut?";
-    
+
     if (typeof window.showAlert === 'function') {
       window.showAlert("Hapus Notifikasi", msg, confirmDeleteNotif);
     } else {
@@ -194,7 +459,9 @@
     try {
       const res = await fetch('/api/notifications/delete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(notifAction)
       });
       const data = await res.json();
@@ -208,27 +475,36 @@
 
   // Listener untuk real-time update dari header.ejs
   window.addEventListener('notifications-updated', (e) => {
-    const { notifications } = e.detail;
+    const {
+      notifications
+    } = e.detail;
     if (!notifications || notifications.length === 0) return;
-    
+
     // Reverse array to append oldest-first, so newest ends up at the top
     const newNotifs = [...notifications].reverse();
-    
+
     newNotifs.forEach(n => {
       // Check if it already exists
       if (document.getElementById(`notif-${n.id}`)) return;
-      
+
       const dateObj = new Date(n.createdAt);
       const dateStr = dateObj.toLocaleDateString('en-CA');
-      const dateLocalStr = dateObj.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
-      const timeLocalStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
+      const dateLocalStr = dateObj.toLocaleDateString([], {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const timeLocalStr = dateObj.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
       let rBg = 'bg-gray-600';
       if (n.rating === 'g') rBg = 'bg-green-600';
       if (n.rating === 's') rBg = 'bg-yellow-600';
       if (n.rating === 'q') rBg = 'bg-purple-600';
       if (n.rating === 'e') rBg = 'bg-red-600';
-      
+
       let tagName = '';
       if (n.title.startsWith('Post Baru: ')) tagName = n.title.substring(11);
       else if (n.title.startsWith('Update Tag: ')) tagName = n.title.substring(12);
@@ -267,7 +543,7 @@
           </div>
         </div>
       `;
-      
+
       // Find or create group
       let groupDiv = document.querySelector(`.notif-group[data-date="${dateStr}"]`);
       if (!groupDiv) {
@@ -292,16 +568,16 @@
         `;
         notifContainer.appendChild(groupDiv);
       }
-      
+
       const listDiv = groupDiv.querySelector('.notif-list');
       listDiv.insertAdjacentHTML('afterbegin', itemHtml); // New realtime items should appear at the top of the group
-      
+
       const countBadge = groupDiv.querySelector('.notif-count');
       if (countBadge) {
-         let currentCount = parseInt(countBadge.textContent);
-         countBadge.textContent = currentCount + 1;
+        let currentCount = parseInt(countBadge.textContent);
+        countBadge.textContent = currentCount + 1;
       }
-      
+
       // Update all indexes in this group so they stay sequential
       const indexBadges = groupDiv.querySelectorAll('.notif-index');
       indexBadges.forEach((badge, idx) => {
@@ -314,7 +590,7 @@
     const group = btn.closest('.notif-group');
     const list = group.querySelector('.notif-list');
     const icon = btn.querySelector('.group-open-icon');
-    
+
     if (list.classList.contains('hidden')) {
       list.classList.remove('hidden');
       icon.classList.remove('-rotate-90');
@@ -323,69 +599,75 @@
       icon.classList.add('-rotate-90');
     }
   };
-    // Mark notifications as read when they come into view
-    let unreadIds = [];
-    let markReadTimeout = null;
+  // Mark notifications as read when they come into view
+  let unreadIds = [];
+  let markReadTimeout = null;
 
-    const flushMarkRead = async () => {
-      if (unreadIds.length === 0) return;
-      const idsToMark = [...unreadIds];
-      unreadIds = [];
-      try {
-        await fetch('/api/notifications/mark-read', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ids: idsToMark })
-        });
-      } catch (e) {
-        console.error("Failed to mark notifications as read", e);
-      }
-    };
+  const flushMarkRead = async () => {
+    if (unreadIds.length === 0) return;
+    const idsToMark = [...unreadIds];
+    unreadIds = [];
+    try {
+      await fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ids: idsToMark
+        })
+      });
+    } catch (e) {
+      console.error("Failed to mark notifications as read", e);
+    }
+  };
 
-    const observer = new IntersectionObserver((entries, obs) => {
-      let newlySeen = false;
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const el = entry.target;
-          const id = el.id.replace('notif-', '');
-          if (id) {
-            unreadIds.push(id);
-            newlySeen = true;
-          }
-          // Remove class so we don't observe it again
-          el.classList.remove('unread-notif');
-          obs.unobserve(el);
+  const observer = new IntersectionObserver((entries, obs) => {
+    let newlySeen = false;
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const id = el.id.replace('notif-', '');
+        if (id) {
+          unreadIds.push(id);
+          newlySeen = true;
         }
-      });
-      
-      if (newlySeen) {
-        if (markReadTimeout) clearTimeout(markReadTimeout);
-        markReadTimeout = setTimeout(flushMarkRead, 1000); // Batch update every 1 second
+        // Remove class so we don't observe it again
+        el.classList.remove('unread-notif');
+        obs.unobserve(el);
       }
-    }, { threshold: 0.5 }); // 50% visibility
-
-    const observeUnread = () => {
-      document.querySelectorAll('.unread-notif').forEach(el => {
-        observer.observe(el);
-      });
-    };
-
-    // Run on DOM load
-    document.addEventListener("DOMContentLoaded", () => {
-       observeUnread();
     });
 
-    // Export so loadMoreNotifications can call it
-    window.observeUnreadNotifs = observeUnread;
+    if (newlySeen) {
+      if (markReadTimeout) clearTimeout(markReadTimeout);
+      markReadTimeout = setTimeout(flushMarkRead, 1000); // Batch update every 1 second
+    }
+  }, {
+    threshold: 0.5
+  }); // 50% visibility
 
-    let currentNotifsSkip = 100;
-    let currentNotifsDate = "<%= typeof dateChips !== 'undefined' && dateChips.length > 0 ? dateChips[0] : '' %>";
-    let isFetchingNotifs = false;
-    let hasMoreNotifs = true;
+  const observeUnread = () => {
+    document.querySelectorAll('.unread-notif').forEach(el => {
+      observer.observe(el);
+    });
+  };
 
-    function renderNotifsChunk(notifications, append = false) {
-      if (notifications.length === 0 && !append) {
-        document.getElementById('notifications-container').innerHTML = `
+  // Run on DOM load
+  document.addEventListener("DOMContentLoaded", () => {
+    observeUnread();
+  });
+
+  // Export so loadMoreNotifications can call it
+  window.observeUnreadNotifs = observeUnread;
+
+  let currentNotifsSkip = 100;
+  let currentNotifsDate = "<%= typeof dateChips !== 'undefined' && dateChips.length > 0 ? dateChips[0] : '' %>";
+  let isFetchingNotifs = false;
+  let hasMoreNotifs = true;
+
+  function renderNotifsChunk(notifications, append = false) {
+    if (notifications.length === 0 && !append) {
+      document.getElementById('notifications-container').innerHTML = `
           <div id="no-notif-msg" class="text-center py-16 bg-gray-800 rounded-lg border border-gray-700">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -393,22 +675,26 @@
             <p class="text-gray-400 text-lg">Belum ada notifikasi.</p>
           </div>
         `;
-        return;
-      }
-      
-      const container = document.getElementById('notifications-container');
-      if (!append) container.innerHTML = '';
-      
-      let groupDiv = container.querySelector('.notif-group');
-      let listDiv = null;
-      if (!groupDiv) {
-        const dateObj = new Date(`${currentNotifsDate}T00:00:00Z`);
-        const dateLocalStr = dateObj.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
-        
-        groupDiv = document.createElement('div');
-        groupDiv.className = 'mb-8 notif-group';
-        groupDiv.setAttribute('data-date', currentNotifsDate);
-        groupDiv.innerHTML = `
+      return;
+    }
+
+    const container = document.getElementById('notifications-container');
+    if (!append) container.innerHTML = '';
+
+    let groupDiv = container.querySelector('.notif-group');
+    let listDiv = null;
+    if (!groupDiv) {
+      const dateObj = new Date(`${currentNotifsDate}T00:00:00Z`);
+      const dateLocalStr = dateObj.toLocaleDateString([], {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      groupDiv = document.createElement('div');
+      groupDiv.className = 'mb-8 notif-group';
+      groupDiv.setAttribute('data-date', currentNotifsDate);
+      groupDiv.innerHTML = `
           <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
             <button onclick="toggleNotifGroup(this)" class="flex items-center gap-2 flex-grow text-left group">
               <svg class="w-5 h-5 text-gray-500 transform transition-transform group-open-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -424,31 +710,34 @@
           </div>
           <div class="space-y-3 notif-list"></div>
         `;
-        container.appendChild(groupDiv);
-      }
-      listDiv = groupDiv.querySelector('.notif-list');
-      
-      let html = '';
-      notifications.forEach((n, idx) => {
-        if (document.getElementById(`notif-${n.id}`)) return;
-        const dateObj = new Date(n.createdAt);
-        const timeLocalStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
-        let rBg = 'bg-gray-600';
-        if (n.rating === 'g') rBg = 'bg-green-600';
-        if (n.rating === 's') rBg = 'bg-yellow-600';
-        if (n.rating === 'q') rBg = 'bg-purple-600';
-        if (n.rating === 'e') rBg = 'bg-red-600';
-        
-        let tagName = '';
-        if (n.title.startsWith('Post Baru: ')) tagName = n.title.substring(11);
-        else if (n.title.startsWith('Update Tag: ')) tagName = n.title.substring(12);
-        else if (n.title === 'Konten Baru') {
-          const m = n.message.match(/\*\*(.*?)\*\*/);
-          if (m) tagName = m[1].toLowerCase().replace(/ /g, '_');
-        }
+      container.appendChild(groupDiv);
+    }
+    listDiv = groupDiv.querySelector('.notif-list');
 
-        html += `
+    let html = '';
+    notifications.forEach((n, idx) => {
+      if (document.getElementById(`notif-${n.id}`)) return;
+      const dateObj = new Date(n.createdAt);
+      const timeLocalStr = dateObj.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      let rBg = 'bg-gray-600';
+      if (n.rating === 'g') rBg = 'bg-green-600';
+      if (n.rating === 's') rBg = 'bg-yellow-600';
+      if (n.rating === 'q') rBg = 'bg-purple-600';
+      if (n.rating === 'e') rBg = 'bg-red-600';
+
+      let tagName = '';
+      if (n.title.startsWith('Post Baru: ')) tagName = n.title.substring(11);
+      else if (n.title.startsWith('Update Tag: ')) tagName = n.title.substring(12);
+      else if (n.title === 'Konten Baru') {
+        const m = n.message.match(/\*\*(.*?)\*\*/);
+        if (m) tagName = m[1].toLowerCase().replace(/ /g, '_');
+      }
+
+      html += `
           <div class="relative group notif-item ${!n.isRead ? 'unread-notif' : ''}" id="notif-${n.id}">
             <div class="flex p-4 bg-gray-800 border ${!n.isRead ? 'border-blue-500' : 'border-gray-700'} rounded-lg shadow-sm">
               ${n.imageUrl ? `
@@ -478,81 +767,77 @@
             </div>
           </div>
         `;
-      });
-      listDiv.insertAdjacentHTML('beforeend', html);
-      
-      const countBadge = groupDiv.querySelector('.notif-count');
-      if (countBadge) {
-         countBadge.textContent = listDiv.querySelectorAll('.notif-item').length;
-      }
-      const indexBadges = groupDiv.querySelectorAll('.notif-index');
-      indexBadges.forEach((badge, idx) => { badge.textContent = idx + 1; });
-      
-      observeUnread();
+    });
+    listDiv.insertAdjacentHTML('beforeend', html);
+
+    const countBadge = groupDiv.querySelector('.notif-count');
+    if (countBadge) {
+      countBadge.textContent = listDiv.querySelectorAll('.notif-item').length;
     }
+    const indexBadges = groupDiv.querySelectorAll('.notif-index');
+    indexBadges.forEach((badge, idx) => {
+      badge.textContent = idx + 1;
+    });
 
-    window.loadNotifsByDate = async function(dateStr, btnEl) {
-      if (btnEl.classList.contains('active-chip')) return;
-      
-      document.querySelectorAll('.date-chip').forEach(el => {
-        el.classList.remove('bg-cyan-600', 'text-white', 'border-cyan-500', 'active-chip');
-        el.classList.add('bg-gray-800', 'text-gray-300');
-      });
-      btnEl.classList.remove('bg-gray-800', 'text-gray-300', 'hover:bg-gray-700');
-      btnEl.classList.add('bg-cyan-600', 'text-white', 'border-cyan-500', 'active-chip');
-      
-      const container = document.getElementById('notifications-container');
-      container.innerHTML = '<div class="text-center py-10"><div class="animate-spin rounded-full h-10 w-10 border-4 border-cyan-500 border-t-transparent mx-auto"></div></div>';
-      
-      currentNotifsDate = dateStr;
-      currentNotifsSkip = 0;
-      hasMoreNotifs = true;
-      
-      try {
-        const res = await fetch(`/api/notifications/by-date?date=${dateStr}&skip=0&take=100`);
-        const data = await res.json();
-        renderNotifsChunk(data, false);
-        currentNotifsSkip += data.length;
-        if (data.length < 100) hasMoreNotifs = false;
-      } catch (e) {
-        console.error(e);
-        container.innerHTML = '<div class="text-center text-red-500 py-10">Gagal memuat notifikasi.</div>';
-      }
-    };
-    
-    // Infinite Scroll
-    const infiniteScrollObserver = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMoreNotifs && !isFetchingNotifs) {
-        isFetchingNotifs = true;
-        const spinner = document.createElement('div');
-        spinner.className = 'text-center py-4 infinite-spinner';
-        spinner.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-2 border-cyan-500 border-t-transparent mx-auto"></div>';
-        document.getElementById('notifications-container').appendChild(spinner);
-        
-        fetch(`/api/notifications/by-date?date=${currentNotifsDate}&skip=${currentNotifsSkip}&take=100`)
-          .then(res => res.json())
-          .then(data => {
-             spinner.remove();
-             if (data.length > 0) {
-                renderNotifsChunk(data, true);
-                currentNotifsSkip += data.length;
-             }
-             if (data.length < 100) hasMoreNotifs = false;
-             isFetchingNotifs = false;
-          }).catch(() => {
-             spinner.remove();
-             isFetchingNotifs = false;
-          });
-      }
-    }, { threshold: 0.1 });
-    
-    // Create an invisible target for infinite scroll
-    const target = document.createElement('div');
-    target.id = "infinite-scroll-target";
-    target.style.height = "20px";
-    document.querySelector('main').appendChild(target);
-    infiniteScrollObserver.observe(target);
+    observeUnread();
+  }
 
+  window.loadNotifsByDate = async function(dateStr) {
+    if (!dateStr) return;
+
+    const container = document.getElementById('notifications-container');
+    container.innerHTML = '<div class="text-center py-10"><div class="animate-spin rounded-full h-10 w-10 border-4 border-cyan-500 border-t-transparent mx-auto"></div></div>';
+
+    currentNotifsDate = dateStr;
+    currentNotifsSkip = 0;
+    hasMoreNotifs = true;
+
+    try {
+      const res = await fetch(`/api/notifications/by-date?date=${dateStr}&skip=0&take=100`);
+      const data = await res.json();
+      renderNotifsChunk(data, false);
+      currentNotifsSkip += data.length;
+      if (data.length < 100) hasMoreNotifs = false;
+    } catch (e) {
+      console.error(e);
+      container.innerHTML = '<div class="text-center text-red-500 py-10">Gagal memuat notifikasi.</div>';
+    }
+  };
+
+  // Infinite Scroll
+  const infiniteScrollObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && hasMoreNotifs && !isFetchingNotifs) {
+      isFetchingNotifs = true;
+      const spinner = document.createElement('div');
+      spinner.className = 'text-center py-4 infinite-spinner';
+      spinner.innerHTML = '<div class="animate-spin rounded-full h-6 w-6 border-2 border-cyan-500 border-t-transparent mx-auto"></div>';
+      document.getElementById('notifications-container').appendChild(spinner);
+
+      fetch(`/api/notifications/by-date?date=${currentNotifsDate}&skip=${currentNotifsSkip}&take=100`)
+        .then(res => res.json())
+        .then(data => {
+          spinner.remove();
+          if (data.length > 0) {
+            renderNotifsChunk(data, true);
+            currentNotifsSkip += data.length;
+          }
+          if (data.length < 100) hasMoreNotifs = false;
+          isFetchingNotifs = false;
+        }).catch(() => {
+          spinner.remove();
+          isFetchingNotifs = false;
+        });
+    }
+  }, {
+    threshold: 0.1
+  });
+
+  // Create an invisible target for infinite scroll
+  const target = document.createElement('div');
+  target.id = "infinite-scroll-target";
+  target.style.height = "20px";
+  document.querySelector('main').appendChild(target);
+  infiniteScrollObserver.observe(target);
 </script>
 
 <%- include('partials/footer') %>
