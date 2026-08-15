@@ -211,6 +211,9 @@
         });
 
         async function fetchNotifications() {
+          // Fitur notifikasi dimatikan sementara
+          return;
+          
           // [Fix #4] Skip polling jika tab tidak aktif/di-minimize
           if (document.visibilityState === 'hidden') return;
           try {

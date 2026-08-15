@@ -158,8 +158,9 @@ const { runNotificationWorker } = require('./workers/notificationWorker');
 const { getCachedDanbooru, getTotalPosts, getSliderTags, basePostsURL } = require('./utils/danbooruUtils');
 const { initRedis } = require('./lib/redis');
 
-runNotificationWorker();
-setInterval(runNotificationWorker, 30 * 60 * 1000); // [S2] setiap 30 menit
+// Fitur notifikasi dimatikan sementara
+// runNotificationWorker();
+// setInterval(runNotificationWorker, 30 * 60 * 1000); // [S2] setiap 30 menit
 
 async function warmUpCache() {
   try {
