@@ -4,6 +4,7 @@ const {
   getCachedDanbooru,
   getTopPostsThisMonth,
   getTopPosts,
+  getPopularPosts,
   getUserAppData,
   getSliderTags,
   getTotalPosts,
@@ -422,16 +423,16 @@ const search = async (req, res) => {
       }
     }
 
-    let sliderTitle = "Contents of the Month";
+    let sliderTitle = "🔥 Populer Bulan Ini";
     if (page === 1) {
       const sliderFilter = (tab === "followed" || tab === "collection") ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       if (actualUserTags && isMainSearch) {
          const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
-         sliderTitle = tagsCount >= 2 ? "Best Recent Contents" : "Top Contents";
+         sliderTitle = tagsCount >= 2 ? "Best Recent Contents" : "🏆 Top Contents";
          sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);
       } else {
-         sliderTitle = "Contents of the Month";
-         sliderPosts = await getTopPostsThisMonth(15, sliderFilter);
+         sliderTitle = "🔥 Populer Bulan Ini";
+         sliderPosts = await getPopularPosts('month', sliderFilter, 15);
       }
     }
 
