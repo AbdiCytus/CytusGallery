@@ -5,8 +5,16 @@
   <% const videoUrl = isVideo ? post.large_file_url : (isZip ? (post.media_asset?.variants?.find(v => v.file_ext === 'webm' || v.file_ext === 'mp4')?.url || '') : ''); %>
   <% const isSavedRelated = locals.savedPostIds ? savedPostIds.has(post.id.toString()) : false; %>
   <div class="group gallery-item relative bg-gray-800 rounded-lg overflow-hidden aspect-[3/4] shadow-md hover:shadow-cyan-500/20 transition-all duration-300 <%= isSavedRelated ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= !!(isVideo || (isZip && videoUrl)) %>" data-video-url="<%= videoUrl %>" data-preview-url="<%= previewUrl %>">
-    <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
-      <%= (locals.page ? (locals.page - 1) * 25 : 0) + index + 1 %>
+    <div class="absolute top-0 left-0 z-20 flex flex-col items-start gap-0.5 pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
+      <div class="bg-black/70 text-white text-xs px-2 py-1 rounded-br-md flex items-center gap-1.5">
+        <span><%= (locals.page ? (locals.page - 1) * 25 : 0) + index + 1 %></span>
+        <% if (post.parent_id) { %>
+        <div class="w-2.5 h-2.5 rounded-full bg-[#c0a000] shadow-sm" title="Has Parent (#<%= post.parent_id %>)"></div>
+        <% } %>
+        <% if (post.has_active_children) { %>
+        <div class="w-2.5 h-2.5 rounded-full bg-[#4a8c00] shadow-sm" title="Has Children"></div>
+        <% } %>
+      </div>
     </div>
     <div class="absolute top-0 right-0 z-20 flex pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0 drop-shadow-md">
       <% if ((isVideo || isZip) && post.media_asset && post.media_asset.duration) { %>

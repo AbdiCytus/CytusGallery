@@ -412,7 +412,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let activeTab = tab;
     if (!activeTab) {
        activeTab = localStorage.getItem('cytusGalleryActiveTab') || 'contents'; 
-       if (userTypedTags && activeTab === 'collection') { 
+       if (userTypedTags && (activeTab === 'collection' || activeTab === 'followed')) { 
          activeTab = 'contents'; 
          localStorage.setItem('cytusGalleryActiveTab', 'contents'); 
          document.cookie = "cytusGalleryActiveTab=contents; path=/; max-age=31536000";
@@ -1412,64 +1412,76 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       
-      // Cancel previous request if any
-      if (window.suggestAbortController) {
-        window.suggestAbortController.abort();
+      // Debounce: batalkan timer sebelumnya
+      if (window.suggestDebounceTimer) {
+        clearTimeout(window.suggestDebounceTimer);
       }
-      window.suggestAbortController = new AbortController();
-      const signal = window.suggestAbortController.signal;
+      
+      window.suggestDebounceTimer = setTimeout(async () => {
+        // Cancel request sebelumnya jika masih in-flight
+        if (window.suggestAbortController) {
+          window.suggestAbortController.abort();
+        }
+        window.suggestAbortController = new AbortController();
+        const signal = window.suggestAbortController.signal;
 
-      try {
-        const url = new URL("https://danbooru.donmai.us/tags.json");
-        url.searchParams.append("search[name_matches]", `${currentTerm}*`);
-        url.searchParams.append("search[order]", "count");
-        url.searchParams.append("limit", "10");
-        
-        const response = await fetch(url.toString(), { signal });
-        const data = await response.json();
-        const tags = data.filter((tag) => tag.post_count > 0);
-        
-        // Prevent race conditions when user types space and clears input before fetch completes
-        if (searchInputVisual.value.trim() !== currentTerm) return;
+        try {
+          const url = new URL("https://danbooru.donmai.us/autocomplete.json");
+          url.searchParams.append("search[query]", currentTerm);
+          url.searchParams.append("search[type]", "tag_query");
+          url.searchParams.append("limit", "10");
+          
+          const response = await fetch(url.toString(), { signal });
+          const data = await response.json();
+          const tags = (data || []).filter((tag) => tag.post_count > 0);
+          
+          // Cek race condition: jika input sudah berubah sejak fetch dimulai, abaikan
+          if (searchInputVisual.value.trim() !== currentTerm) return;
 
-        suggestionsBox.innerHTML = "";
+          suggestionsBox.innerHTML = "";
 
-        if (tags.length > 0) {
-          tags.forEach((tag) => {
-            const suggestionItem = document.createElement("button");
-            suggestionItem.type = "button";
-            suggestionItem.className =
-              "flex justify-between w-full items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2 suggestion-item focus:outline-none";
+          if (tags.length > 0) {
+            tags.forEach((tag) => {
+              const suggestionItem = document.createElement("button");
+              suggestionItem.type = "button";
+              suggestionItem.className =
+                "flex justify-between w-full items-center px-4 py-2 hover:bg-gray-700 text-white rounded-md cursor-pointer gap-2 suggestion-item focus:outline-none";
 
-            let categoryColor = 'text-white'; // 0: general
-            if (tag.category === 1) categoryColor = 'text-red-400'; // artist
-            else if (tag.category === 3) categoryColor = 'text-purple-400'; // copyright
-            else if (tag.category === 4) categoryColor = 'text-green-400'; // character
-            else if (tag.category === 5) categoryColor = 'text-yellow-400'; // meta
+              let categoryColor = 'text-white'; // 0: general
+              if (tag.category === 1) categoryColor = 'text-red-400'; // artist
+              else if (tag.category === 3) categoryColor = 'text-purple-400'; // copyright
+              else if (tag.category === 4) categoryColor = 'text-green-400'; // character
+              else if (tag.category === 5) categoryColor = 'text-yellow-400'; // meta
 
-            const postCount = tag.post_count.toLocaleString("en-US");
-            suggestionItem.innerHTML = `<span class="truncate font-medium ${categoryColor}">${tag.name.replace(/_/g, ' ')}</span><span class="text-xs text-gray-400 whitespace-nowrap">${postCount}</span>`;
+              const postCount = tag.post_count.toLocaleString("en-US");
+              // Tampilkan antecedent (alias) jika ada, contoh: "lelouch → lelouch_lamperouge"
+              const aliasHint = tag.antecedent_name
+                ? `<span class="text-xs text-gray-500 truncate ml-1">← ${tag.antecedent_name.replace(/_/g, ' ')}</span>`
+                : '';
 
-            suggestionItem.addEventListener("click", (e) => {
-              e.preventDefault();
-              addChip(tag.name);
-              searchInputVisual.value = "";
-              showRecentTags();
-              searchInputVisual.focus();
+              suggestionItem.innerHTML = `<span class="truncate font-medium ${categoryColor}">${tag.label.replace(/_/g, ' ')}${aliasHint}</span><span class="text-xs text-gray-400 whitespace-nowrap">${postCount}</span>`;
+
+              suggestionItem.addEventListener("click", (e) => {
+                e.preventDefault();
+                addChip(tag.value);
+                searchInputVisual.value = "";
+                showRecentTags();
+                searchInputVisual.focus();
+              });
+              
+              suggestionsBox.appendChild(suggestionItem);
             });
-            
-            suggestionsBox.appendChild(suggestionItem);
-          });
-          suggestionsBox.classList.remove("hidden");
-        } else {
-          suggestionsBox.classList.add("hidden");
+            suggestionsBox.classList.remove("hidden");
+          } else {
+            suggestionsBox.classList.add("hidden");
+          }
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error("Error fetching suggestions:", error);
+          }
         }
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error("Error fetching suggestions:", error);
-        }
-      }
-    });
+      }, 150); // 150ms debounce
+    }); // end addEventListener("input")
 
     searchInputVisual.addEventListener("keydown", (e) => {
       if (e.key === "Backspace" && searchInputVisual.value === "") {

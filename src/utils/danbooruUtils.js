@@ -62,7 +62,7 @@ async function deleteCacheData(key) {
 
 const inFlightRequests = {};
 async function getCachedDanbooru(url, params = {}, timeout = 8000) {
-  const cacheKey = `danbooru_${url}_${JSON.stringify(params)}`;
+  const cacheKey = `danbooru_v2_${url}_${JSON.stringify(params)}`;
   
   const cachedData = await getCacheData(cacheKey);
   if (cachedData) {
@@ -77,7 +77,10 @@ async function getCachedDanbooru(url, params = {}, timeout = 8000) {
     try {
       const response = await axios.get(url, { params: params, timeout: timeout });
       let finalData = response.data;
-      if (Array.isArray(finalData)) {
+      // Hanya filter posts, bukan data lain (notes, commentary, pools, dll)
+      const nonPostEndpoints = ['/pools', '/notes', '/artist_commentaries', '/iqdb_queries', '/tags', '/autocomplete', '/related_tag', '/explore', '/counts'];
+      const isPostsEndpoint = !nonPostEndpoints.some(ep => url.includes(ep));
+      if (Array.isArray(finalData) && isPostsEndpoint) {
          finalData = finalData.filter(p => !p.is_banned && !p.is_deleted && !p.is_pending && p.large_file_url);
       }
       await setCacheData(cacheKey, finalData, CACHE_TTL);
@@ -151,45 +154,6 @@ async function getTopPosts(tags, filter = "", limit) {
       }
     }
     return [];
-  }
-}
-
-/**
- * Ambil konten populer menggunakan endpoint resmi Danbooru.
- * Menggantikan workaround order:score yang sering error 422.
- * @param {'day'|'week'|'month'} scale - Rentang waktu popularitas
- * @param {string} filter - Filter tambahan (misal: 'rating:g,s')
- * @param {number} limit - Jumlah konten yang diinginkan
- */
-async function getPopularPosts(scale = 'month', filter = '', limit = 15) {
-  const cacheKey = `popularPosts_${scale}_${filter}_${limit}`;
-  const cachedData = await getCacheData(cacheKey);
-  if (cachedData) return cachedData;
-
-  try {
-    const response = await getCachedDanbooru(
-      'https://danbooru.donmai.us/explore/posts/popular.json',
-      { scale },
-      8000
-    );
-    let posts = response.data || [];
-
-    // Terapkan filter rating secara manual karena explore endpoint
-    // tidak mendukung tag-based filtering langsung
-    if (filter) {
-      const ratingMatch = filter.match(/rating:([gsqe,]+)/);
-      if (ratingMatch) {
-        const allowedRatings = ratingMatch[1].split(',');
-        posts = posts.filter(p => allowedRatings.includes(p.rating));
-      }
-    }
-
-    const result = posts.slice(0, limit);
-    await setCacheData(cacheKey, result, CACHE_TTL);
-    return result;
-  } catch (error) {
-    console.error(`[getPopularPosts] Gagal fetch explore endpoint (scale=${scale}), fallback ke getTopPostsThisMonth:`, error.message);
-    return getTopPostsThisMonth(limit, filter);
   }
 }
 
@@ -463,7 +427,6 @@ module.exports = {
   getCachedDanbooru,
   getTopPostsThisMonth,
   getTopPosts,
-  getPopularPosts,
   getUserAppData,
   getSliderTags,
   getTotalPosts,

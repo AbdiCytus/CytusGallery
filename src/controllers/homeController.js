@@ -4,13 +4,13 @@ const {
   getCachedDanbooru,
   getTopPostsThisMonth,
   getTopPosts,
-  getPopularPosts,
   getUserAppData,
   getSliderTags,
   getTotalPosts,
   getTotalPostsWithParams,
   getCachedPosts,
-  getFollowedContents
+  getFollowedContents,
+  basePostsURL
 } = require('../utils/danbooruUtils');
 
 const root = async (req, res) => {
@@ -423,16 +423,16 @@ const search = async (req, res) => {
       }
     }
 
-    let sliderTitle = "🔥 Populer Bulan Ini";
+    let sliderTitle = "Contents of the Month";
     if (page === 1) {
       const sliderFilter = (tab === "followed" || tab === "collection") ? filterQuery.replace(/date:[^\s]+/g, '').trim() : filterQuery;
       if (actualUserTags && isMainSearch) {
          const tagsCount = actualUserTags.trim().split(/\s+/).filter(t => t).length;
-         sliderTitle = tagsCount >= 2 ? "Best Recent Contents" : "🏆 Top Contents";
+         sliderTitle = tagsCount >= 2 ? "Best Recent Contents" : "Top Contents";
          sliderPosts = await getTopPosts(actualUserTags, sliderFilter, 15);
       } else {
-         sliderTitle = "🔥 Populer Bulan Ini";
-         sliderPosts = await getPopularPosts('month', sliderFilter, 15);
+         sliderTitle = "Contents of the Month";
+         sliderPosts = await getTopPostsThisMonth(15, sliderFilter);
       }
     }
 
@@ -526,7 +526,87 @@ const detail = async (req, res) => {
       savedPostIds = appData.savedPostIds;
     }
 
-    res.render("detail", { post: post, isSaved: isSaved, followedTags: followedTags, relatedPosts: [], savedPostIds: savedPostIds, hasRelatedTags: hasRelatedTags });
+    // === Fetch paralel: parent, children, pools, notes, artist commentary ===
+    const fetchPromises = {};
+
+    // Parent post
+    if (post.parent_id) {
+      fetchPromises.parent = getCachedDanbooru(`https://danbooru.donmai.us/posts/${post.parent_id}.json`).catch(() => null);
+    }
+
+    // Children posts
+    if (post.has_children) {
+      fetchPromises.children = getCachedDanbooru(basePostsURL, {
+        tags: `parent:${postId}`,
+        limit: 50,
+      }, 6000).catch(() => null);
+    }
+
+    // Pools (fetch from pools endpoint since pool_string is deprecated on /posts)
+    fetchPromises.pools = getCachedDanbooru('https://danbooru.donmai.us/pools.json', {
+      'search[post_tags_match]': `id:${postId}`
+    }, 5000).catch(() => null);
+
+    // Notes (translasi teks)
+    fetchPromises.notes = getCachedDanbooru('https://danbooru.donmai.us/notes.json', {
+      'search[post_id]': postId,
+      limit: 200
+    }, 5000).catch(() => null);
+
+    // Artist Commentary
+    fetchPromises.commentary = getCachedDanbooru('https://danbooru.donmai.us/artist_commentaries.json', {
+      'search[post_id]': postId,
+      limit: 1
+    }, 5000).catch(() => null);
+
+    // Await semua sekaligus
+    const keys = Object.keys(fetchPromises);
+    const values = await Promise.all(Object.values(fetchPromises));
+    const results = {};
+    keys.forEach((k, i) => { results[k] = values[i]; });
+
+    // Process results
+    let parentPost = results.parent?.data || null;
+
+    let childrenPosts = [];
+    if (results.children && Array.isArray(results.children.data)) {
+      childrenPosts = results.children.data.filter(p => p.id !== parseInt(postId, 10));
+    }
+
+    let poolsData = [];
+    if (results.pools && Array.isArray(results.pools.data)) {
+      poolsData = results.pools.data.map(pool => {
+        const postIds = pool.post_ids || [];
+        const currentIndex = postIds.indexOf(parseInt(postId, 10));
+        return {
+          id: pool.id,
+          name: (pool.name || '').replace(/_/g, ' '),
+          post_count: pool.post_count || postIds.length,
+          category: pool.category || 'series',
+          currentIndex: currentIndex,
+          prevPostId: currentIndex > 0 ? postIds[currentIndex - 1] : null,
+          nextPostId: currentIndex < postIds.length - 1 ? postIds[currentIndex + 1] : null,
+        };
+      });
+    }
+
+    let notes = [];
+    if (results.notes && Array.isArray(results.notes.data)) {
+      notes = results.notes.data.filter(n => n.is_active !== false);
+    }
+
+    let artistCommentary = null;
+    if (results.commentary && Array.isArray(results.commentary.data) && results.commentary.data.length > 0) {
+      const c = results.commentary.data[0];
+      if (c.original_description || c.translated_description) {
+        artistCommentary = c;
+      }
+    }
+
+    res.render("detail", {
+      post, isSaved, followedTags, relatedPosts: [], savedPostIds, hasRelatedTags,
+      parentPost, childrenPosts, poolsData, notes, artistCommentary
+    });
   } catch (error) {
     console.error("Error fetching post details:", error);
     if (error && error.message && error.message.includes('planLimitReached')) {
@@ -540,70 +620,126 @@ const related = async (req, res) => {
   try {
     const postId = req.params.id;
     const page = parseInt(req.query.page) || 1;
-    
-    const response = await getCachedDanbooru(`https://danbooru.donmai.us/posts/${postId}.json`);
-    const post = response.data;
-    
-    let searchTags = [];
-    if (post.tag_string_character) {
-      searchTags = post.tag_string_character.split(' ').slice(0, 5);
-    } else if (post.tag_string_copyright) {
-      searchTags = post.tag_string_copyright.split(' ').slice(0, 2);
-    } else if (post.tag_string_artist) {
-      searchTags = post.tag_string_artist.split(' ').slice(0, 1);
-    } else if (post.tag_string_general) {
-      searchTags = post.tag_string_general.split(' ').slice(0, 1);
+
+    // Tentukan rating yang diizinkan
+    const activeRatingFilter = req.cookies?.cytusGalleryRatingFilter;
+    let requestedRatings = [];
+    if (activeRatingFilter !== undefined && activeRatingFilter !== "") {
+      requestedRatings = decodeURIComponent(activeRatingFilter).split(',');
+    } else {
+      requestedRatings = ['g', 's'];
     }
-    
+    let allowedRatings = [];
+    if (!res.locals.isBypass) {
+      allowedRatings = requestedRatings.filter(r => r === 'g' || r === 's');
+      if (allowedRatings.length === 0) allowedRatings = ['g', 's'];
+    } else {
+      allowedRatings = requestedRatings;
+    }
+
     let relatedPosts = [];
-    if (searchTags.length > 0) {
-       const activeRatingFilter = req.cookies?.cytusGalleryRatingFilter;
-       let requestedRatings = [];
-       if (activeRatingFilter !== undefined && activeRatingFilter !== "") {
-          requestedRatings = decodeURIComponent(activeRatingFilter).split(',');
-       } else {
-          requestedRatings = ['g', 's'];
-       }
-       let allowedRatings = [];
-       if (!res.locals.isBypass) {
-          allowedRatings = requestedRatings.filter(r => r === 'g' || r === 's');
-          if (allowedRatings.length === 0) allowedRatings = ['g', 's'];
-       } else {
-          allowedRatings = requestedRatings;
-       }
-       const ratingFilterStr = " rating:" + allowedRatings.join(',');
-       
-       const promises = searchTags.map(tag => {
-          return getCachedPosts({ tags: tag + ratingFilterStr, page: page, limit: 25 });
-       });
-       
-       const results = await Promise.all(promises);
-       let fetchedPostsMap = new Map();
-       results.forEach(result => {
-          if (result.data) {
-             result.data.forEach(p => {
-                if (p.id !== post.id && allowedRatings.includes(p.rating) && p.large_file_url && !p.is_banned && !p.is_deleted && !p.is_pending) {
-                   fetchedPostsMap.set(p.id, p);
-                }
-             });
+    let usedIqdb = false;
+
+    // === STRATEGI 1: IQDB Visual Similarity (hanya page 1) ===
+    if (page === 1) {
+      try {
+        const iqdbRes = await getCachedDanbooru(
+          `https://danbooru.donmai.us/iqdb_queries.json`,
+          { post_id: postId },
+          8000
+        );
+        const iqdbPosts = iqdbRes.data;
+
+        if (Array.isArray(iqdbPosts) && iqdbPosts.length > 0) {
+          const filtered = iqdbPosts.filter(p =>
+            p.id !== parseInt(postId, 10) &&
+            allowedRatings.includes(p.rating) &&
+            p.large_file_url &&
+            !p.is_banned &&
+            !p.is_deleted &&
+            !p.is_pending
+          );
+          if (filtered.length >= 4) {
+            relatedPosts = filtered.slice(0, 25);
+            usedIqdb = true;
           }
-       });
-       
-       let fetchedPosts = Array.from(fetchedPostsMap.values());
-       for (let i = fetchedPosts.length - 1; i > 0; i--) {
+        }
+      } catch (iqdbErr) {
+        // IQDB gagal, lanjut ke fallback
+        console.warn(`[Related] IQDB lookup failed for post ${postId}:`, iqdbErr.message);
+      }
+    }
+
+    // === STRATEGI 2: Fallback — Tag-based search ===
+    if (!usedIqdb) {
+      const postResponse = await getCachedDanbooru(`https://danbooru.donmai.us/posts/${postId}.json`);
+      const post = postResponse.data;
+
+      let searchTags = [];
+      if (post.tag_string_character) {
+        searchTags = post.tag_string_character.split(' ').slice(0, 3);
+      } else if (post.tag_string_copyright) {
+        searchTags = post.tag_string_copyright.split(' ').slice(0, 2);
+      } else if (post.tag_string_artist) {
+        searchTags = post.tag_string_artist.split(' ').slice(0, 1);
+      }
+
+      if (searchTags.length > 0) {
+        const ratingFilterStr = " rating:" + allowedRatings.join(',');
+        const promises = searchTags.map(tag =>
+          getCachedPosts({ tags: tag + ratingFilterStr, page: page, limit: 25 })
+        );
+        const results = await Promise.all(promises);
+
+        const fetchedPostsMap = new Map();
+        results.forEach(result => {
+          if (result.data) {
+            result.data.forEach(p => {
+              if (
+                p.id !== parseInt(postId, 10) &&
+                allowedRatings.includes(p.rating) &&
+                p.large_file_url &&
+                !p.is_banned && !p.is_deleted && !p.is_pending
+              ) {
+                fetchedPostsMap.set(p.id, p);
+              }
+            });
+          }
+        });
+
+        let fetchedPosts = Array.from(fetchedPostsMap.values());
+        // Shuffle agar tidak monoton
+        for (let i = fetchedPosts.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [fetchedPosts[i], fetchedPosts[j]] = [fetchedPosts[j], fetchedPosts[i]];
-       }
-       relatedPosts = fetchedPosts.slice(0, 25); // Ambil 25 per request
+        }
+        relatedPosts = fetchedPosts.slice(0, 25);
+      }
     }
-    
+
     let savedPostIds = new Set();
     if (res.locals.user) {
       const appData = await getUserAppData(res.locals.user.id);
       savedPostIds = appData.savedPostIds;
     }
-    
-    res.render("partials/related-items", { relatedPosts, savedPostIds, user: req.user, post, page });
+
+    // Ambil post object untuk template (diperlukan oleh related-items.ejs)
+    let postForTemplate = { id: parseInt(postId, 10) };
+    if (!usedIqdb) {
+      try {
+        const pRes = await getCachedDanbooru(`https://danbooru.donmai.us/posts/${postId}.json`);
+        postForTemplate = pRes.data;
+      } catch (_) {}
+    }
+
+    res.render("partials/related-items", {
+      relatedPosts,
+      savedPostIds,
+      user: req.user,
+      post: postForTemplate,
+      page,
+      sourceStrategy: usedIqdb ? 'iqdb' : 'tags'
+    });
   } catch (e) {
     console.error("Error fetching related API:", e.message);
     res.status(500).send("");

@@ -241,8 +241,16 @@
     <% const previewUrl = (isVideo || isZip) ? (post.media_asset?.variants?.find(v => v.type === '720x720')?.url || post.media_asset?.variants?.find(v => v.type === '360x360')?.url || post.preview_file_url) : ''; %>
     <% const videoUrl = isVideo ? post.large_file_url : (isZip ? (post.media_asset?.variants?.find(v => v.file_ext === 'webm' || v.file_ext === 'mp4')?.url || '') : ''); %>
     <div class="group gallery-item relative z-0 break-inside-avoid bg-gray-800 rounded-md overflow-hidden <%= isSaved ? 'border-4 border-yellow-500' : '' %>" data-post-url="/posts/<%= post.id %>" data-is-video="<%= !!(isVideo || (isZip && videoUrl)) %>" data-video-url="<%= videoUrl %>" data-preview-url="<%= previewUrl %>">
-      <div class="absolute top-0 left-0 z-20 bg-black/50 text-white text-xs px-2 py-1 rounded-br-md pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
-        <%= ((currentPage - 1) * limit) + validIndex + 1 %>
+      <div class="absolute top-0 left-0 z-20 flex flex-col items-start gap-0.5 pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0">
+        <div class="bg-black/70 text-white text-xs px-2 py-1 rounded-br-md flex items-center gap-1.5">
+          <span><%= ((currentPage - 1) * limit) + validIndex + 1 %></span>
+          <% if (post.parent_id) { %>
+          <div class="w-2.5 h-2.5 rounded-full bg-[#c0a000] shadow-sm" title="Has Parent (#<%= post.parent_id %>)"></div>
+          <% } %>
+          <% if (post.has_active_children) { %>
+          <div class="w-2.5 h-2.5 rounded-full bg-[#4a8c00] shadow-sm" title="Has Children"></div>
+          <% } %>
+        </div>
       </div>
 
       <div class="absolute top-0 right-0 z-20 flex items-start pointer-events-none transition-opacity duration-300 group-hover:opacity-0 [.mobile-active_&]:opacity-0 drop-shadow-md">
