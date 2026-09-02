@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 // Rate Limiter
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 10,
+  max: 60,
   keyGenerator: (req) => {
     return req.headers["x-nf-client-connection-ip"] || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
   },
