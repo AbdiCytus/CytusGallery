@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
 // Rate Limiter
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
-  max: 60,
+  max: 10,
   keyGenerator: (req) => {
     return req.headers["x-nf-client-connection-ip"] || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
   },
@@ -80,6 +80,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Rate Limiter (diletakkan sebelum route apapun agar semua endpoint dinamis terlindungi)
+app.use(limiter);
+
 // Auth Routes
 app.use(authRoutes);
 
@@ -93,9 +96,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-// Rate Limiter
-app.use(limiter);
 
 // =====================================================
 // Static Asset Routes
