@@ -29,6 +29,8 @@ const limiter = rateLimit({
   },
   validate: { ip: false, xForwardedForHeader: false, default: false },
   handler: (req, res, next, options) => {
+    const clientIp = req.headers["x-nf-client-connection-ip"] || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
+    console.warn(`[RATE LIMIT TRIGGERED] IP: ${clientIp} | User-Agent: ${req.headers["user-agent"] || "N/A"}`);
     res.status(options.statusCode).render("error", {
       message: "Terlalu banyak request dari IP ini. Sistem mendeteksi aktivitas yang tidak wajar. Silakan coba lagi setelah 1 menit.",
     });
@@ -96,6 +98,7 @@ app.use((req, res, next) => {
   ];
   const isBot = blockedAgents.some((bot) => userAgent.toLowerCase().includes(bot));
   if (isBot || userAgent.trim() === "") {
+    console.warn(`[BOT BLOCKED] User-Agent: ${userAgent || "N/A"}`);
     return res.status(403).send("Akses ditolak. Bot/Scraper terdeteksi.");
   }
   next();
