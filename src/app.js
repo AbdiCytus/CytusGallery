@@ -24,6 +24,9 @@ const PORT = process.env.PORT || 3000;
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 60,
+  keyGenerator: (req) => {
+    return req.headers["x-nf-client-connection-ip"] || req.ip;
+  },
   validate: { ip: false, xForwardedForHeader: false },
   handler: (req, res, next, options) => {
     res.status(options.statusCode).render("error", {
