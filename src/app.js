@@ -89,7 +89,11 @@ app.use(authRoutes);
 // Bot / User-Agent Filter
 app.use((req, res, next) => {
   const userAgent = req.headers["user-agent"] || "";
-  const blockedAgents = ["python-requests", "curl", "wget", "scrapy", "postman"];
+  const blockedAgents = [
+    "python-requests", "curl", "wget", "scrapy", "postman",
+    "googlebot", "bingbot", "yandex", "petalbot", "ahrefs",
+    "semrush", "bot", "spider", "crawl", "slurp"
+  ];
   const isBot = blockedAgents.some((bot) => userAgent.toLowerCase().includes(bot));
   if (isBot || userAgent.trim() === "") {
     return res.status(403).send("Akses ditolak. Bot/Scraper terdeteksi.");
