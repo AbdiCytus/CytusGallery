@@ -6,6 +6,10 @@
   # Memaksa Netlify menyertakan semua file di dalam folder views dan public ke dalam serverless function
   included_files = ["src/views/**", "src/public/**", "node_modules/.prisma/client/**", "prisma/schema.prisma"]
 
+[[edge_functions]]
+  path = "/*"
+  function = "bot-blocker"
+
 [[redirects]]
   from = "/robots.txt"
   to = "/robots.txt"
