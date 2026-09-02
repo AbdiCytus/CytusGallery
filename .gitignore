@@ -9,6 +9,22 @@ node_modules
 .agents/
 .claude/
 .windsurf/
+node_modules
+*.pdf
+*.txt
+
+.env
+/src/generated/prisma
+
+# AI Agents & IDE tools
+.agents/
+.claude/
+.windsurf/
 
 # Temp scripts
 backfill_tags.js
+
+# Local Netlify folder
+.netlify
+deno.lock  
+ 
