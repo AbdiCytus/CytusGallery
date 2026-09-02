@@ -25,9 +25,9 @@ const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 60,
   keyGenerator: (req) => {
-    return req.headers["x-nf-client-connection-ip"] || req.ip;
+    return req.headers["x-nf-client-connection-ip"] || req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
   },
-  validate: { ip: false, xForwardedForHeader: false },
+  validate: { ip: false, xForwardedForHeader: false, default: false },
   handler: (req, res, next, options) => {
     res.status(options.statusCode).render("error", {
       message: "Terlalu banyak request dari IP ini. Sistem mendeteksi aktivitas yang tidak wajar. Silakan coba lagi setelah 1 menit.",
